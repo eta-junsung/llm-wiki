@@ -1,0 +1,226 @@
+,,,,,,,,,,,,,,
+아래의 표는 Rx Module이 Bluetooth 통신 모듈에게 송신하는 SPI통신의 Packet을 간략히 요약하였음.,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,
+3. 세부정보 (Rx Module(Master) → Rx Bluetooth 통신 모듈(Slave)) : 송신한 Data는 Bluetooth 통신 모듈 상대물을 통해 최종적으로 Tx Module에 전송되어야 함.,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,
+Num,,Header,,Message Item,,,,,Remark,,,,,
+1,, 0x50,,Rx Module의 상태 정보 ,,,,,Rx Module → Bluetooth 통신 모듈,,,,,
+2,, 0x51,,"Rx Module의 입력측 Analog Level 정보, Tx Buck 컨버터 출력전압 Ref. ",,,,,Rx Module → Bluetooth 통신 모듈,,,,,
+3,, 0x52,,"Rx Module의 출력측 Analog Level 정보, 전력소자 주변의 온도 정보",,,,,Rx Module → Bluetooth 통신 모듈,,,,,
+,,,,,,,,,,,,,,
+3.1. Header (0x50) ,,,,,,,,,,,,,,
+▶ Data Handle : Rx Module (Master)의 시스템 상태 및 운용 정보를 Bluetooth 통신 모듈을 통해 상대물 장치 (Tx Module)에 전송함.,,,,,,,,,,,,,,
+▶ Transmission Mode : Cyclic / 10[ms]  (주기는 개발자에 의해 조정이 가능함),,,,,,,,,,,,,,
+,,,,,,,,,,,,,,
+구성,,,Bit.7,Bit.6,Bit.5,Bit.4,Bit.3,Bit.2,Bit.1,Bit.0,,,,
+HDR? (Header) : 0x50,,,0,1,0,1,0,0,0,0,,,0,Start Bit
+Data Length : 0x08,,,0,0,0,0,1,0,0,0,,,8,Start Bit
+Data Buffer[0] : 시스템 상태,,,Spare,,,,Rx_Fault_St,Rx_Warning_St,Rx_Sys_Rdy_St,Rx_Sys_Init_St,,,16,Start Bit
+Data Buffer[1] : Rx 입력측,,,Spare,,,,RxIrect_OC,RxVrect_UpperLmt,RxVrect_LowerLmt,RxVrect_Steady_St,,,24,Start Bit
+Data Buffer[2] : Rx 출력측,,,Spare,,,RxIout_Upper_Lmt,RxCtrl_Lmt_St,RxVout_SetPoint_St,RxNo_Load_St,RxBuckRunStop_St,,,32,Start Bit
+Data Buffer[3],,,Spare (Byte),,,,,,,,,,40,Start Bit
+Data Buffer[4],,,Spare (Byte),,,,,,,,,,48,Start Bit
+Data Buffer[5],,,Spare (Byte),,,,,,,,,,56,Start Bit
+Data Buffer[6],,,F/W Version (0x0100 → Ver1.00),,,,,,,,,,64,Start Bit
+Data Buffer[7],,,Spare (Byte),,,,,,,,,,72,Start Bit
+CRC (CheckSum),,,CheckSum Data,,,,,,,,,,80,Start Bit
+,,,,,,,,,,,,,,
+Description (Header : 0x50),,,,,,,,,,,,,,
+,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,
+,,Data Buffer[0] - Bit.0,,,,,,,,,,,,
+,,명칭,,,설정값,세부설명,,,,,,,,
+,,"System Init.ialzation Status
+(Rx_Sys_Init_St)",,,0,Rx Module의 시스템 초기화가 완료 안됐음.,,,,,,,,
+,,,,,1,Rx Module의 시스템 초기화가 완료 되었음.,,,,,,,,
+,,,,,,,,,,,,,,
+,,,[Edit Variables],,,,,,,,,,,
+,,,Start Bit,Data Type,Byte Order,Bit Length,Factor,Offset,Uint,,,,,
+,,,16,Uint16,Motorola,1,1,0,-,,,,,
+,,,,,,,,,,,,,,
+,,Data Buffer[0] - Bit.1,,,,,,,,,,,,
+,,명칭,,,설정값,세부설명,,,,,,,,
+,,"System Ready Status
+(Rx_Sys_Rdy_St)",,,0,Rx Module이 출력을 낼 준비가 안됐음.,,,,,,,,
+,,,,,1,Rx Module이 출력을 낼 준비가 되었음.,,,,,,,,
+,,,,,,,,,,,,,,
+,,,[Edit Variables],,,,,,,,,,,
+,,,Start Bit,Data Type,Byte Order,Bit Length,Factor,Offset,Uint,,,,,
+,,,17,Uint16,Motorola,1,1,0,-,,,,,
+,,,,,,,,,,,,,,
+,,Data Buffer[0] - Bit.2,,,,,,,,,,,,
+,,명칭,,,설정값,세부설명,,,,,,,,
+,,"System Waring
+(Rx_Warning_St)",,,0,Rx Module System이 정상적으로 운용되고 있음.,,,,,,,,
+,,,,,1,Rx Module System이 Warning 상태로 전환 됐음.,,,,,,,,
+,,,,,,,,,,,,,,
+,,,[Edit Variables],,,,,,,,,,,
+,,,Start Bit,Data Type,Byte Order,Bit Length,Factor,Offset,Uint,,,,,
+,,,18,Uint16,Motorola,1,1,0,-,,,,,
+,,,,,,,,,,,,,,
+,,Data Buffer[0] - Bit.3,,,,,,,,,,,,
+,,명칭,,,설정값,세부설명,,,,,,,,
+,,"System State Fault
+(Rx_Fault_St)",,,0,Rx Module System이 정상적으로 운용되고 있음.,,,,,,,,
+,,,,,1,Rx Module System이 Fault 상태로 전환 됐음.,,,,,,,,
+,,,,,,,,,,,,,,
+,,,[Edit Variables],,,,,,,,,,,
+,,,Start Bit,Data Type,Byte Order,Bit Length,Factor,Offset,Uint,,,,,
+,,,19,Uint16,Motorola,1,1,0,-,,,,,
+,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,
+,,Data Buffer[1] - Bit.0,,,,,,,,,,,,
+,,명칭,,,설정값,세부설명,,,,,,,,
+,,"Vrect Steady Status
+(RxVrect_Steady_St)",,,0,Vrect 전압이 불안정적인 영역에 있음. (정상범위 : 55~200VDC),,,,,,,,
+,,,,,1,Vrect 전압이 안정적인 영역에 있음.,,,,,,,,
+,,,,,,,,,,,,,,
+,,,[Edit Variables],,,,,,,,,,,
+,,,Start Bit,Data Type,Byte Order,Bit Length,Factor,Offset,Uint,,,,,
+,,,24,Uint16,Motorola,1,1,0,-,,,,,
+,,,,,,,,,,,,,,
+,,Data Buffer[1] - Bit.1,,,,,,,,,,,,
+,,명칭,,,설정값,세부설명,,,,,,,,
+,,"Vrect Lower Limit Status
+(RxVrect_LowerLmt)",,,0,Vrect 전압이 정상 범위에서 운용되고 있음.,,,,,,,,
+,,,,,1,Vrect 전압이 하한치까지 내려감,,,,,,,,
+,,,,,,,,,,,,,,
+,,,[Edit Variables],,,,,,,,,,,
+,,,Start Bit,Data Type,Byte Order,Bit Length,Factor,Offset,Uint,,,,,
+,,,25,Uint16,Motorola,1,1,0,-,,,,,
+,,,,,,,,,,,,,,
+,,Data Buffer[1] - Bit.2,,,,,,,,,,,,
+,,명칭,,,설정값,세부설명,,,,,,,,
+,,"Vrect Upper Limit Status
+(RxVrect_UpperLmt)",,,0,Vrect 전압이 정상 범위에서 운용되고 있음.,,,,,,,,
+,,,,,1,Vrect 전압이 상한치를 넘었음.,,,,,,,,
+,,,,,,,,,,,,,,
+,,,[Edit Variables],,,,,,,,,,,
+,,,Start Bit,Data Type,Byte Order,Bit Length,Factor,Offset,Uint,,,,,
+,,,26,Uint16,Motorola,1,1,0,-,,,,,
+,,,,,,,,,,,,,,
+,,Data Buffer[1] - Bit.3,,,,,,,,,,,,
+,,명칭,,,설정값,세부설명,,,,,,,,
+,,"Irect Over Current
+(RxIrect_OC)",,,0,Irect 전류가 정상 범위에서 운용되고 있음.,,,,,,,,
+,,,,,1,Irect 전류가 과전류 설정 범위를 넘었음.,,,,,,,,
+,,,,,,,,,,,,,,
+,,,[Edit Variables],,,,,,,,,,,
+,,,Start Bit,Data Type,Byte Order,Bit Length,Factor,Offset,Uint,,,,,
+,,,27,Uint16,Motorola,1,1,0,-,,,,,
+,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,
+,,Data Buffer[2] - Bit.0,,,,,,,,,,,,
+,,명칭,,,설정값,세부설명,,,,,,,,
+,,"Run/Stop Status
+(RxBuckRunStop_St)",,,0,Rx Module의 Buck 컨버터 출력이 꺼진(Off) 상태,,,,,,,,
+,,,,,1,Rx Module의 Buck 컨버터 출력이 켜진(On) 상태,,,,,,,,
+,,,,,,,,,,,,,,
+,,,[Edit Variables],,,,,,,,,,,
+,,,Start Bit,Data Type,Byte Order,Bit Length,Factor,Offset,Uint,,,,,
+,,,32,Uint16,Motorola,1,1,0,-,,,,,
+,,,,,,,,,,,,,,
+,,Data Buffer[1] - Bit.3,,,,,,,,,,,,
+,,명칭,,,설정값,세부설명,,,,,,,,
+,,"No Load Status
+(RxNo_Load_St)",,,0,Rx Module에 부하가 있는 조건으로 인식 (Default : 0),,,,,,,,
+,,,,,1,"무부하 상태 (무부하 조건 : 0.3[A]이하, 출력 On상태에서 진단 시작)",,,,,,,,
+,,,,,,,,,,,,,,
+,,,[Edit Variables],,,,,,,,,,,
+,,,Start Bit,Data Type,Byte Order,Bit Length,Factor,Offset,Uint,,,,,
+,,,33,Uint16,Motorola,1,1,0,-,,,,,
+,,,,,,,,,,,,,,
+,,Data Buffer[1] - Bit.3,,,,,,,,,,,,
+,,명칭,,,설정값,세부설명,,,,,,,,
+,,"Vout Setpoint Status
+(RxVout_SetPoint_St)",,,0,설정한 출력 전압에 Buck 컨버터 출력이 도달하지 못한 상태 @출력On상태,,,,,,,,
+,,,,,1,설정한 출력 전압에 Buck 컨버터 출력이 도달한 상태,,,,,,,,
+,,,,,,,,,,,,,,
+,,,[Edit Variables],,,,,,,,,,,
+,,,Start Bit,Data Type,Byte Order,Bit Length,Factor,Offset,Uint,,,,,
+,,,34,Uint16,Motorola,1,1,0,-,,,,,
+,,,,,,,,,,,,,,
+,,Data Buffer[1] - Bit.3,,,,,,,,,,,,
+,,명칭,,,설정값,세부설명,,,,,,,,
+,,"Control Limit Status
+(RxCtrl_Lmt_St)",,,0,정상적인 상태,,,,,,,,
+,,,,,1,Rx Module의 PWM 제어가 Limit에 의해 출력이 제한된 상태,,,,,,,,
+,,,,,,,,,,,,,,
+,,,[Edit Variables],,,,,,,,,,,
+,,,Start Bit,Data Type,Byte Order,Bit Length,Factor,Offset,Uint,,,,,
+,,,35,Uint16,Motorola,1,1,0,-,,,,,
+,,,,,,,,,,,,,,
+,,Data Buffer[1] - Bit.3,,,,,,,,,,,,
+,,명칭,,,설정값,세부설명,,,,,,,,
+,,"Iout Upper Limit
+(RxIout_Upper_Lmt)",,,0,Rx Module의 출력전류가 정상범위에서 운용되고 있음.,,,,,,,,
+,,,,,1,Rx Module의 출력전류가 상한치에 도달한 상태,,,,,,,,
+,,,,,,,,,,,,,,
+,,,[Edit Variables],,,,,,,,,,,
+,,,Start Bit,Data Type,Byte Order,Bit Length,Factor,Offset,Uint,,,,,
+,,,36,Uint16,Motorola,1,1,0,-,,,,,
+,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,
+3.2. Header (0x51) ,,,,,,,,,,,,,,
+"▶ Data Handle : Rx Module의 입력 전압, 전류, 임피던스 등의 정보를 Bluetooth 통신을 통해 상대물 장치에 전송함.",,,,,,,,,,,,,,
+▶ Transmission Mode : Cyclic / 10[ms]  (주기는 개발자에 의해 조정이 가능함),,,,,,,,,,,,,,
+구성,,,Bit.7,Bit.6,Bit.5,Bit.4,Bit.3,Bit.2,Bit.1,Bit.0,,,,
+HDR? (Header) : 0x51,,,0,1,0,1,0,0,0,1,,,0,Start Bit
+Data Length : 0x08,,,0,0,0,0,1,0,0,0,,,8,Start Bit
+Data Buffer[0],,,Data_Buffer[0] : Rx Vrect Sensing 값 (Low Byte),,,,,,,,,,16,Start Bit
+Data Buffer[1],,,Data_Buffer[1] : Rx Vrect Sensing 값 (High Byte),,,,,,,,,,24,Start Bit
+Data Buffer[2],,,Data_Buffer[2] : Rx Irect Sensing 값 (Low Byte),,,,,,,,,,32,Start Bit
+Data Buffer[3],,,Data_Buffer[3] : Rx Irect Sensing 값 (High Byte),,,,,,,,,,40,Start Bit
+Data Buffer[4],,,Data_Buffer[4] : Rx 입력 임피던스(Zin) Sensing 값 (Low Byte),,,,,,,,,,48,Start Bit
+Data Buffer[5],,,Data_Buffer[5] : Rx 입력 임피던스(Zin) Sensing 값 (High Byte),,,,,,,,,,56,Start Bit
+Data Buffer[6],,,Data_Buffer[6] : Tx Buck 컨버터의 출력전압 Ref. (Low Byte),,,,,,,,,,64,Start Bit
+Data Buffer[7],,,Data_Buffer[7] :  Tx Buck 컨버터의 출력전압 Ref. (High Byte),,,,,,,,,,72,Start Bit
+CRC (CheckSum),,,CheckSum Data,,,,,,,,,,80,Start Bit
+,,,,,,,,,,,,,,
+Description (Header : 0x51),,,,,,,,,,,,,,
+,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,
+,,항목,,세부내용,,,,Data Type,Scale Factor,,,,,
+,,Data Buffer[0]..[1],,Rx Module의 정류단 전압을 센싱한 값,,,,Uint16,"0.01[V]
+(210.95[V] → 21,095)",,,,,
+,,Data Buffer[2]..[3],,Rx Module의 정류단 전류를 센싱한 값,,,,Uint16,"0.01[A]
+(13.95[A] → 1,395)",,,,,
+,,Data Buffer[4]..[5],,Rx Module의 정류단 임피던스를 센싱한 값,,,,Uint16,"0.01[Ω]
+(50.15[V] → 5,015)",,,,,
+,,Data Buffer[6]..[7],,Tx Buck 컨버터의 출력전압 Ref.,,,,Uint16,"0.01[V]
+(179.95[V] → 17,995)",,,,,
+,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,
+3.3. Header (0x52) ,,,,,,,,,,,,,,
+"▶ Data Handle : Rx Module (Master)의 출력 전압, 전류와 전력소자 주변의 온도 정보를 Bluetooth 통신을 통해 상대물 장치에 전송함.",,,,,,,,,,,,,,
+▶ Transmission Mode : Cyclic / 10[ms]  (주기는 개발자에 의해 조정이 가능함),,,,,,,,,,,,,,
+구성,,,Bit.7,Bit.6,Bit.5,Bit.4,Bit.3,Bit.2,Bit.1,Bit.0,,,,
+HDR? (Header) : 0x52,,,0,1,0,1,0,0,1,0,,,0,Start Bit
+Data Length : 0x08,,,0,0,0,0,1,0,0,0,,,8,Start Bit
+Data Buffer[0],,,Data_Buffer[0] : Rx Vout Sensing 값 (Low Byte),,,,,,,,,,16,Start Bit
+Data Buffer[1],,,Data_Buffer[1] : Rx Vout Sensing 값 (High Byte),,,,,,,,,,24,Start Bit
+Data Buffer[2],,,Data_Buffer[2] : Rx Iout Sensing 값 (Low Byte),,,,,,,,,,32,Start Bit
+Data Buffer[3],,,Data_Buffer[3] : Rx Iout Sensing 값 (High Byte),,,,,,,,,,40,Start Bit
+Data Buffer[4],,,Data_Buffer[4] : Rx Power Stack#1 온도 Sensing 값 (Low Byte),,,,,,,,,,48,Start Bit
+Data Buffer[5],,,Data_Buffer[5] : Rx Power Stack#1 온도 Sensing 값 (High Byte),,,,,,,,,,56,Start Bit
+Data Buffer[6],,,Data_Buffer[6] : Rx Power Stack#2 온도 Sensing 값 (Low Byte),,,,,,,,,,64,Start Bit
+Data Buffer[7],,,Data_Buffer[7] : Rx Power Stack#2 온도 Sensing 값 (High Byte),,,,,,,,,,72,Start Bit
+CRC (CheckSum),,,CheckSum Data,,,,,,,,,,80,Start Bit
+,,,,,,,,,,,,,,
+Description (Header : 0x52),,,,,,,,,,,,,,
+,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,
+,,항목,,세부내용,,,, Data Type,Scale Factor,,,,,
+,,Data Buffer[0]..[1],,Rx Module의 출력단 전압을 센싱한 값,,,,Uint16,"0.01[V]
+(47.95[V] → 4,795)",,,,,
+,,Data Buffer[2]..[3],,Rx Module의 출력단 전류를 센싱한 값,,,,Uint16,"0.01[A]
+(14.53[A] → 1,453)",,,,,
+,,Data Buffer[4]..[5],,Rx Module의 Power Stack#1 주변 온도를 센싱한 값,,,,Int16,"0.1[℃]
+(120.5[℃] → 1,205)",,,,,
+,,Data Buffer[6]..[7],,Rx Module의 Power Stack#2 주변 온도를 센싱한 값,,,,Int16,"0.01[℃]
+(120.5[℃] → 1,205)",,,,,
+,,,,,,,,,,,,,,

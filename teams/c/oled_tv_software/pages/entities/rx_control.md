@@ -32,6 +32,13 @@ PWM 시스템 전반은 [[pwm_system]]. 트립존 동작은 [[trip_zone]].
 - 115200bps
 - 명령어 셋: [[uart_command_set]]
 
+## SPI (무선모듈과의 통신)
+
+- Master, 4선, 9.0 Mbps, Motorola byte order
+- 페어: [[rx_ble_module]] (현재 BLE, 추후 ESB)
+- 패킷 사양: [[spi_packet_format]], [[tx_to_rx_packets]], [[rx_to_tx_packets]]
+- 통신 헬스체크: [[comm_state_monitoring]]
+
 ## 알려진 주의
 
 - **`ADC_BUCK_VOUT_R128`** — DNP(미실장). `common.h`에서 주석 처리됨. 실수로 사용 금지.

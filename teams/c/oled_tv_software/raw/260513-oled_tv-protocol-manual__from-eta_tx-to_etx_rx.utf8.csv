@@ -1,0 +1,261 @@
+,,,,,,,,,,,,,,
+아래의 표는 Rx Module이 Rx Bluetooth 통신 모듈로 부터 수신하는 SPI통신의 Packet을 간략히 요약하였음.,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,
+2. 세부정보 (Rx Bluetooth 통신 모듈(Slave) → Rx Module(Master)) : Tx Module이 보낸 Data를 Bluetooth 통신 모듈을 통해 Rx Module이 최종적으로 수신함.,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,
+Num,,Header,,Message Item,,,,,Remark,,,,,
+1,, 0x10,,Tx Module의 상태 및 운용에 대한 정보 ,,,,,Bluetooth 통신 모듈 → Rx Module ,,,,,
+2,, 0x11,,Tx Module의 입력측 Analog Level에 대한 정보,,,,,Bluetooth 통신 모듈 → Rx Module ,,,,,
+3,, 0x12,,"Tx Module의 출력측 Analog Level 정보, 전력소자 주변의 온도 정보",,,,,Bluetooth 통신 모듈 → Rx Module ,,,,,
+,,,,,,,,,,,,,,
+2.1. Header (0x10) ,,,,,,,,,,,,,,
+▶ Data Handle : Bluetooth 통신 모듈로 부터 수신한 Tx Module의 시스템 상태 및 운용 정보,,,,,,,,,,,,,,
+▶ Transmission Mode : Cyclic / 10[ms] ,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,
+구성,,,Bit.7,Bit.6,Bit.5,Bit.4,Bit.3,Bit.2,Bit.1,Bit.0,,,,
+HDR? (Header) : 0x10,,,0,0,0,1,0,0,0,0,,,0,Start Bit
+Data Length : 0x08,,,0,0,0,0,1,0,0,0,,,8,Start Bit
+Data Buffer[0] : 시스템 상태,,,Spare,BLE_Comm_St,SPI_Comm_St,Rx_Flt_Rst_Cmd,Tx_Fault_St,Tx_Warning_St,Tx_Sys_Rdy_St,Tx_Sys_Init_St,,,16,Start Bit
+Data Buffer[1] : Rx 입력측,,,Spare,,,,TxIbus_OC,TxVbus_UpperLmt,TxVbus_LowerLmt,TxVbus_Steady_St,,,24,Start Bit
+Data Buffer[2] : Rx 출력측,,,Spare,,,TxIout_Upper_Lmt,TxCtrl_Lmt_St,TxVout_SetPoint_St,TxNo_Load_St,TxBuck_RunStop_St,,,32,Start Bit
+Data Buffer[3],,,Spare (Byte),,,,,,,,,,40,Start Bit
+Data Buffer[4],,,Spare (Byte),,,,,,,,,,48,Start Bit
+Data Buffer[5],,,Spare (Byte),,,,,,,,,,56,Start Bit
+Data Buffer[6],,,F/W Version (0x0100 → Ver1.00),,,,,,,,,,64,Start Bit
+Data Buffer[7],,,Spare (Byte),,,,,,,,,,72,Start Bit
+CRC (CheckSum),,,CheckSum Data,,,,,,,,,,80,Start Bit
+,,,,,,,,,,,,,,
+Description (Header : 0x50),,,,,,,,,,,,,,
+,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,
+,,Data Buffer[0] - Bit.0,,,,,,,,,,,,
+,,명칭,,,설정값,세부설명,,,,,,,,
+,,"System Init.ialzation Status
+(Tx_Sys_Init_St)",,,0,Tx Module의 시스템 초기화가 완료 안됐음.,,,,,,,,
+,,,,,1,Tx Module의 시스템 초기화가 완료 되었음.,,,,,,,,
+,,,,,,,,,,,,,,
+,,,[Edit Variables],,,,,,,,,,,
+,,,Start Bit,Data Type,Byte Order,Bit Length,Factor,Offset,Uint,,,,,
+,,,16,Uint16,Motorola,1,1,0,-,,,,,
+,,,,,,,,,,,,,,
+,,Data Buffer[0] - Bit.1,,,,,,,,,,,,
+,,명칭,,,설정값,세부설명,,,,,,,,
+,,"System Ready Status
+(Tx_Sys_Rdy_St)",,,0,Tx Module이 출력을 낼 준비가 안됐음.,,,,,,,,
+,,,,,1,Tx Module이 출력을 낼 준비가 되었음.,,,,,,,,
+,,,,,,,,,,,,,,
+,,,[Edit Variables],,,,,,,,,,,
+,,,Start Bit,Data Type,Byte Order,Bit Length,Factor,Offset,Uint,,,,,
+,,,17,Uint16,Motorola,1,1,0,-,,,,,
+,,,,,,,,,,,,,,
+,,Data Buffer[0] - Bit.2,,,,,,,,,,,,
+,,명칭,,,설정값,세부설명,,,,,,,,
+,,"System Waring
+(Tx_Warning_St)",,,0,Tx Module System이 정상적으로 운용되고 있음.,,,,,,,,
+,,,,,1,Tx Module System이 Warning 상태로 전환 됐음.,,,,,,,,
+,,,,,,,,,,,,,,
+,,,[Edit Variables],,,,,,,,,,,
+,,,Start Bit,Data Type,Byte Order,Bit Length,Factor,Offset,Uint,,,,,
+,,,18,Uint16,Motorola,1,1,0,-,,,,,
+,,,,,,,,,,,,,,
+,,Data Buffer[0] - Bit.3,,,,,,,,,,,,
+,,명칭,,,설정값,세부설명,,,,,,,,
+,,"System State Fault
+(Tx_Fault_St)",,,0,Tx Module System이 정상적으로 운용되고 있음.,,,,,,,,
+,,,,,1,Tx Module System이 Fault 상태로 전환 됐음.,,,,,,,,
+,,,,,,,,,,,,,,
+,,,[Edit Variables],,,,,,,,,,,
+,,,Start Bit,Data Type,Byte Order,Bit Length,Factor,Offset,Uint,,,,,
+,,,19,Uint16,Motorola,1,1,0,-,,,,,
+,,,,,,,,,,,,,,
+,,Data Buffer[0] - Bit.4,,,,,,,,,,,,
+,,명칭,,,설정값,세부설명,,,,,,,,
+,,"Fault Reset Command
+(Rx_Flt_Rst_Cmd)",,,0,"Rx Moulde에 Fault 발생이 없을 경우, Low 상태를 유지",,,,,,,,
+,,,,,1,Rx Moulde에서 발생한 Fault를 Reset 하는 지령 : High (200ms이후) → Low,,,,,,,,
+,,,,,,,,,,,,,,
+,,,[Edit Variables],,,,,,,,,,,
+,,,Start Bit,Data Type,Byte Order,Bit Length,Factor,Offset,Uint,,,,,
+,,,20,Uint16,Motorola,1,1,0,-,,,,,
+,,,,,,,,,,,,,,
+,,Data Buffer[0] - Bit.5,,,,,,,,,,,,
+,,명칭,,,설정값,세부설명,,,,,,,,
+,,"SPI Comm State 
+(SPI_Comm_St)",,,0 ↔ 1,SPI 통신상태를 확인하기 위한 Bit (Bluetooth 모듈에서 신호를 생성),,,,,,,,
+,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,
+,,,[Edit Variables],,,,,,,,,,,
+,,,Start Bit,Data Type,Byte Order,Bit Length,Factor,Offset,Uint,,,,,
+,,,21,Uint16,Motorola,1,1,0,-,,,,,
+,,,,,,,,,,,,,,
+,,,"※ ""SPI_Comm_St""는 Bluetooth 모듈과 Rx Module 간 통신 상태를 확인하기 위한 Bit입니다.",,,,,,,,,,,
+,,,통신상태를 확인하기 위해 Bluetooth 모듈에서 200[ms]마다 0과 1을 교번하여 해당 Bit의 정보가 갱신하도록 합니다.,,,,,,,,,,,
+,,,"일정 시간이후, 해당 Bit에 정보 갱신 또는 변화가 없다면 Rx Module에서는 이를 감지하여 Interface 통신 불량으로 간주합니다.. ",,,,,,,,,,,
+,,,"통신이 불량일 경우, 시스템 대기 상태에서는 Warning이며, 출력 중에는 Fault처리하고 출력을 차단합니다.",,,,,,,,,,,
+,,,,,,,,,,,,,,
+,,Data Buffer[0] - Bit.6,,,,,,,,,,,,
+,,명칭,,,설정값,세부설명,,,,,,,,
+,,"Bluetooth Comm State
+(BLE_Comm_St)",,,0,Bluetooth 통신 대기 또는 통신 불량,,,,,,,,
+,,,,,1,Bluetooth 통신 정상적으로 페어링되어 운용되고 있음.,,,,,,,,
+,,,,,,,,,,,,,,
+,,,[Edit Variables],,,,,,,,,,,
+,,,Start Bit,Data Type,Byte Order,Bit Length,Factor,Offset,Uint,,,,,
+,,,22,Uint16,Motorola,1,1,0,-,,,,,
+,,,,,,,,,,,,,,
+,,,"※ Bluetooth 통신상태를 확인하기 위한 Bit이며, Bluetooth 모듈에서 통신상태 신호를 자체 생성한다.",,,,,,,,,,,
+,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,
+,,Data Buffer[1] - Bit.0,,,,,,,,,,,,
+,,명칭,,,설정값,세부설명,,,,,,,,
+,,"Vbus Steady Status
+(TxVbus_Steady_St)",,,0,Vbus 전압이 불안정적인 영역에 있음. (정상범위 : 375~400VDC),,,,,,,,
+,,,,,1,Vbus 전압이 안정적인 영역에 있음.,,,,,,,,
+,,,,,,,,,,,,,,
+,,,[Edit Variables],,,,,,,,,,,
+,,,Start Bit,Data Type,Byte Order,Bit Length,Factor,Offset,Uint,,,,,
+,,,24,Uint16,Motorola,1,1,0,-,,,,,
+,,,,,,,,,,,,,,
+,,Data Buffer[1] - Bit.1,,,,,,,,,,,,
+,,명칭,,,설정값,세부설명,,,,,,,,
+,,"Vbus Lower Limit Status
+(TxVbus_LowerLmt)",,,0,Vbus 전압이 정상 범위에서 운용되고 있음.,,,,,,,,
+,,,,,1,Vbus 전압이 하한치까지 내려감,,,,,,,,
+,,,,,,,,,,,,,,
+,,,[Edit Variables],,,,,,,,,,,
+,,,Start Bit,Data Type,Byte Order,Bit Length,Factor,Offset,Uint,,,,,
+,,,25,Uint16,Motorola,1,1,0,-,,,,,
+,,,,,,,,,,,,,,
+,,Data Buffer[1] - Bit.2,,,,,,,,,,,,
+,,명칭,,,설정값,세부설명,,,,,,,,
+,,"Vbus Upper Limit Status
+(TxVbus_UpperLmt)",,,0,Vbus 전압이 정상 범위에서 운용되고 있음.,,,,,,,,
+,,,,,1,Vbus 전압이 상한치를 넘었음.,,,,,,,,
+,,,,,,,,,,,,,,
+,,,[Edit Variables],,,,,,,,,,,
+,,,Start Bit,Data Type,Byte Order,Bit Length,Factor,Offset,Uint,,,,,
+,,,26,Uint16,Motorola,1,1,0,-,,,,,
+,,,,,,,,,,,,,,
+,,Data Buffer[1] - Bit.3,,,,,,,,,,,,
+,,명칭,,,설정값,세부설명,,,,,,,,
+,,"Ibus Over Current
+(TxIbus_OC)",,,0,Ibus 전류가 정상 범위에서 운용되고 있음.,,,,,,,,
+,,,,,1,Ibus 전류가 과전류 설정 범위를 넘었음.,,,,,,,,
+,,,,,,,,,,,,,,
+,,,[Edit Variables],,,,,,,,,,,
+,,,Start Bit,Data Type,Byte Order,Bit Length,Factor,Offset,Uint,,,,,
+,,,27,Uint16,Motorola,1,1,0,-,,,,,
+,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,
+,,Data Buffer[2] - Bit.0,,,,,,,,,,,,
+,,명칭,,,설정값,세부설명,,,,,,,,
+,,"Run/Stop Status
+(TxBuck_RunStop_St)",,,0,Tx Module의 Buck 컨버터 출력이 꺼진(Off) 상태,,,,,,,,
+,,,,,1,Tx Module의 Buck 컨버터 출력이 켜진(On) 상태,,,,,,,,
+,,,,,,,,,,,,,,
+,,,[Edit Variables],,,,,,,,,,,
+,,,Start Bit,Data Type,Byte Order,Bit Length,Factor,Offset,Uint,,,,,
+,,,32,Uint16,Motorola,1,1,0,-,,,,,
+,,,,,,,,,,,,,,
+,,Data Buffer[2] - Bit.1,,,,,,,,,,,,
+,,명칭,,,설정값,세부설명,,,,,,,,
+,,"No Load Status
+(TxNo_Load_St)",,,0,Tx Module에 부하가 있는 조건으로 인식 (Default : 0),,,,,,,,
+,,,,,1,"무부하 상태 (무부하 조건 : 0.5[A]이하, 출력 On상태에서 진단 시작)",,,,,,,,
+,,,,,,,,,,,,,,
+,,,[Edit Variables],,,,,,,,,,,
+,,,Start Bit,Data Type,Byte Order,Bit Length,Factor,Offset,Uint,,,,,
+,,,33,Uint16,Motorola,1,1,0,-,,,,,
+,,,,,,,,,,,,,,
+,,Data Buffer[2] - Bit.2,,,,,,,,,,,,
+,,명칭,,,설정값,세부설명,,,,,,,,
+,,"Vout Setpoint Status
+(TxVout_SetPoint_St)",,,0,설정한 출력 전압에 Buck 컨버터 출력이 도달하지 못한 상태 @출력On상태,,,,,,,,
+,,,,,1,설정한 출력 전압에 Buck 컨버터 출력이 도달한 상태,,,,,,,,
+,,,,,,,,,,,,,,
+,,,[Edit Variables],,,,,,,,,,,
+,,,Start Bit,Data Type,Byte Order,Bit Length,Factor,Offset,Uint,,,,,
+,,,34,Uint16,Motorola,1,1,0,-,,,,,
+,,,,,,,,,,,,,,
+,,Data Buffer[2] - Bit.3,,,,,,,,,,,,
+,,명칭,,,설정값,세부설명,,,,,,,,
+,,"Control Limit Status
+(TxCtrl_Lmt_St)",,,0,정상적인 상태,,,,,,,,
+,,,,,1,Tx Module의 PWM 제어가 Limit에 의해 출력이 제한된 상태,,,,,,,,
+,,,,,,,,,,,,,,
+,,,[Edit Variables],,,,,,,,,,,
+,,,Start Bit,Data Type,Byte Order,Bit Length,Factor,Offset,Uint,,,,,
+,,,35,Uint16,Motorola,1,1,0,-,,,,,
+,,,,,,,,,,,,,,
+,,Data Buffer[2] - Bit.4,,,,,,,,,,,,
+,,명칭,,,설정값,세부설명,,,,,,,,
+,,"Iout Upper Limit
+(TxIout_Upper_Lmt)",,,0,Tx Module의 출력전류가 정상범위에서 운용되고 있음.,,,,,,,,
+,,,,,1,Tx Module의 출력전류가 상한치에 도달한 상태,,,,,,,,
+,,,,,,,,,,,,,,
+,,,[Edit Variables],,,,,,,,,,,
+,,,Start Bit,Data Type,Byte Order,Bit Length,Factor,Offset,Uint,,,,,
+,,,36,Uint16,Motorola,1,1,0,-,,,,,
+,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,
+2.2. Header (0x11) ,,,,,,,,,,,,,,
+"▶ Data Handle : Tx Module의 입력 전압, 전류 등의 정보를 Bluetooth 통신을 통해 상대물 장치 (Rx Module) 에 전송함.",,,,,,,,,,,,,,
+▶ Transmission Mode : Cyclic / 10[ms] (주기는 개발자에 의해 조정이 가능함),,,,,,,,,,,,,,
+구성,,,Bit.7,Bit.6,Bit.5,Bit.4,Bit.3,Bit.2,Bit.1,Bit.0,,,,
+HDR? (Header) : 0x11,,,0,0,0,1,0,0,0,1,,,0,Start Bit
+Data Length : 0x08,,,0,0,0,0,1,0,0,0,,,8,Start Bit
+Data Buffer[0],,,Data_Buffer[0] : Tx Vdc_bus Sensing 값 (Low Byte),,,,,,,,,,16,Start Bit
+Data Buffer[1],,,Data_Buffer[1] : Tx Vdc_bus Sensing 값 (High Byte),,,,,,,,,,24,Start Bit
+Data Buffer[2],,,Data_Buffer[2] : Tx Idc_bus Sensing 값 (Low Byte),,,,,,,,,,32,Start Bit
+Data Buffer[3],,,Data_Buffer[3] : Tx Idc_bus Sensing 값 (High Byte),,,,,,,,,,40,Start Bit
+Data Buffer[4],,,Spare (Byte),,,,,,,,,,48,Start Bit
+Data Buffer[5],,,Spare (Byte),,,,,,,,,,56,Start Bit
+Data Buffer[6],,,Spare (Byte),,,,,,,,,,64,Start Bit
+Data Buffer[7],,,Spare (Byte),,,,,,,,,,72,Start Bit
+CRC (CheckSum),,,CheckSum Data,,,,,,,,,,80,Start Bit
+,,,,,,,,,,,,,,
+Description (Header : 0x51),,,,,,,,,,,,,,
+,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,
+,,항목,,세부내용,,,,Data Type,Scale Factor,,,,,
+,,Data Buffer[0]..[1],,Tx Module의 DC BUS 전압을 센싱한 값,,,,Uint16,"0.01[V]
+(210.95[V] → 21,095)",,,,,
+,,Data Buffer[2]..[3],,Tx Module의 DC BUS 전류를 센싱한 값,,,,Uint16,"0.01[A]
+(13.95[A] → 1,395)",,,,,
+,,Data Buffer[4]..[5],,Spare,,,,Uint16,,,,,,
+,,Data Buffer[6]..[7],,Spare,,,,Uint16,,,,,,
+,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,
+2.3. Header (0x12) ,,,,,,,,,,,,,,
+"▶ Data Handle : Tx Module의 출력 전압, 전류 등의 정보를 Bluetooth 통신을 통해 상대물 장치 (Rx Module) 에 전송함.",,,,,,,,,,,,,,
+▶ Transmission Mode : Cyclic / 10[ms]  (주기는 개발자에 의해 조정이 가능함),,,,,,,,,,,,,,
+구성,,,Bit.7,Bit.6,Bit.5,Bit.4,Bit.3,Bit.2,Bit.1,Bit.0,,,,
+HDR? (Header) : 0x12,,,0,0,0,1,0,0,1,0,,,0,Start Bit
+Data Length : 0x08,,,0,0,0,0,1,0,0,0,,,8,Start Bit
+Data Buffer[0],,,Data_Buffer[0] : Tx Buck Vout Sensing 값 (Low Byte),,,,,,,,,,16,Start Bit
+Data Buffer[1],,,Data_Buffer[1] : Tx Buck Vout Sensing 값 (High Byte),,,,,,,,,,24,Start Bit
+Data Buffer[2],,,Data_Buffer[2] : Tx Buck Iout Sensing 값 (Low Byte),,,,,,,,,,32,Start Bit
+Data Buffer[3],,,Data_Buffer[3] : Tx Buck Iout Sensing 값 (High Byte),,,,,,,,,,40,Start Bit
+Data Buffer[4],,,Data_Buffer[4] : Tx 인버터측 Coil전류 Sensing 값 (Low Byte),,,,,,,,,,48,Start Bit
+Data Buffer[5],,,Data_Buffer[5] : Tx 인버터측 Coil전류 Sensing 값 (High Byte),,,,,,,,,,56,Start Bit
+Data Buffer[6],,,Data_Buffer[6] : Tx Power Stack 온도 Sensing 값 (Low Byte),,,,,,,,,,64,Start Bit
+Data Buffer[7],,,Data_Buffer[7] : Tx Power Stack 온도 Sensing 값 (High Byte),,,,,,,,,,72,Start Bit
+CRC (CheckSum),,,CheckSum Data,,,,,,,,,,80,Start Bit
+,,,,,,,,,,,,,,
+Description (Header : 0x52),,,,,,,,,,,,,,
+,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,
+,,항목,,세부내용,,,,Data Type,Scale Factor,,,,,
+,,Data Buffer[0]..[1],,Tx Module의 출력단 전압을 센싱한 값,,,,Uint16,"0.01[V]
+(47.95[V] → 4,795)",,,,,
+,,Data Buffer[2]..[3],,Tx Module의 출력단 전류를 센싱한 값,,,,Uint16,"0.01[A]
+(14.53[A] → 1,453)",,,,,
+,,Data Buffer[4]..[5],,Tx Module의 인버터측 Coil 전류(RSM)를 센싱한 값,,,,Uint16,"0.01[A]
+(12.99[A] → 1,299)",,,,,
+,,Data Buffer[6]..[7],,Tx Module의 Power Stack 주변 온도를 센싱한 값,,,,Int16,"0.01[℃]
+(120.5[℃] → 1,205)",,,,,
+,,,,,,,,,,,,,,
