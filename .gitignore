@@ -1,7 +1,4 @@
 .claude/settings.local.json
 
-# Obsidian — 개인 UI 상태만 무시, 핫키/플러그인 설정은 공유
-.obsidian/workspace.json
-.obsidian/workspace-mobile.json
-.obsidian/cache
-.obsidian/workspaces.json
+# Obsidian — 개인 vault 설정 전체 무시
+.obsidian/
