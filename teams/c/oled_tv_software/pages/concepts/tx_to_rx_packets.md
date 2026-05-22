@@ -1,13 +1,13 @@
 ---
-tags: [concept, protocol, spi, tx_to_rx]
+tags: [concept, protocol, spi, esb, tx_to_rx]
 source: teams/c/oled_tv_software/raw/260513-oled_tv-protocol-manual__from-eta_tx-to_etx_rx.CSV
 date: 2026-05-13
-subsystem: 01_RX_control
+subsystem: 01_RX_control, 02_RX_esb, 03_TX_esb
 ---
 
-# Tx → Rx 패킷 (HDR 0x10/0x11/0x12)
+# TX → RX 패킷 (HDR 0x10/0x11/0x12)
 
-무선모듈이 Tx 측 데이터를 받아 SPI로 [[rx_control]] (Master)에 넘기는 패킷군. 패킷 골격은 [[spi_packet_format]] 참조 (11 byte, 10 ms cyclic, Motorola).
+Tx 보드 데이터를 무선(BLE/ESB)으로 운반해 [[rx_control]] (Master)에 도달시키는 패킷군. **ESB 환경에서는 PTX(=TX_nRF) 송신, PRX(=RX_nRF) 수신 후 SPI로 전달**. 패킷 골격은 [[spi_packet_format]] 참조 (11 byte, 10 ms cyclic, Motorola).
 
 ## 0x10 — Tx 시스템 상태 비트맵
 

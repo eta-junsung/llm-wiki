@@ -1,13 +1,13 @@
 ---
-tags: [source, protocol, spi, historical, ble]
+tags: [source, protocol, spi, esb]
 source: teams/c/oled_tv_software/raw/260513-oled_tv-protocol-manual__*.CSV
 date: 2026-05-13
-subsystem: 01_RX_control, 02_RX_esb
+subsystem: 01_RX_control, 02_RX_esb, 03_TX_esb
 ---
 
-# OLED TV SPI 프로토콜 매뉴얼 (소스, 260513)
+# OLED TV 프로토콜 매뉴얼 (소스, 260513)
 
-Rx Module (STM32, Master) ↔ Rx 무선통신 모듈 (Slave) 간 **SPI 통신 프로토콜 사양**. 무선 구간은 작성 당시 BLE였고 추후 ESB로 교체 예정. SPI 패킷 구조 자체는 ESB 전환 후에도 유지.
+Rx Module (STM32, Master) ↔ Rx 무선통신 모듈 (Slave) 간 **SPI 통신 프로토콜 사양**. 무선 구간은 작성 당시 BLE였고 ESB로 교체 진행 중. 무선모듈이 transparent bridge로 동작하므로 **이 11 B SPI 프레임이 곧 end-to-end 무선 wire 사양** — ESB 전환 후에도 동일.
 
 원본 (CP949 → UTF-8 변환본 옆에 보관):
 - `raw/260513-oled_tv-protocol-manual__introduction.CSV` (+ `.utf8.csv`) — 개요·SPI 환경·커넥터·패킷 골격

@@ -1,13 +1,13 @@
 ---
-tags: [concept, protocol, spi, rx_to_tx]
+tags: [concept, protocol, spi, esb, rx_to_tx, ack_payload]
 source: teams/c/oled_tv_software/raw/260513-oled_tv-protocol-manual__from-eta_rx-to_etx_tx.CSV
 date: 2026-05-13
-subsystem: 01_RX_control
+subsystem: 01_RX_control, 02_RX_esb, 03_TX_esb
 ---
 
-# Rx → Tx 패킷 (HDR 0x50/0x51/0x52)
+# RX → TX 패킷 (HDR 0x50/0x51/0x52)
 
-[[rx_control]] (Master)이 무선모듈에 SPI로 송신, 무선모듈이 Tx 측에 중계하는 패킷군. 패킷 골격은 [[spi_packet_format]] 참조.
+[[rx_control]] (Master)이 무선모듈에 SPI로 송신, 무선구간을 통해 Tx 보드에 도달하는 패킷군. **ESB 환경에서는 PRX(=RX_nRF)가 ACK payload 슬롯에 적재 → PTX(=TX_nRF)의 다음 송신에 piggyback되어 회수**. 0x51의 `Buffer[6..7]`은 Tx Buck Vout Ref 지령이므로 ACK payload로 회수되는 게 자연스러움. 패킷 골격은 [[spi_packet_format]] 참조.
 
 ## 0x50 — Rx 시스템 상태 비트맵
 

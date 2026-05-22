@@ -32,11 +32,36 @@ PWM 시스템 전반은 [[pwm_system]]. 트립존 동작은 [[trip_zone]].
 - 115200bps
 - 명령어 셋: [[uart_command_set]]
 
+## ADC
+
+- 페리: **ADC1**, 6채널 scan + continuous + DMA1_Channel1 circular
+- 입력: 0 ~ 3.3 V (Vref+), 12-bit (0..4095)
+- 변환: `adc_conv() = adc_raw/4095 * 3.3f` (raw → 핀 전압 V)
+- 버퍼: `rx_adc_raw_data_t sensing_data` (uint16 × 6, `_shared/oled_tv_protocol.h:140-148`)
+- 컴플리트 플래그: `adc_conv_complete` (콜백에서 토글, 전 6채널 시퀀스 단위)
+- 채널·핀 매핑·라벨 swap 함정은 [[adc_channel_map]] 참조.
+
 ## SPI (무선모듈과의 통신)
 
-- Master, 4선, 9.0 Mbps, Motorola byte order
-- 페어: [[rx_ble_module]] (현재 BLE, 추후 ESB)
-- 패킷 사양: [[spi_packet_format]], [[tx_to_rx_packets]], [[rx_to_tx_packets]]
+- 페리: **SPI2**, Master, Full-Duplex (2LINES), 8-bit, MSB first
+- 9.0 Mbps (`BaudRatePrescaler=/4`, PCLK1=36 MHz 기준)
+- **SPI mode 2**: `CLKPolarity=HIGH` + `CLKPhase=1EDGE` → CPOL=1, CPHA=0. nRF 슬레이브 `NRF_SPIS_MODE_2`와 정합.
+- `NSS = SPI_NSS_SOFT` → CS는 GPIO(PB12)로 SW 토글
+- DMA: TX = DMA1_Channel5 (MEM→PERIPH), RX = DMA1_Channel4 (PERIPH→MEM), byte 단위 NORMAL
+
+### 핀맵 (STM32F103RCT6)
+
+| 신호 | 핀 | 라벨 / 설정 |
+|---|---|---|
+| SPI nCS | **PB12** | `SPI_nCS` — GPIO_Output, Pull-up, init=HIGH (SW 제어) |
+| SPI SCK | **PB13** | `SPI_CLK` — SPI2_SCK (AF) |
+| SPI MISO | **PB14** | `SPI_MISO` — SPI2_MISO (AF), Pull-up |
+| SPI MOSI | **PB15** | `SPI_MOSI` — SPI2_MOSI (AF) |
+
+상대 보드 nRF 측 GPIO는 [[rx_ble_module]] 참조.
+
+- 페어: nRF52 ESB 모듈 (02_RX_esb) — BLE 시절 [[rx_ble_module]]에서 교체 진행 중
+- 패킷 사양: [[spi_packet_format]], [[tx_to_rx_packets]], [[rx_to_tx_packets]] — **무선모듈은 transparent bridge라 SPI 11 B 프레임이 곧 ESB wire payload**. ESB 전환 후에도 동일.
 - 통신 헬스체크: [[comm_state_monitoring]]
 
 ## 알려진 주의

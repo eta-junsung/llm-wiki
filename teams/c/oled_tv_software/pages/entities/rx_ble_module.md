@@ -21,19 +21,22 @@ subsystem: 02_RX_esb
 
 ### CN3 — SPI 통신용 커넥터
 
-| Pin | 신호 |
-|---|---|
-| 1, 2 | +3.3 VDC (비절연 전원) |
-| 3 | SPI CS (Low Active) |
-| 4 | N.C |
-| 5 | SPI MISO (S→M) |
-| 6 | N.C |
-| 7 | SPI MOSI (M→S) |
-| 8 | SPI Clock (Master 생성) |
-| 9, 10 | GND (비절연) |
+| Pin | 신호 | nRF52 GPIO |
+|---|---|---|
+| 1, 2 | +3.3 VDC (비절연 전원) | — |
+| 3 | SPI CS (Low Active) | **P0.22** (`PIN_SPI_NSS`) |
+| 4 | N.C | — |
+| 5 | SPI MISO (S→M) | **P0.26** (`PIN_SPI_MISO`) |
+| 6 | N.C | — |
+| 7 | SPI MOSI (M→S) | **P0.25** (`PIN_SPI_MOSI`) |
+| 8 | SPI Clock (Master 생성) | **P0.27** (`PIN_SPI_SCK`) |
+| 9, 10 | GND (비절연) | — |
 
-- 4선 SPI, **9.0 Mbps**
-- Byte order Motorola (big-endian)
+- 4선 SPI, **9.0 Mbps**, Byte order Motorola (big-endian)
+- nRF 페리: **SPIS1** 인스턴스 (`NRF_DRV_SPIS_INSTANCE(1)`)
+- 모드: **`NRF_SPIS_MODE_2`** = CPOL=1, CPHA=0. Master([[rx_control]] SPI2)와 정합.
+- 핀 정의 출처: `_shared/oled_tv_protocol.h:69-72` — `PIN_SPI_NSS/MISO/MOSI/SCK = 22/26/25/27`
+- 드라이버: `nrf_drv_spis` 더블 버퍼 (RX 버퍼 = `tx_module_data_t`, TX 버퍼 = `rx_module_data_t`. 명칭이 "어디서 오는가" 기준이라 SPIS의 RX/TX와 반대)
 
 ### CN4 — 관리자 통신용 전원
 

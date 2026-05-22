@@ -45,7 +45,7 @@ TI MCU+ SDK가 제공하는 **OSPI NOR flash 공용 드라이버**. AM263P/AM243
 | 1136-1193 | `Flash_norOspiReset` | flash chip reset (clocks 8/10/16, `0xF0`, `0x66+0x99`) |
 | 1195-1353 | `Flash_norOspiOpen` | 메인 init 진입점. [[flash_open_sequence]] 참조 |
 | 1355-1372 | `Flash_norOspiClose` | PHY disable + flash reset |
-| 1374-1403 | `Flash_quirkSpansionUNHYSADisable` | Spansion UNHYSA 분기 — [[is25lx256_vs_spansion_quirks]] 참조 |
+| 1374-1403 | `Flash_quirkSpansionUNHYSADisable` | Spansion UNHYSA 분기. line 1381 `Flash_norOspiRegRead(0x65, 0x00800004)` (Spansion RDAR), line 1399 `Flash_norOspiRegWrite(0x71, 0x04, ...)` (Spansion WRAR). **이 파일 내에선 호출되지 않음** — caller는 SysConfig 생성 board init. ISSI에 자동 매핑되면 silent garbage 위험. 상세: [[is25lx256_vs_spansion_quirks]] §6.5 |
 | 1405-1428 | `Flash_norOspiDacMode{Enable,Disable}` | DAC(direct-access) mode 토글 |
 
 ## 파생 페이지
@@ -57,6 +57,11 @@ TI MCU+ SDK가 제공하는 **OSPI NOR flash 공용 드라이버**. AM263P/AM243
 ## 아직 안 읽은 것 (후속 ingest 후보)
 
 - `flash_nor_ospi.h` — `FlashCfg_ProtoEnConfig`, `Flash_DevConfig`, `FlashCfg_RegConfig` 구조체 정의 (dummy/protocol 필드 의미)
-- IS25LX256용 `Flash_DevConfig` 디스크립터 — 실제 dummy cycle 숫자가 박힌 곳. SBL 예제 board 패키지 혹은 SysConfig output 위치 추적 필요
+- ✓ **IS25LX256용 디바이스 디스크립터 — 위치 확정 (2026-05-22)**:
+  - SysConfig JSON: `source/sysconfig/board/.meta/flash/IS25LX256.json` (SDK installer 동봉, **GitHub mcupsdk-core public 미러에는 없음** — `source/sysconfig/` 트리 전체 제외)
+  - raw 사본: `teams/g/lp-am263p/raw/mcupsdk/source/sysconfig/board/.meta/flash/IS25LX256.json` (SDK `mcu_plus_sdk_am263px_26_00_00_01`)
+  - 생성 C: `examples/drivers/boot/sbl_ospi_swap/am263px-lp/.../generated/ti_board_open_close.c`의 `gFlashDevCfg_IS25LX256`
+  - 핵심 값 검증 결과: [[sbl_app_flash_handoff]] §진단 트리. `idCfg.dummy8=8`, `p888d.protoCfg.bitP=0xE7`, `p888d.dummyCfg.bitP=16` 모두 datasheet 일치.
 - `Flash_setQeBit` / `Flash_setOeBit` / `Flash_set444mode` / `Flash_set888mode`의 별도 구현 파일 (이 파일에선 호출만)
 - PHY tuning 동작 — `OSPI_phyReadAttackVector` / `OSPI_phyTuneDDR` (OSPI 드라이버 측)
+- SysConfig가 어느 시점에 `quirksFxn`을 `Flash_quirkSpansionUNHYSADisable`에 매핑하는지 — `ti_board_open_close.c` 정독 시 처리

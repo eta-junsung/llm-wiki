@@ -27,15 +27,16 @@
 - [[dead_time]] — SW CCR offset 방식. TIM3에 BDTR 없어 두 타이머 통일
 - [[trip_zone]] — TIM8 BKIN(PA6) → `HAL_TIMEx_BreakCallback`로 PWM 전체 차단
 - [[uart_command_set]] — `duty`/`freq`/`dt`/`reset` (115200bps)
-- [[spi_packet_format]] — Rx ↔ 무선모듈 SPI 11-byte 패킷 (HDR+Len+Data[8]+CRC), 10ms cyclic
-- [[tx_to_rx_packets]] — 0x10 시스템상태 / 0x11 입력 Analog / 0x12 출력 Analog+온도
-- [[rx_to_tx_packets]] — 0x50 시스템상태 / 0x51 입력 Analog+Tx Vout Ref / 0x52 출력+온도
+- [[adc_channel_map]] — ADC1 6채널 핀맵(PA0~PA3, PC4/PC5) + TEMP1/TEMP2 라벨 swap 함정 + 평가보드 시험 가이드
+- [[spi_packet_format]] — 11-byte 프레임 (HDR+Len+Data[8]+CRC), 10ms cyclic. SPI=무선 wire 동일 (transparent bridge)
+- [[tx_to_rx_packets]] — TX→RX: 0x10 시스템상태 / 0x11 입력 Analog / 0x12 출력 Analog+온도
+- [[rx_to_tx_packets]] — RX→TX (ESB ACK payload): 0x50 시스템상태 / 0x51 입력+Tx Vout Ref / 0x52 출력+온도
 - [[comm_state_monitoring]] — SPI_Comm_St 200ms 토글, BLE_Comm_St 페어링 상태
 
 ### Sources
 
 - [[rx_control_pwm_가이드]] — RX_control PWM 개발 가이드 (2026-04-14)
-- [[spi_protocol_manual_260513]] — OLED TV SPI 프로토콜 매뉴얼 (2026-05-13, BLE 시절)
+- [[spi_protocol_manual_260513]] — OLED TV 프로토콜 매뉴얼 (2026-05-13). 무선 wire 사양 — ESB 전환 후에도 유효
 
 ---
 
