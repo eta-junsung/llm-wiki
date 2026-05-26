@@ -58,10 +58,11 @@ PWM 시스템 전반은 [[pwm_system]]. 트립존 동작은 [[trip_zone]].
 | SPI MISO | **PB14** | `SPI_MISO` — SPI2_MISO (AF), Pull-up |
 | SPI MOSI | **PB15** | `SPI_MOSI` — SPI2_MOSI (AF) |
 
-상대 보드 nRF 측 GPIO는 [[rx_ble_module]] 참조.
+상대 보드 nRF 측 GPIO 및 STM32↔nRF 실물 배선은 [[schematic_stm32_mini_pro_v10]], [[rx_ble_module]] 참조.
 
-- 페어: nRF52 ESB 모듈 (02_RX_esb) — BLE 시절 [[rx_ble_module]]에서 교체 진행 중
-- 패킷 사양: [[spi_packet_format]], [[tx_to_rx_packets]], [[rx_to_tx_packets]] — **무선모듈은 transparent bridge라 SPI 11 B 프레임이 곧 ESB wire payload**. ESB 전환 후에도 동일.
+- 페어: [[rx_ble_module]] (nRF52832 SPIS1, `02_RX_ble`)
+- 내부 SPI 프레임: [[spi_packet_format]] (56B/45B, HDR 0xC0, 20ms) — ESB wire 포맷([[esb_packet_format]], 11B)과 별개. nRF가 능동 변환.
+- ESB 페이로드 사양: [[tx_to_rx_packets]], [[rx_to_tx_packets]]
 - 통신 헬스체크: [[comm_state_monitoring]]
 
 ## 알려진 주의

@@ -7,7 +7,7 @@ subsystem: 01_RX_control, 02_RX_esb, 03_TX_esb
 
 # RX → TX 패킷 (HDR 0x50/0x51/0x52)
 
-[[rx_control]] (Master)이 무선모듈에 SPI로 송신, 무선구간을 통해 Tx 보드에 도달하는 패킷군. **ESB 환경에서는 PRX(=RX_nRF)가 ACK payload 슬롯에 적재 → PTX(=TX_nRF)의 다음 송신에 piggyback되어 회수**. 0x51의 `Buffer[6..7]`은 Tx Buck Vout Ref 지령이므로 ACK payload로 회수되는 게 자연스러움. 패킷 골격은 [[spi_packet_format]] 참조.
+[[rx_control]] (Master)이 무선모듈에 SPI로 송신, 무선구간을 통해 Tx 보드에 도달하는 패킷군. **ESB 환경에서는 PRX(=RX_nRF)가 ACK payload 슬롯에 적재 → PTX(=TX_nRF)의 다음 송신에 piggyback되어 회수**. 0x51의 `Buffer[6..7]`은 Tx Buck Vout Ref 지령이므로 ACK payload로 회수되는 게 자연스러움. 패킷 골격은 [[esb_packet_format]] 참조.
 
 ## 0x50 — Rx 시스템 상태 비트맵
 

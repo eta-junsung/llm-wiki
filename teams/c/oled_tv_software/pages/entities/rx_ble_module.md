@@ -45,11 +45,24 @@ subsystem: 02_RX_esb
 | 1, 2, 3 | +5 VDC (절연 전원) |
 | 4, 5, 6 | GND (절연) |
 
+## 펌웨어 현황 (PRD v1.0 기준)
+
+| 항목 | 상태 |
+|---|---|
+| ESB PRX 기본 동작 | ✓ 구현됨 |
+| SPI Slave 수신/송신 | ✓ 구현됨 |
+| 버그 수정 (커밋 `89e8609`) | ✓ 완료 |
+| ESB 타임아웃 stale 마킹 | ✗ 미구현 (`esb_recv` 끊길 때 `tx_module.hdr=0x00`으로 STM32에 알리는 로직 없음) |
+| SPI 하드웨어 테스트 | ✗ 미실시 (코드 수정 후 실측 검증 전) |
+
 ## 통신 페어
 
 - 상위(Master): [[rx_control]]
-- 패킷 사양: [[spi_packet_format]], [[tx_to_rx_packets]], [[rx_to_tx_packets]]
+- STM32-nRF 내부 SPI 프레임: [[spi_packet_format]] (56B/45B, HDR 0xC0)
+- ESB wire 패킷: [[esb_packet_format]] (11B, HDR round-robin)
+- 방향별 페이로드: [[tx_to_rx_packets]], [[rx_to_tx_packets]]
 - 헬스체크 비트: [[comm_state_monitoring]]
+- ESB 상대방: [[tx_ble_module]] (PTX)
 
 ## 이행 메모 (BLE → ESB)
 

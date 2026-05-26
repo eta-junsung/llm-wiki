@@ -4,6 +4,66 @@
 
 ---
 
+## [2026-05-26] ingest | CC3350/CC3351 데이터시트 (SWRS284C)
+
+- 소스: `C:\Users\echog\eta\cc3351-datasheet.pdf` (34p, Rev.C, October 2025) — wiki 밖 보관
+- 대상 프로젝트: `teams/g/bp-cc3351`
+- 도구: PyMuPDF(fitz) — 전체 텍스트 추출 → 챕터별 마크다운 분할 수작업
+- 신규 생성:
+  - raw: `raw/cc3351_datasheet/ch01_overview.md` — Features, Applications, Description, System Diagram
+  - raw: `raw/cc3351_datasheet/ch02_pin_config.md` — 40핀 다이어그램, Pin Attributes 전체 표, SPI 모드 핀맵
+  - raw: `raw/cc3351_datasheet/ch03_specifications.md` — AMR/ESD/동작조건/전기특성/RF성능/전류소모/SDIO·SPI·UART 타이밍
+  - raw: `raw/cc3351_datasheet/ch04_description_schematic.md` — WLAN/BLE 상세 설명, Reference Schematic 주요 연결
+  - raw: `raw/cc3351_datasheet/ch05_support.md` — Tools & Software, 문서 목록, Revision History
+  - raw: `raw/cc3351_datasheet/ch06_packaging.md` — Orderable Information, T&R 치수, Package Outline
+  - sources: [[cc3351_datasheet]] — 소스 인덱스 + 핵심 요약 + raw 챕터 링크
+- 파생 페이지 미생성 (lazy): `cc3351_ic`, `cc3351_pinmap`, `cc3351_power_rails`, `cc3351_host_interface` — lp-am263p 포팅 작업이 trigger할 때 생성
+- 핵심 합의:
+  - CC3350(Wi-Fi 6 only) vs CC3351(Wi-Fi 6 + BLE 5.4). Pin-to-pin 호환.
+  - Host I/F: SDIO 4-bit (≤52MHz) or SPI (≤26MHz) for Wi-Fi, UART (≤4364kbps) for BLE HCI.
+  - SPI 핀: CS=SDIO_D3(21), SCLK=SDIO_CLK(19), PICO=SDIO_CMD(18), POCI=SDIO_D0(24), IRQ=HOST_IRQ_WL(29).
+  - 전원: VMAIN/VDDA/VIO=1.8V, VPA=3.3V. 전원 시퀀싱: 모든 공급 안정 후 nRESET low ≥10µs → 해제.
+  - 클럭: 40MHz XTAL 필수(외부), 32.768kHz 슬로우 클럭 내부 생성 가능.
+
+---
+
+## [2026-05-26] ingest | STM32 mini-pro v10 회로도 — SPI 수동 추출
+
+- 소스: `projects/c/oled_tv_software/docs/Schematic/회로도 (STM32F103RCT6).pdf` — 이미지 기반 PDF, 텍스트 레이어 없음. SPI 연결 부분만 수동 추출.
+- 추출 내용: STM32 SPI2 핀맵 (PB12=CS, PB13=SCL, PB14=SDO, PB15=SDI — 슬레이브 관점 표기).
+  - SDO(PB14) = MISO (마스터 관점), SDI(PB15) = MOSI (마스터 관점). 기존 코드 분석과 일치.
+- 신규 생성:
+  - sources: [[schematic_stm32_mini_pro_v10]] — 회로도 레이블·마스터 명칭 대응표 + STM32↔nRF52832 PCA10040 배선표
+- 갱신:
+  - [[rx_control]] SPI 절 — "transparent bridge" 오기 제거, 새 페이지 링크로 교체
+- 미기록: PCA10040 커넥터 헤더 핀 번호 (GPIO→헤더 위치 매핑). 필요 시 PCA10040 Hardware Spec 참조 후 추가.
+
+---
+
+## [2026-05-26] ingest+restructure | PRD v1.0 ingest + SPI/ESB 프레임 분리 재구조화
+
+- 트리거: PRD(`projects/c/oled_tv_software/docs/prd.md`) 최초 ingest. PRD에서 STM32-nRF SPI(56B/45B, HDR 0xC0)와 ESB wire(11B, HDR round-robin)가 서로 다른 포맷임이 명시됨.
+- **핵심 정정**: 기존 wiki의 "무선모듈 transparent bridge, SPI 11B = ESB wire" 주장 취소. nRF가 두 포맷을 능동 변환함을 확정.
+- 재구조화:
+  - `spi_packet_format` 재작성 → STM32-nRF 내부 SPI 프레임 전용 (56B/45B, HDR 0xC0, 20ms)
+  - 신규 `esb_packet_format` — ESB wire 포맷 전용 (11B, HDR 0x10-0x52, 10ms, ACK with payload). 기존 spi_packet_format의 ESB 내용 이전.
+  - `tx_to_rx_packets`, `rx_to_tx_packets` backlink: `[[spi_packet_format]]` → `[[esb_packet_format]]`
+  - `spi_protocol_manual_260513` 소스 페이지: "SPI 매뉴얼"이 아닌 "ESB wire 사양 정의 문서"로 정정. "transparent bridge" 설명 제거.
+  - `rx_ble_module` — 통신 페어 절 분리(SPI 내부/ESB wire), 펌웨어 현황 표 추가.
+- 신규 생성:
+  - raw: `prd_v1.0.md`
+  - sources: [[prd]]
+  - entities: [[tx_ble_module]] — 03_TX_ble nRF52832 PTX, TX보드 SPI 미구현
+  - concepts: [[esb_link_layer]] — ESB 링크 파라미터(10ms, ACK with payload, NRF_ESB_MAX_PAYLOAD_LENGTH=64), 미결 파라미터 목록
+- PRD의 미해결 의문점 (기존 wiki 관련):
+  1. PWM 주파수 불일치 — [[pwm_system]] 기록 있음, PRD에서 재확인
+  2. ADC 물리량 변환 미구현 — [[adc_channel_map]] 기록 있음
+  3-5. CAN1/DAC 용도, README 역할 오표기 — 미문서화, 후속 확인 필요
+  6. SPI 하드웨어 테스트 미실시
+- PRD 업데이트 시: 새 버전 `raw/prd_vX.Y.md` 추가 + `sources/prd.md` frontmatter 갱신.
+
+---
+
 ## [2026-05-26] ingest | bp-cc3351 프로젝트 신설 + EVM User Guide ingest
 
 - 배경: lp-am263p 포팅 원본 source 보드(BP-CC3351)를 별도 프로젝트로 분리 결정.
