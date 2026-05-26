@@ -4,6 +4,27 @@
 
 ---
 
+## [2026-05-26] ingest | bp-cc3351 프로젝트 신설 + EVM User Guide ingest
+
+- 배경: lp-am263p 포팅 원본 source 보드(BP-CC3351)를 별도 프로젝트로 분리 결정.
+- 합의사항 반영:
+  - `wiki/CLAUDE.md` — "크로스 프로젝트 참조 규칙 (first-ingest-wins)" 단락 추가
+  - `teams/g/bp-cc3351/CLAUDE.md` — reference-only 성격·lazy ingest 원칙·cross-ref 대상 명시
+- 신설 디렉토리:
+  - `teams/g/bp-cc3351/raw/bp_cc3351_evm_ug/` — EVM UG 챕터별 마크다운 6개 파일
+  - `teams/g/bp-cc3351/raw/bp_cc3351_evm_ug/img/` — PNG 26장 (파일명에 원본 페이지 번호 인코딩)
+  - `teams/g/bp-cc3351/pages/{entities,concepts,sources}/` — scaffold
+- 생성 페이지:
+  - sources: [[bp_cc3351_evm_ug]] — 챕터 인덱스 + 추출 품질 메모 + lazy ingest 후보 목록
+- 갱신:
+  - `wiki/index.md` — `## teams/g/bp-cc3351` 섹션 신설
+- 핵심 합의:
+  - EVM UG 23p → 6 챕터 분할 (`ch00`–`ch05`). 포팅 핵심은 `ch02_hardware.md` — P1/P2 2×20핀 핀맵(Table 2-3/2-4), JTAG 헤더(Table 2-5/2-6), 전원, 클럭.
+  - pymupdf4llm 1.27.2.3 추출. GFM 테이블·이미지 모두 정상.
+- 파생 페이지 미생성 (lazy): `boosterpack_pinmap`, `jtag_header_bp_cc3351`, `power_rails_bp_cc3351`, `clocking_bp_cc3351` — lp-am263p 포팅 작업이 trigger할 때 생성.
+
+---
+
 ## [2026-05-22] ingest | rx_control ADC 채널 매핑 + TEMP 라벨 swap 함정
 
 - 트리거: 사용자 — "STM32에서 ADC 값 읽고 nRF로 보내고 Tx까지 가는 거 맞지? 평가보드 어느 핀에 어떻게 전압 넣어?"

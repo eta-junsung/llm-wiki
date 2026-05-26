@@ -62,6 +62,12 @@ wiki/
 
 ---
 
+## 크로스 프로젝트 참조 규칙 — first-ingest-wins
+
+여러 프로젝트가 참조할 수 있는 자료(datasheet, user guide 등)는 **먼저 ingest한 프로젝트에 raw와 sources 페이지를 둔다**. 나중에 같은 자료가 필요한 프로젝트는 raw를 복제하지 않고 Obsidian 백링크(`[[페이지명]]`)로 cross-project 참조한다. 셋 이상의 프로젝트가 명확히 공유하는 자료만 루트 `wiki/pages/`로 승격을 검토한다.
+
+---
+
 ## 주의
 
 페이지를 만들거나 갱신할 때 항상 해당 도메인의 `CLAUDE.md`(`teams/<팀>/<프로젝트>/CLAUDE.md`)를 먼저 읽는다.

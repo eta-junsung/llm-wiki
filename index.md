@@ -40,6 +40,14 @@
 
 ---
 
+## teams/g/bp-cc3351
+
+### Sources
+
+- [[bp_cc3351_evm_ug]] — TI BP-CC3351 EVM User Guide (SWAU132A, 23p). BoosterPack 2×20핀 핀맵·JTAG 헤더·전원·클럭 raw 추출 인덱스
+
+---
+
 ## teams/g/lp-am263p
 
 ### Concepts
