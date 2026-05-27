@@ -4,6 +4,14 @@
 
 ---
 
+## [2026-05-27] ingest | Rx OLED Regulator Control Board 회로도 (OrCAD Design XML)
+
+- 소스: `rx_oled_regulator_control_board_260327.xml` (OrCAD Design XML, 68,941줄) + `Rx_OLED_Regulator_Control_Board_260327.pdf`
+- 대상 프로젝트: `teams/c/oled_tv_software`, subsystem: 01_RX_control
+- 생성: `sources/schematic_rx_regulator_control_board.md`
+- 갱신: `entities/rx_control.md` (CAN·DAC·추가 GPIO 신호 추가), `concepts/adc_channel_map.md` (TEMP1/TEMP2 swap 회로도 확인으로 해소)
+- 확인 사항: MCU는 STM32F103VCT6/LQFP64 (OrCAD 라이브러리명 오기), 39개 _uC 신호·24개 _CN 신호 전수 추출, TEMP1_ADC_uC=PC4 좌표 매칭 확인
+
 ## [2026-05-27] ingest | RX Control UART5 Command Reference (이미지 PDF)
 
 - 소스: `C:\Users\echog\eta\projects\c\oled_tv_software\docs\매뉴얼 (Uart Commands)_테스트용.pdf` (6p, 이미지형)

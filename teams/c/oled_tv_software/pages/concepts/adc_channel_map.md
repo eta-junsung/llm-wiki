@@ -54,7 +54,7 @@ typedef struct {
 
 **보드 silkscreen `TEMP1_ADC`(PC5)에 전압 인가 → 패킷 "Rx Power Stack #2 온도"로 도착**. 적어도 한쪽(보드 라벨 vs SW 필드명) 중 하나는 swap 상태. 시험·디버깅 시 라벨 그대로 믿지 말고 본 표 기준.
 
-후속: 진짜로 어느 쪽이 틀린지 — 회로도 / 보드 실측으로 결정 필요. 결정 시 본 페이지 갱신.
+**회로도 XML 좌표 분석으로 해소 (2026-05-27):** [[schematic_rx_regulator_control_board]] 회로도 MCU 페이지에서 오프페이지 커넥터 좌표 추출 결과, `TEMP1_ADC_uC` 신호(회로도 명칭)가 PC4(절대 Y=440)에 연결됨이 좌표 일치로 확인. 즉 **회로도는 PC4를 TEMP1로 정의**하고, `.ioc`가 PC4에 `TEMP2_ADC`를 붙인 것이 Swap의 원인. `.ioc` GPIO_Label이 틀린 것.
 
 ## Front-end 스케일 (현재 미적용)
 

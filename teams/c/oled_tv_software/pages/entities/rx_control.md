@@ -70,10 +70,40 @@ PWM 시스템 전반은 [[pwm_system]]. 트립존 동작은 [[trip_zone]].
 - ESB 페이로드 사양: [[tx_to_rx_packets]], [[rx_to_tx_packets]]
 - 통신 헬스체크: [[comm_state_monitoring]]
 
+## CAN 버스
+
+| 항목 | 값 |
+|---|---|
+| TX Pin | PA12 (CAN_TX) |
+| RX Pin | PA11 (CAN_RX) |
+| 커넥터 신호 | CANA_H_CN / CANA_L_CN (CAN 트랜시버 후 차동 출력) |
+
+## DAC
+
+| 신호 | 핀 | 용도 |
+|---|---|---|
+| DACA_OUT_uC | PA4 (DAC_OUT1) | 미확인 |
+| DACB_OUT_uC | PA5 (DAC_OUT2) | 미확인 |
+
+## 추가 디지털 신호 (GPIO 미확인)
+
+| 신호 | 방향 추정 | 비고 |
+|---|---|---|
+| FAULT_RST_uC / _CN | 입력 | 폴트 리셋 |
+| LATCH_FAULT_uC / _CN | 출력 | 래치 폴트 |
+| nSYS_RDY_uC / _CN | 출력 | 시스템 준비 (active low) |
+| DBG_LED1/2/3_uC | 출력 | 디버그 LED |
+| TEST_MODE1/2_uC | 입력 | 테스트 모드 선택 |
+| LSG1/2_OP_SEL_uC / _CN | 출력 | Load Sharing Gate 동작 선택 |
+
+정확한 GPIO 핀 번호는 넷리스트 또는 좌표 분석 필요. [[schematic_rx_regulator_control_board]] 참조.
+
 ## 알려진 주의
 
 - **`ADC_BUCK_VOUT_R128`** — DNP(미실장). `common.h`에서 주석 처리됨. 실수로 사용 금지.
+- OrCAD 라이브러리 파트명 `STM32F042C6T6`는 오기 — 실제 칩은 STM32F103VCT6 계열.
 
 ## 출처
 
 - [[rx_control_pwm_가이드]] (sources)
+- [[schematic_rx_regulator_control_board]] (sources) — 전체 핀맵·신호 인벤토리
