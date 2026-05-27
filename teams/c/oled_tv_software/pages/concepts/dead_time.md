@@ -1,7 +1,7 @@
 ---
 tags: [concept, pwm, dead_time, rx_control]
 source: projects/c/oled_tv_software/docs/RX_control_PWM_가이드.md
-date: 2026-04-14
+date: 2026-05-27
 subsystem: 01_RX_control
 ---
 
@@ -59,6 +59,27 @@ dt 0 400 50  → 400ns 복귀
 
 UART 명령은 [[uart_command_set]].
 
+## dt_ratio
+
+UART `dt` 명령 이후 [[uart_command_set]]의 `freq` 명령이 실행되면 dt_ratio(데드타임/주기)를 기준으로 3~5% 범위 클램프가 적용된다.
+
+- **초기값**: 0.04 (= 400ns @ 기본 주파수)
+- `freq` 명령: ns 고정, ratio 재계산 → 3~5% 클램프
+- `dt` 명령: 입력 ns로 ratio 갱신, 클램프 없음
+- `duty` 명령: ratio 유지, 듀티만 변경
+
+## UART `dt` 명령 구문 주의
+
+구버전(RX_control_PWM_가이드) 대비 구문이 변경됨:
+
+| 버전 | 구문 |
+|---|---|
+| 구버전 | `dt <ch> <ns> <pct>` (duty 인자 포함) |
+| 현재 | `dt <ch> <ns>` (duty 인자 없음) |
+
+현재 `dt` 명령은 데드타임만 설정하며, 듀티는 `duty` 명령으로 별도 제어한다.
+
 ## 출처
 
 - [[rx_control_pwm_가이드]] (sources)
+- [[uart_cmd_reference_테스트용]] (sources) — dt_ratio 개념 + 구문 변경 확인

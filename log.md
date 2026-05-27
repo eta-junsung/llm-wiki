@@ -4,6 +4,25 @@
 
 ---
 
+## [2026-05-27] ingest | RX Control UART5 Command Reference (이미지 PDF)
+
+- 소스: `C:\Users\echog\eta\projects\c\oled_tv_software\docs\매뉴얼 (Uart Commands)_테스트용.pdf` (6p, 이미지형)
+- 대상 프로젝트: `teams/c/oled_tv_software`
+- 도구: Poppler pdftoppm → PNG 변환 → Claude 시각 읽기 (첫 이미지형 PDF ingest)
+- 신규 생성:
+  - sources: [[uart_cmd_reference_테스트용]]
+- 갱신:
+  - [[uart_command_set]] — phase·start 추가, dt 구문 2인자로 수정, UART5 핀(PC12/PD2) 추가
+  - [[dead_time]] — dt_ratio 개념 추가, 구버전 3인자 구문 대비 표
+  - [[rx_control]] — UART5 핀 테이블 추가 (MCU RCT6 유지, PDF VCT6 오기 확인)
+- 핵심 합의:
+  - MCU는 STM32F103**RCT6** (64핀). PDF에 VCT6로 기재되어 있으나 문서 오기 — 사용자 확인.
+  - `dt` UART 명령 구문 변경: `dt <ch> <ns> <pct>` → `dt <ch> <ns>` (duty 인자 분리됨)
+  - `phase`, `start` 명령 신규 확인. start = 4채널 동시 pwm start + current_phase_deg 적용.
+  - dt_ratio = 데드타임/주기. freq 명령 시 3~5% 클램프 자동 적용.
+
+---
+
 ## [2026-05-26] ingest | CC3350/CC3351 데이터시트 (SWRS284C)
 
 - 소스: `C:\Users\echog\eta\cc3351-datasheet.pdf` (34p, Rev.C, October 2025) — wiki 밖 보관

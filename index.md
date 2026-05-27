@@ -27,7 +27,7 @@
 - [[pwm_system]] — TIM8/TIM3 64MHz·100kHz·120도 위상, `pwm_init`/`set_duty`/`pwm_set_freq`
 - [[dead_time]] — SW CCR offset 방식. TIM3에 BDTR 없어 두 타이머 통일
 - [[trip_zone]] — TIM8 BKIN(PA6) → `HAL_TIMEx_BreakCallback`로 PWM 전체 차단
-- [[uart_command_set]] — `duty`/`freq`/`dt`/`reset` (115200bps)
+- [[uart_command_set]] — `duty`/`freq`/`dt`/`phase`/`start`/`reset` (UART5, 115200/8N1, PC12/PD2)
 - [[adc_channel_map]] — ADC1 6채널 핀맵(PA0~PA3, PC4/PC5) + TEMP1/TEMP2 라벨 swap 함정 + 평가보드 시험 가이드
 - [[spi_packet_format]] — STM32-nRF 내부 SPI 프레임 (56B/45B, HDR 0xC0, 20ms). ESB wire 포맷과 별개
 - [[esb_packet_format]] — ESB wire 포맷 (11B, HDR round-robin 0x10-0x12/0x50-0x52, 10ms, ACK with payload)
@@ -39,6 +39,7 @@
 ### Sources
 
 - [[rx_control_pwm_가이드]] — RX_control PWM 개발 가이드 (2026-04-14)
+- [[uart_cmd_reference_테스트용]] — RX Control UART5 Command Reference (이미지 PDF, Ver 0.1E00). phase·start 추가 + dt 구문 변경 + UART5 핀 확인
 - [[spi_protocol_manual_260513]] — OLED TV 프로토콜 매뉴얼 (2026-05-13). ESB wire 포맷(11B) 정의 문서
 - [[prd]] — 시스템 PRD v1.0 (2026-05-26). 인수 시점 이해 스냅샷, 펌웨어 현황·미해결 의문점 일람
 - [[schematic_stm32_mini_pro_v10]] — STM32 mini-pro v10 회로도 (이미지 PDF, SPI 수동 추출). STM32↔nRF52832 PCA10040 배선표 포함
