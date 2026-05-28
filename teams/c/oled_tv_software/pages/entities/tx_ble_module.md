@@ -1,7 +1,7 @@
 ---
 tags: [entity, board, esb]
 source: teams/c/oled_tv_software/raw/prd_v1.0.md
-date: 2026-05-26
+date: 2026-05-28
 subsystem: 03_TX_ble
 ---
 
@@ -24,6 +24,19 @@ TX 보드 측 무선 모듈. nRF52832 기반, ESB PTX로 동작. TX 보드와 SP
 | ACK payload 수신 (0x50/0x51/0x52) | ✓ 구현됨 |
 | round-robin HDR 송신 | ✓ 구현됨 |
 | TX 보드 ↔ 03_TX_ble SPI (`SPI_Loop`) | ✗ 전체 주석 처리됨 |
+| while(1) 구조 정리 | △ 구현됨·미검증 |
+| GPIO P0.17/P0.18 토글 (OSC 검증용) | △ 구현됨·미검증 |
+| TX_FAILED 1초 윈도우 카운터 | △ 구현됨·미검증 |
+| TX UART 모니터 출력 포맷 개선 | △ 구현됨·미검증 |
+
+## ESB 타이밍 측정값
+
+2026-05-27 오실로스코프 실측. 상세 이미지 → [[esb_timing_measurements]].
+
+| 항목 | 측정값 |
+|---|---|
+| TX→ACK 왕복 지연 | 약 470 us |
+| TX 전송 주기 | 약 920 us |
 
 ## 통신 인터페이스
 

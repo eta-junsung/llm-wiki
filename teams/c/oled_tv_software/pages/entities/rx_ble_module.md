@@ -1,7 +1,7 @@
 ---
 tags: [entity, board, ble_module, historical, ble]
 source: teams/c/oled_tv_software/raw/260513-oled_tv-protocol-manual__introduction.CSV
-date: 2026-05-13
+date: 2026-05-28
 subsystem: 02_RX_esb
 ---
 
@@ -54,6 +54,16 @@ subsystem: 02_RX_esb
 | 버그 수정 (커밋 `89e8609`) | ✓ 완료 |
 | ESB 타임아웃 stale 마킹 | ✗ 미구현 (`esb_recv` 끊길 때 `tx_module.hdr=0x00`으로 STM32에 알리는 로직 없음) |
 | SPI 하드웨어 테스트 | ✗ 미실시 (코드 수정 후 실측 검증 전) |
+| ESB 수신 모니터링 추가 | △ 구현됨·미검증 |
+| RX UART 모니터 출력 포맷 개선 | △ 구현됨·미검증 |
+
+## ESB 타이밍 측정값
+
+2026-05-27 오실로스코프 실측 (PTX 측 GPIO 프로브). 상세 이미지 → [[esb_timing_measurements]].
+
+| 항목 | 측정값 |
+|---|---|
+| ACK 수신 주기 (PRX 응답 주기) | 약 940 us |
 
 ## 통신 페어
 
