@@ -7,7 +7,7 @@ subsystem: 01_RX_control, 02_RX_ble, 03_TX_ble
 
 # OLED TV 프로토콜 매뉴얼 (소스, 260513)
 
-TX↔RX 간 **ESB wire 사양**을 정의하는 문서. 11 B 패킷(HDR+Length+Data[8]+CRC)을 10ms cyclic으로 교환. 작성 당시 BLE 기반이었으나 ESB 전환 후에도 이 패킷 구조는 그대로 유지된다.
+**STM32(Master)↔nRF52832(Slave) 간 SPI wire 포맷**을 정의하는 문서. 11B 패킷(HDR+Length+Data[8]+CRC)을 10ms cyclic으로 교환. nRF가 SPI 패킷을 ESB로 그대로 중계하므로 ESB wire([[esb_packet_format]])도 동일한 패킷 구조를 사용한다.
 
 > **주의**: 이 매뉴얼의 11 B 포맷은 ESB wire 전용이다. STM32-nRF 간 SPI 내부 프레임(56B/45B, HDR 0xC0)과 다르다 → [[spi_packet_format]] 참조.
 

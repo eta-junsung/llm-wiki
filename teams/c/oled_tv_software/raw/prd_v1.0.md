@@ -34,14 +34,13 @@ TX 보드와 `03_TX_ble` 간 SPI는 현재 미구현 — 자세한 내용은 4.3
 
 ### 3.1 SPI (STM32 ↔ 02_RX_ble)
 
-- Mode 2 (CPOL=1 / CPHA=0)
-- 주기: 20ms
+- 주기: 10ms cyclic
+- 속도: 9.0 Mbps
 - 마스터: STM32 (`01_RX_control`)
-- STM32 → nRF 방향: `rx_module_data_t` 56B
-  - 구조: HDR `0xC0` + LEN + `rx_status` + `rx_data` + checksum
-- nRF → STM32 방향: `tx_module_data_t` 45B
-  - 구조: HDR `0xC0` + LEN + `tx_status` + `tx_cmd` + `tx_data` + checksum
-- DMA 전송 크기는 56B로 통일 (HAL API 제약). nRF→STM32의 45B는 나머지 자리를 `0xFF`로 패딩.
+- **wire 포맷**: 11B 고정 (HDR 1B + Length 0x08 + Data[8] + CRC 1B)
+  - STM32 → nRF: 0x50 / 0x51 / 0x52 (RX 상태·센싱)
+  - nRF → STM32: 0x10 / 0x11 / 0x12 (TX 상태·센싱)
+- **내부 데이터 컨테이너** (wire 포맷 아님): `rx_module_data_t` 56B, `tx_module_data_t` 45B (`oled_tv_protocol.h`)
 
 ### 3.2 ESB (02_RX_ble ↔ 03_TX_ble)
 

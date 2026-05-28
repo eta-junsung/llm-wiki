@@ -29,7 +29,7 @@
 - [[trip_zone]] — TIM8 BKIN(PA6) → `HAL_TIMEx_BreakCallback`로 PWM 전체 차단
 - [[uart_command_set]] — `duty`/`freq`/`dt`/`phase`/`start`/`reset` (UART5, 115200/8N1, PC12/PD2)
 - [[adc_channel_map]] — ADC1 6채널 핀맵(PA0~PA3, PC4/PC5) + TEMP1/TEMP2 라벨 swap 함정 + 평가보드 시험 가이드
-- [[spi_packet_format]] — STM32-nRF 내부 SPI 프레임 (56B/45B, HDR 0xC0, 20ms). ESB wire 포맷과 별개
+- [[spi_packet_format]] — STM32-nRF 내부 SPI wire 포맷 (11B 고정, HDR 0x10~0x12/0x50~0x52). ESB와 동일 패킷 구조
 - [[esb_packet_format]] — ESB wire 포맷 (11B, HDR round-robin 0x10-0x12/0x50-0x52, 10ms, ACK with payload)
 - [[esb_link_layer]] — ESB 링크 파라미터 (10ms, ACK with payload, NRF_ESB_MAX_PAYLOAD_LENGTH=64) + 미결 파라미터
 - [[tx_to_rx_packets]] — TX→RX: 0x10 시스템상태 / 0x11 입력 Analog / 0x12 출력 Analog+온도

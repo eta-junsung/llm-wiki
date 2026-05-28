@@ -33,7 +33,7 @@ subsystem: 01_RX_control, 02_RX_ble, 03_TX_ble
 
 ## 통신 레이어 요약
 
-- **STM32↔nRF SPI** (내부): 56B/45B, HDR 0xC0, 20ms, Mode 2 → [[spi_packet_format]]
+- **STM32↔nRF SPI** (내부): 11B 고정, HDR 0x10~0x12/0x50~0x52, 10ms → [[spi_packet_format]]
 - **ESB wire** (무선): 11B, HDR round-robin 0x10-0x12/0x50-0x52, 10ms, ACK with payload → [[esb_packet_format]], [[esb_link_layer]]
 
 두 포맷은 별개. nRF가 능동적으로 변환한다.
