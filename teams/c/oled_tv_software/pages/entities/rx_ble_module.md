@@ -16,6 +16,7 @@ subsystem: 02_RX_esb
 - 수신된 Tx 데이터를 SPI 패킷 (0x10/0x11/0x12)으로 [[rx_control]]에 전달
 - [[rx_control]]로부터 받은 SPI 패킷 (0x50/0x51/0x52)을 무선으로 Tx 측에 전달
 - 자체적으로 [[comm_state_monitoring|SPI/BLE 통신 상태]] 비트를 생성·갱신
+- SPI heartbeat 생성: `Heartbeat_Loop()`(main.c:494)가 200ms마다 `hb_bit` 토글 → 0x10 STATUS bit5. 디버그 핀 `P0.17`(`PIN_DBG_HB`)로 오실로 검증. 상세 → [[spi_link_reliability]]
 
 ## 인터페이스
 
@@ -56,6 +57,9 @@ subsystem: 02_RX_esb
 | SPI 하드웨어 테스트 | ✗ 미실시 (코드 수정 후 실측 검증 전) |
 | ESB 수신 모니터링 추가 | △ 구현됨·미검증 |
 | RX UART 모니터 출력 포맷 개선 | △ 구현됨·미검증 |
+| SPI heartbeat (200ms 독립 타이머) | ✓ 실보드 검증 (P0.17 오실로, 260529) |
+| SPI 오류율 모니터 (ok/fail/err%) | △ 구현됨·장시간 미검증 (260529) |
+| SPI 10ms 폴링 주기 | ✗ 미달 — CS 미동작, STM32 DMA IRQ(NVIC) 의심 (260529) |
 
 ## ESB 타이밍 측정값
 
@@ -72,6 +76,7 @@ subsystem: 02_RX_esb
 - ESB wire 패킷: [[esb_packet_format]] (11B, HDR round-robin)
 - 방향별 페이로드: [[tx_to_rx_packets]], [[rx_to_tx_packets]]
 - 헬스체크 비트: [[comm_state_monitoring]]
+- SPI 링크 안정성(heartbeat 구현·복구): [[spi_link_reliability]]
 - ESB 상대방: [[tx_ble_module]] (PTX)
 
 ## 이행 메모 (BLE → ESB)

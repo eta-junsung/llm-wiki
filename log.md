@@ -4,6 +4,27 @@
 
 ---
 
+## [2026-05-29] ingest | SPI heartbeat 작업 보고서 (260529)
+
+- 소스: `tasks/spi-heartbeat/report.md` + 오실로 스크린샷 `P3NOFO01.PNG`
+- 대상 프로젝트: `teams/c/oled_tv_software`, subsystem: 01_RX_control, 02_RX_ble, 03_TX_ble
+- 생성:
+  - sources: [[spi_heartbeat_report_260529]]
+  - concepts: [[spi_link_reliability]] (heartbeat 구현·오류율 모니터·spi_tx_busy 타임아웃 복구·10ms/9MHz 현황)
+- 갱신:
+  - [[comm_state_monitoring]] — 200ms 교번 사양이 코드(Heartbeat_Loop 200ms 독립 타이머)로 실현됨 확정 + 백링크
+  - [[spi_packet_format]] — 전송 파라미터 "10ms/9.0Mbps"를 사양으로 명시, 실측 미달(폴링 1000ms, 9MHz revert) 주석
+  - [[rx_ble_module]] — Heartbeat_Loop·P0.17 디버그 핀·펌웨어 현황 3행 추가
+  - [[index]], [[status]]
+- 핵심 합의:
+  - 모순은 wiki↔wiki가 아니라 과거 코드(매 SPI 사이클)↔사양(200ms 매뉴얼). 오늘 코드가 사양 충족.
+  - heartbeat만 실보드 검증(✓). 오류율 모니터·spi_tx_busy 복구는 △. SPI 10ms 폴링·9MHz는 ✗.
+  - 10ms 미달 유력 원인: STM32 `HAL_SPI_MspInit` DMA IRQ(NVIC) 부재 → 콜백 미발생.
+  - "10ms" 용어 구분: 앱 SPI 폴링 주기(PACKET_INTERVAL) ≠ ESB RF wire 주기 ([[spi_debug_log_report_260529]] 미결과 동일).
+  - `_ble` 파일명은 잔재이며 ESB 라인의 정식 코드 (사용자 확인).
+
+---
+
 ## [2026-05-29] ingest | lp-am263p 포팅 로드맵 — 전략 spine
 
 - 소스: `~/eta/projects/g/lp-am263p/bp-3351/tasks/porting/roadmap.md` (planner roadmap)

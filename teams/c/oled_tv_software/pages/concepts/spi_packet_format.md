@@ -40,8 +40,8 @@ subsystem: 01_RX_control, 02_RX_ble
 
 ## 전송 파라미터
 
-- **주기**: 10ms cyclic
-- **SPI 속도**: 9.0 Mbps
+- **주기**: 10ms cyclic *(사양)* — ⚠️ **현재 미달**: 앱 폴링 주기 `PACKET_INTERVAL`은 1000ms, 10ms 전환 시도 실패(CS 미동작). [[spi_link_reliability]] 참조. (ESB RF wire 10ms와는 별개 주기 — [[esb_link_layer]])
+- **SPI 속도**: 9.0 Mbps *(사양)* — ⚠️ **현재 미달**: STM32 9MHz 상향 시도 후 revert(`7143f55`), 더 낮은 클럭으로 동작 중.
 - **CS**: Low Active, Master = STM32 (클럭 생성)
 - **커넥터**: CN3 (SPI + 3.3V 비절연), CN4 (+5V 절연 — 통신 전원만)
 - **STM32 핀**: SPI2, PB12-15 (NSS_SOFT)
@@ -52,6 +52,10 @@ subsystem: 01_RX_control, 02_RX_ble
 - 바이트 순서: Motorola (Big-endian)
 - 전압/전류: scale factor 0.01 (예: 47.95V → 4795)
 - 온도: scale factor 패킷별 상이 → [[rx_to_tx_packets]], [[tx_to_rx_packets]] 참조
+
+## 관련
+
+- [[spi_link_reliability]] — heartbeat·SPI 단절 복구·10ms/9MHz 실측 현황
 
 ## 출처
 
