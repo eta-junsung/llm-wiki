@@ -1,7 +1,7 @@
 ---
 tags: [concept, protocol, spi, esb, rx_to_tx, ack_payload]
 source: teams/c/oled_tv_software/raw/260513-oled_tv-protocol-manual__from-eta_rx-to_etx_tx.CSV
-date: 2026-05-13
+date: 2026-05-29
 subsystem: 01_RX_control, 02_RX_esb, 03_TX_esb
 ---
 
@@ -59,6 +59,44 @@ subsystem: 01_RX_control, 02_RX_esb, 03_TX_esb
 
 > Power Stack#1과 #2의 스케일 표기가 원문에서 다름 (`0.1[℃]` vs `0.01[℃]`). 예시값(120.5 → 1205)을 역산하면 양쪽 모두 0.1 ℃ 스케일이어야 일관됨 — **원문 오기 가능성**. 구현 시 확인 필요.
 
+## 코드 실측 레이아웃 (2026-05-29 확인)
+
+소스: `02_RX_ble/Application/main.c:246-271`. Wire 포맷: `[ HDR(1) | LEN=0x08(1) | DATA[0..7](8) | CRC(1) ]`, Big-Endian.
+
+### 0x50 코드 비트맵 (DATA[0])
+
+| 비트 | 코드 필드명 | 비고 |
+|---|---|---|
+| bit0 | SysInit | 프로토콜 매뉴얼과 일치 |
+| bit1 | Ready (SysRdy) | 프로토콜 매뉴얼과 일치 |
+| bit2 | **BuckSt** | **매뉴얼과 불일치** — 매뉴얼은 Bit.2=Warning |
+| bit3 | **Warning** | **매뉴얼과 불일치** — 매뉴얼은 Bit.3=Fault |
+| bit4 | **Fault** | 매뉴얼에 없는 비트 |
+
+DATA[1..5]: reserved 0x00. DATA[6]: FW Major, DATA[7]: FW Minor (매뉴얼은 Buffer[6] 단일 바이트).
+
+### 0x51 코드 레이아웃
+
+| DATA 인덱스 | 필드 | Type | Scale |
+|---|---|---|---|
+| [0..1] | Vrect | i16 | × 0.01 V |
+| [2..3] | Irect | i16 | × 0.01 A |
+| [4..7] | reserved | — | 0x00 |
+
+> **매뉴얼과 큰 불일치**: 프로토콜 매뉴얼의 `Buffer[4..5]` Zin(입력 임피던스)과 `Buffer[6..7]` Tx Buck Vout Ref가 **코드에 구현되지 않음**. 또한 매뉴얼은 Uint16이나 코드는 i16(부호있음).
+
+### 0x52 코드 레이아웃
+
+| DATA 인덱스 | 필드 | Type | Scale |
+|---|---|---|---|
+| [0..1] | Vout | i16 | × 0.01 V |
+| [2..3] | Iout | i16 | × 0.01 A |
+| [4..5] | T1 (stack_temp1) | i16 | × 0.1 °C |
+| [6..7] | T2 (stack_temp2) | i16 | × 0.1 °C |
+
+> 기존 wiki 메모 해소: T2도 0.1 °C 스케일로 코드 확인 — 매뉴얼의 "0.01 °C" 표기는 오기.
+
 ## 출처
 
-- [[spi_protocol_manual_260513]]
+- [[spi_protocol_manual_260513]] — 프로토콜 매뉴얼 원본
+- [[spi_debug_log_report_260529]] — 코드 실측 레이아웃 검증

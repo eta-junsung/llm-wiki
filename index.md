@@ -33,11 +33,13 @@
 - [[esb_packet_format]] — ESB wire 포맷 (11B, HDR round-robin 0x10-0x12/0x50-0x52, 10ms, ACK with payload)
 - [[esb_link_layer]] — ESB 링크 파라미터 (10ms, ACK with payload, NRF_ESB_MAX_PAYLOAD_LENGTH=64) + 미결 파라미터
 - [[tx_to_rx_packets]] — TX→RX: 0x10 시스템상태 / 0x11 입력 Analog / 0x12 출력 Analog+온도
-- [[rx_to_tx_packets]] — RX→TX (ESB ACK payload): 0x50 시스템상태 / 0x51 입력+Tx Vout Ref / 0x52 출력+온도
+- [[rx_to_tx_packets]] — RX→TX (ESB ACK payload): 0x50 시스템상태 / 0x51 입력+Tx Vout Ref / 0x52 출력+온도 (코드 실측 레이아웃 + 불일치 추가)
+- [[esb_ptx_ack_assembly]] — PTX 모드 ACK payload 재조립: g_last_ack_by_hdr[3] 패턴 + ISR printf 금지
 - [[comm_state_monitoring]] — SPI_Comm_St 200ms 토글, BLE_Comm_St 페어링 상태
 
 ### Sources
 
+- [[spi_debug_log_report_260529]] — 양방향 ESB 데이터 경로 검증 리포트 (시나리오 A/B, 2026-05-29)
 - [[rx_control_pwm_가이드]] — RX_control PWM 개발 가이드 (2026-04-14)
 - [[uart_cmd_reference_테스트용]] — RX Control UART5 Command Reference (이미지 PDF, Ver 0.1E00). phase·start 추가 + dt 구문 변경 + UART5 핀 확인
 - [[spi_protocol_manual_260513]] — OLED TV 프로토콜 매뉴얼 (2026-05-13). ESB wire 포맷(11B) 정의 문서

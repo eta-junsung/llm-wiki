@@ -38,6 +38,20 @@ TX 보드 측 무선 모듈. nRF52832 기반, ESB PTX로 동작. TX 보드와 SP
 | TX→ACK 왕복 지연 | 약 470 us |
 | TX 전송 주기 | 약 920 us |
 
+## Monitor_Loop 출력 포맷
+
+`03_TX_ble/Application/main.c:568-614`, 1000ms 주기. ACK payload(0x50/0x51/0x52)를 디코딩해 UART/RTT 출력.
+
+```
+ESB tx=0x000C3E fail=0/s | ACK rx=0x000C3D [0x50 0x51 0x52]
+[eta-rx]
+0x50 | Rx_Fault_St=0 Rx_Warning_St=0 Rx_Sys_Rdy_St=1 Rx_Buck_St=1 fw=0.1
+0x51 | Rx_Vrect=48.00V Rx_Irect=1.23A
+0x52 | Rx_Vout=12.00V Rx_Iout=2.34A Rx_T1=45.0C Rx_T2=46.0C
+```
+
+`g_rx_seen_mask` 비트가 선 헤더만 출력(초기 0값 방지), 출력 후 리셋. 3헤더 수집 패턴 → [[esb_ptx_ack_assembly]].
+
 ## 통신 인터페이스
 
 - **ESB RF**: [[rx_ble_module]](PRX)과 2.4GHz 링크. 파라미터 → [[esb_link_layer]]
@@ -46,3 +60,4 @@ TX 보드 측 무선 모듈. nRF52832 기반, ESB PTX로 동작. TX 보드와 SP
 ## 출처
 
 - [[prd]] (§4.3)
+- [[spi_debug_log_report_260529]]

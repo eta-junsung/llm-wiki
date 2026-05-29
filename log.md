@@ -4,6 +4,22 @@
 
 ---
 
+## [2026-05-29] ingest | SPI 디버그 로그 검증 결과 (시나리오 A/B)
+
+- 소스: `tasks/spi-debug-log/report.md`
+- 대상 프로젝트: `teams/c/oled_tv_software`, subsystem: 01_RX_control, 02_RX_ble, 03_TX_ble
+- 생성:
+  - sources: [[spi_debug_log_report_260529]]
+  - concepts: [[esb_ptx_ack_assembly]] (PTX ACK payload 재조립 + ISR printf 금지 패턴)
+- 갱신:
+  - [[rx_to_tx_packets]] — 코드 실측 DATA 레이아웃 추가, 프로토콜 매뉴얼과의 불일치 정리 (0x50 bit 순서, 0x51 Zin·TxVoutRef 미구현, 0x52 T2 스케일 0.1°C 확인)
+  - [[tx_ble_module]] — Monitor_Loop 출력 포맷 + [[esb_ptx_ack_assembly]] 링크 추가
+- 핵심 합의:
+  - 0x51 코드에 Zin·TxVoutRef 없음 — 프로토콜 매뉴얼 대비 미구현 필드
+  - 0x50 bit2=BuckSt / bit3=Warning / bit4=Fault — 매뉴얼과 순서 다름
+  - 0x52 T2 스케일은 코드 기준 0.1°C (매뉴얼 "0.01°C" 오기 해소)
+  - PTX에서 g_last_ack_by_hdr[3] 패턴 필수 — 1초 윈도우 내 3헤더 보존
+
 ## [2026-05-27] ingest | Rx OLED Regulator Control Board 회로도 (OrCAD Design XML)
 
 - 소스: `rx_oled_regulator_control_board_260327.xml` (OrCAD Design XML, 68,941줄) + `Rx_OLED_Regulator_Control_Board_260327.pdf`
