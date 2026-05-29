@@ -1,7 +1,7 @@
 ---
 tags: [concept, flash, xspi, porting, is25lx256, spansion_quirk, bp-3351]
-source: [[is25lx256_datasheet]] (ch06.3-6.5, ch08.2, ch11) + Spansion S25Hx/S28Hx 일반 지식
-date: 2026-05-22
+source: [[is25lx256_datasheet]] (ch06.3-6.5, ch08.2, ch11) + Spansion S25Hx/S28Hx 일반 지식 + report.md R27
+date: 2026-05-29
 ---
 
 # IS25LX256(ISSI) ↔ Spansion 계열 xSPI Flash — 포팅 시 충돌 포인트
@@ -9,6 +9,8 @@ date: 2026-05-22
 bp-3351 → AM263P 포팅 작업에서 원본 드라이버가 **Spansion(현 Infineon) S25Hx/S28Hx** 계열 Octal xSPI를 가정해 짜여 있다면, **ISSI IS25LX256에 그대로 돌리면 안 된다.** JEDEC xSPI(eXpanded SPI) 표준은 공통이지만 *벤더별 레지스터 맵·opcode·sector arch가 다르다*.
 
 이 페이지는 포팅 시 Spansion 분기를 제거/우회할 때 확인할 차이점 모음.
+
+> **라인 수 차이 (2026-05-29 확정)** — AM243 보드 칩이 `S25HL512T`(Cypress/Infineon, Spansion 계열, 64MB)로 실물 확정되면서, 원본 드라이버의 Spansion-quirk 전제가 *가능성*이 아닌 **사실**로 뒷받침됨. 동시에 두 칩은 동작 라인 수 자체가 다르다: **AM243 = `S25HL512T` Quad-SPI(4선) 중심 / AM263P = `IS25LX256` Octal xSPI(8선, 8D DDR) native**. 프로토콜 진입 시퀀스·RDID 응답 폭·레지스터 접근 opcode가 전부 다르므로 AM243 흐름을 그대로 옮길 수 없다. 비교표는 [[roadmap]] §1, S3 블로커 맥락은 [[flash_open_facts]].
 
 ## 1. UNHYSA(Uniform/Hybrid Sector Architecture) 비트 — **ISSI에는 없다**
 
@@ -122,6 +124,17 @@ int32_t Flash_quirkSpansionUNHYSADisable(Flash_Config *config)
 - IS25LX256 JSON 디스크립터(`raw/mcupsdk/source/sysconfig/board/.meta/flash/IS25LX256.json`) 자체에는 quirk 필드 없음 — quirk 매핑은 별도 SysConfig codegen 단계에서 일어남.
 
 → 참조: [[mcupsdk_flash_nor_ospi]]의 라인 인덱스 1374-1403 항목. 디스크립터 자체는 정상임이 검증됨 → [[sbl_app_flash_handoff]] §진단 트리.
+
+### `set888mode` opcode 정정 (R27, 2026-05-29) — `0x71`과 혼동 금지
+
+진단 과정에서 `set888mode`가 `0x71`을 쓴다는 가설이 있었으나 **폐기**. 실제:
+
+- `Flash_set888mode()` (`flash_nor_ospi.c:664`)는 **`0x81`**(IS25LX256 VCR write) opcode 사용 — 정상.
+- `0x65`(RDAR)/`0x71`(WRAR)은 위 `Flash_quirkSpansionUNHYSADisable` **quirksFxn 경로에만** 존재하며, 현재 `quirksFxn=NULL`로 이미 차단됨. **set888mode 경로와는 무관**.
+
+따라서 8D 진입(set888mode) 자체는 Spansion quirk와 분리된 정상 경로다. → [[flash_open_facts]] 확정 사실/폐기 가설.
+
+**가설 (미채택)**: `set888mode`가 SBL 잔여 8D chip에서 `st=-1`로 실패(R25)하는 이유 — chip이 이미 8D 잔류라 1S 프로토콜로 보낸 VCR write(0x81) 명령을 디코드하지 못하고 무시하는 것으로 추정. 그래서 chip을 1S로 먼저 되돌리는 `flashFixUpOspiBoot()`가 필요하다는 R28 방향과 일관. → [[sbl_app_flash_handoff]] §flashFixUpOspiBoot 부재.
 
 ## 6. Hardware reset / In-Band reset
 

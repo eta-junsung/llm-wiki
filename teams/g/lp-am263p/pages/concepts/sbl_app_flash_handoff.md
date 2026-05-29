@@ -1,7 +1,7 @@
 ---
 tags: [concept, flash, ospi, sbl, handoff, am263p, ti_mcupsdk, porting]
-source: [[mcupsdk_flash_nor_ospi]] (skipHwInit references)
-date: 2026-05-22
+source: [[mcupsdk_flash_nor_ospi]] (skipHwInit references) + report.md R25~R27
+date: 2026-05-29
 ---
 
 # SBL → 앱 flash 핸드오프 — `skipHwInit` 계약
@@ -79,6 +79,23 @@ Open 종료 시 컨트롤러의 `readDataCaptureDelay`는 *마지막으로 ID re
 
 이건 `skipHwInit`와 무관하게 항상 실행. 드라이버 객체의 트래킹 변수만 1S로 초기화되고 직후 `Flash_norOspiSetProtocol`이 8D로 갱신 (line 1232). chip에는 명령 안 나감 (`skipHwInit=TRUE`이면 OE/888 명령 스킵). 단, 만약 protocol switch 단계에서 *어떤 이유로든* chip에 명령을 보내야 한다면 1S 가정으로 보내므로 chip이 8D에 있으면 실패.
 
+## `flashFixUpOspiBoot()` 부재 — app vs flasher 비대칭 (핵심)
+
+같은 보드·같은 칩·같은 SDK `Flash_open(IS25LX256)` 경로인데 **jtag_flasher에서는 성공(R10), app(cc3351)에서는 NULL**이다. 결정적 차이:
+
+- **jtag_flasher**: `Flash_open` *전에* `flashFixUpOspiBoot()`(`jtag_flasher/main.c:414`)를 호출해 **OSPI RESET 핀을 HW 토글 → chip을 1S SDR known-state로 되돌린 뒤** `skipHwInit=FALSE`로 연다 → `set888mode`(0x81)가 1S→8D 정상 승격.
+- **app cc3351**: `cc3351/main.c`에 `board_flash_reset`/`flashFixUpOspiBoot` 호출이 **전혀 없음**. SBL이 남긴 8D 잔여 상태 위에서 곧장 `Flash_open` → 위 후보1 증상.
+
+이것이 app vs flasher 비대칭의 **단일 최대 원인**. ROM 부팅(flasher, 잔여 상태 없음)에서는 1S→8D 승격이 정상 동작한다는 대조 증거이기도 하다.
+
+TI E2E에서 동일 패턴 보고: SBL이 Octal DDR 플래시를 리셋 없이 넘기면 다음 단계 `Flash_open`/RDID가 실패하며, `flashFixUpOspiBoot()`(1S 리셋 후 재진입)가 표준 해법 — [#1379297](https://e2e.ti.com/support/microcontrollers/arm-based-microcontrollers-group/arm-based-microcontrollers/f/arm-based-microcontrollers-forum/1379297/mcu-plus-sdk-am243x-flash-protocol-changes), [#1534082](https://e2e.ti.com/support/microcontrollers/arm-based-microcontrollers-group/arm-based-microcontrollers/f/arm-based-microcontrollers-forum/1534082/mcu-plus-sdk-am263x-rom-bootloader-behavior-and-ospi).
+
+→ **R28 해법 후보**: 이 함수를 app에 인라인 재현. 진행 상태는 [[flash_open_diagnostic_log]] §다음(R28 계획).
+
+## 미해결 질문 — SBL이 chip을 어느 프로토콜로 넘기는가 (가지 α)
+
+SW1="OSPI 4S Quad Read(1,1,1,1)" 부팅 시 SBL이 chip을 8D로 두는지, Quad로 두는지, 1S로 두는지 **미확인**. R20의 DQ1-only는 "SBL이 애초에 8D로 안 둔다"(가지 α)를 시사할 수 있다. SBL 소스 또는 TRM OSPI boot 절차에서 확인 필요. → [[flash_open_facts]] 모름/미확인.
+
 ## 권장 진단 절차
 
 앱에서 Flash_open 실패 / 깨진 read 발생 시:
@@ -129,6 +146,11 @@ raw 사본: `teams/g/lp-am263p/raw/mcupsdk/source/sysconfig/board/.meta/flash/IS
 
 해결: 앱 측 `Flash_open` 호출 시 `skipHwInit=TRUE`. §1-5의 모든 게이트 동작.
 
+> **R25~R27 실측 갱신 (2026-05-29)** — `skipHwInit=TRUE`만으로는 부족함이 드러남:
+> - SBL 잔여 상태에서 **1S RDID 무응답(항상 `FF`)**, 8D RDID는 **DQ1-only**(`02 03 03 03`) — R20·R25·R27 독립 재확인.
+> - `READ_DATA_CAPTURE_REG=0x00000121`로 SBL이 PHY/DQS 켜고 delay=1로 넘긴 상태 확인.
+> - 즉 chip이 SBL 잔여 8D에 있고 app이 그 위에서 캡처 delay만 맞추려다 실패. 현재 최유력 해법은 `skipHwInit=TRUE` 단독이 아니라 **flasher 성공 공식(아래 절)**으로 chip을 1S로 되돌린 뒤 `skipHwInit=FALSE`로 정상 승격. 확정/폐기 가설은 [[flash_open_facts]].
+
 #### 후보 2. `Flash_quirkSpansionUNHYSADisable`가 호출되어 bus 상태 망가뜨림
 
 증상: 8D 진입은 성공한 것 같은데 (logic analyzer로 VCR write 확인됨) 그 직후 ReadId 실패. logic analyzer에서 **0x65 또는 0x71 opcode**가 잡힘.
@@ -148,6 +170,8 @@ raw 사본: `teams/g/lp-am263p/raw/mcupsdk/source/sysconfig/board/.meta/flash/IS
 검증: SysConfig OSPI Module 설정에서 PHY/DQS 관련 옵션 확인. 또는 OSPI 컨트롤러 register dump (DQS_CONFIG_REG 류).
 
 해결: OSPI Module의 DQS enable 켜기. 또는 (드물게) JSON을 fork하여 0xC7 (DQS 없는 Octal DDR)로 변경.
+
+> **R26 검증 (2026-05-29)** — 경로 구분 주의: 본 후보3은 *indirect read 경로* 관점이었으나, **STIG 경로**에서 `READ_DATA_CAPTURE_REG.DQS_ENABLE=0`으로 클리어하면 8D DDR 캡처가 **전부 FF**가 됨(SetRdCap st=-1). 즉 **8D DDR엔 DQS 필수 — "DQS를 꺼서 캡처를 살린다"는 방향은 반증됨(폐기 가설)**. 켜는 방향만 유효. [[flash_open_facts]] 폐기 가설 참조.
 
 #### 후보 4. (드뭄) ECC ON 상태인데 dummy cycle table 불일치
 
@@ -169,6 +193,7 @@ raw 사본: `teams/g/lp-am263p/raw/mcupsdk/source/sysconfig/board/.meta/flash/IS
 
 ## 함께 보기
 
+- 확정 사실/폐기 가설 원장: [[flash_open_facts]] · 라운드별 진단 로그: [[flash_open_diagnostic_log]]
 - Open 시퀀스 전체: [[flash_open_sequence]]
 - Dummy cycle vs 클럭 주파수 표: [[xspi_dummy_cycles]]
 - 원본 소스: [[mcupsdk_flash_nor_ospi]]

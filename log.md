@@ -4,6 +4,24 @@
 
 ---
 
+## [2026-05-29] ingest | lp-am263p report.md R19~R27 — 사실 원장/라운드 로그 분리 + CLAUDE.md schema 신설
+
+- 소스: `~/eta/projects/g/lp-am263p/bp-3351/tasks/porting/report.md` (R19~R27 + R28 계획)
+- 대상 프로젝트: `teams/g/lp-am263p`
+- 핵심 합의: 초장기 디버그 작업의 맥락유실 방지를 위해 "작업 중 밝혀진 사실"을 **사실 원장(제자리 수정) + 라운드 로그(append-only) 2분리**. 3-레이어 = 로드맵(전략)/status(전술)/facts·log(누적).
+- 생성:
+  - concepts: [[flash_open_facts]] (확정 사실 + **폐기 가설(재시도 금지)** + 최유력 가설), [[flash_open_diagnostic_log]] (R7~R27 + R28 계획, append-only)
+  - [[lp-am263p]] 도메인 `CLAUDE.md` 신설 (부재했음) — 3-레이어 분류·SW1 부트모드·boot flow·"자주 어긋나는 자리"
+- 갱신:
+  - `roadmap.md` — Round 24+→27+, **R26 반증된 `DQS_ENABLE=0` "검증 예정" 줄 제거**(stale), facts/log 위임 백링크, §7 환원후보 1·2·4·5 해소 표시
+  - `status.md` — 빈 템플릿 채움: 다음 시작점 R28(jtag_flasher 공식 이식), S0~S8 현황표, 미결 4건
+  - [[sbl_app_flash_handoff]] — 후보1에 R25~27 실측, 신규 §flashFixUpOspiBoot 부재(app vs flasher 비대칭), §SW1 4S 핸드오프 질문, 후보3 DQS는 R26 검증(DQS 필수·DQS=0 반증)
+  - [[is25lx256_vs_spansion_quirks]] — set888mode=0x81 정정(0x71 혼동 종결), AM243 Quad/AM263P Octal 라인 차이
+  - [[index]]
+- 핵심 결정: R25(skipHwInit=FALSE)·R26(DQS=0) 두 진단 가설 폐기 기록 → 다음 세션이 facts.md만 읽고 재시도 방지. 최유력 가설 = SBL 잔여 8D + skipHwInit=TRUE 캡처 미스, R28에서 flasher 성공 공식 이식으로 검증.
+
+---
+
 ## [2026-05-29] ingest | SPI heartbeat 작업 보고서 (260529)
 
 - 소스: `tasks/spi-heartbeat/report.md` + 오실로 스크린샷 `P3NOFO01.PNG`
