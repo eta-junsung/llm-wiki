@@ -60,6 +60,11 @@
 
 ## teams/g/lp-am263p
 
+### Living docs
+
+- [roadmap.md](teams/g/lp-am263p/roadmap.md) — 포팅 전체 로드맵(S0~S8 단계·현재 S3 블로커·남은 일정). 전략 spine, 디테일은 concept 백링크
+- [status.md](teams/g/lp-am263p/status.md) — 기능별 구현 현황표·다음 시작점 (파이프라인이 커밋마다 갱신)
+
 ### Concepts
 
 - [[xspi_dummy_cycles]] — IS25LX256 Octal DDR(8D-8D-8D) dummy cycle vs 클럭 주파수 표 + 자주 쓰는 값 (16.67/33.33/50/100/133 MHz)

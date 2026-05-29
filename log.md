@@ -4,6 +4,19 @@
 
 ---
 
+## [2026-05-29] ingest | lp-am263p 포팅 로드맵 — 전략 spine
+
+- 소스: `~/eta/projects/g/lp-am263p/bp-3351/tasks/porting/roadmap.md` (planner roadmap)
+- 대상 프로젝트: `teams/g/lp-am263p`
+- 생성: `teams/g/lp-am263p/roadmap.md` — 프로젝트 루트 living doc
+  - 백링크 spine 방식: 단계 구조(S0~S8)·현재 위치(S3 막힘)·남은 일정만 직접 보유
+  - 깊은 디테일은 기존 concept로 위임 — [[is25lx256_vs_spansion_quirks]], [[sbl_app_flash_handoff]], [[flash_open_sequence]], [[xspi_dummy_cycles]]
+  - 기능별 현황은 [[status]]와 역할 분담 (로드맵=전략, status=전술)
+- 갱신: `index.md` — lp-am263p 섹션에 "Living docs"(roadmap/status) 추가
+- 미결: lp-am263p 프로젝트에 도메인 `CLAUDE.md` 부재 (다른 프로젝트는 모두 보유) — 별도 생성 필요
+
+---
+
 ## [2026-05-29] ingest | SPI 디버그 로그 검증 결과 (시나리오 A/B)
 
 - 소스: `tasks/spi-debug-log/report.md`
