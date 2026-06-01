@@ -1,7 +1,7 @@
 ---
 tags: [concept, flash, ospi, facts, diagnosis, am263p, s3-blocker]
 source: [[flash_open_diagnostic_log]] + report.md (R19~R27)
-date: 2026-05-29
+date: 2026-06-01
 ---
 
 # Flash_open S3 블로커 — 사실 원장
@@ -18,16 +18,49 @@ date: 2026-05-29
 | 사실 | 출처 |
 |------|------|
 | app `Flash_open(IS25LX256)`은 **NULL 반환** (hang 아님 — R13 `dummyClksCmd=8`로 hang 해소). SDK 마커: SetProtocol/SetAddressBytes/SetModeDummy = SUCCESS, **SetRdCap(RdDataCapture sweep) = FAILURE** | R13~, roadmap §5-2 |
-| **DQ1-only 패턴** — 8D RDID 응답이 DQ1 한 라인만 활성(`02 03 03 03`), DQ[7:2]·DQ0 항상 0 | R20 최초, R25·R27 독립 재확인 → **사실 승격** |
+| **DQ1-only 패턴** — 8D RDID 응답이 DQ1 한 라인만 활성(`02 03 03 03`), DQ[7:2]·DQ0 항상 0. **R28 귀인: pinmux 스크램블 증상으로 확정** — 8D-PHY 문제(가지 γ) 아님 | R20 최초, R25·R27 재확인; R28 귀인 확정 |
 | `READ_DATA_CAPTURE_REG = 0x00000121` = **SBL 잔여 상태** (DQS_ENABLE bit8=1, SAMPLE_EDGE bit5=1, delay=1) | R25/R26/R27 레지스터 덤프 |
 | `set888mode` opcode = **`0x81`** (IS25LX256 VCR write, 정상) | R27, `flash_nor_ospi.c:664` |
 | jtag_flasher 성공 공식 = `flashFixUpOspiBoot()`(OSPI RESET 핀 HW 토글 → 1S) + `skipHwInit=FALSE`(set888mode로 1S→8D 승격) | `jtag_flasher/main.c:414`, `ti_board_config.c:60` |
-| cc3351 app에는 `board_flash_reset`/`flashFixUpOspiBoot` 호출이 **전무** → app vs flasher 비대칭의 **단일 최대 원인** | cc3351/main.c 직접 확인 |
+| cc3351 app에는 `board_flash_reset`/`flashFixUpOspiBoot` 호출이 **전무** → app vs flasher 비대칭 원인 중 하나. ⚠️ R28 정정: **단일 최대 원인** 단정은 pinmux 스크램블(아래) 드러나기 전 결론 — H2(pinmux가 선행 필요조건인가) 검증 전까지 격하 | cc3351/main.c 직접 확인; R28 정정 |
+| **cc3351 OSPI pinmux 스크램블 (R28)** — `$suggestSolution` vs `$assign` 한 글자로 7핀 오배치. CLK/DQS/D4/D6만 양쪽 일치. **주의: D4-D7은 MCAN pad(MODE2)가 정상** — "native everywhere" 교정 시 재파손. 상세 비교는 §아래. | R28: `ti_pinmux_config.c` 직접 비교, `example.syscfg` cc3351 L341-353 vs jtag_flasher L54-65 |
 | `dummyClksCmd=8`, `quirksFxn=NULL` 필수 (런타임 패치 `cc3351/main.c:211-213`) | 과거 라운드 확정 |
 | E9 소프트리셋(`0x66`+`0x99`)은 Flash_open 경로에서 금지 — `SetProtocol st=-1` 유발 | 과거 라운드 확정 |
 | 빌드/플래시/부팅/진단 경로는 안정 동작 | R10~ |
+| **S3 통과 (R28b 확정)** — pinmux `$assign` 교정 단독으로 RDID = `9D 5A 19` (manf=`0x9D` ISSI, dev=`0x5A19`) 정상 복귀, `Flash_open OK`. main.c 변경 없음. 커밋 bb56630. | R28b: `round28b.log` |
+| **double-open 위험** — `network_terminal_entry()` 내부에서 `Drivers_open`(:1205)+`Board_driversOpen`(:1206) 자체 수행, 반환 직전 `Board_driversClose(:1265)`+`Drivers_close(:1266)`. freertos_main이 드라이버를 open/close하면 double-open/double-close st=-1 (round30 실측). | R29: round30.log |
+| **in-place 패치 위치** — `ti_board_open_close.c` 전역 `gFlashParams`/`gFlashConfig`에 `network_terminal_entry` 호출 전 패치: `quirksFxn=NULL`, `skipHwInit=TRUE`, `dummyClksCmd=8`. `Board_driversOpen`이 그대로 읽는다. freertos_main은 드라이버를 건드리지 않는다. | R29: round31 검증, 커밋 3a06ab8 |
+| **S4 통과 + CLI 도달 (R31 확정)** — Flash_open st=0, "Network Terminal upper_mac_3.0.5.12" 배너 + `user:` 프롬프트. ★ 표준 Board_flashOpen 단독 동작 최초 실측 검증. | R29: round31.log |
+| **heap_size≥256KB 필수** — 32KB 공유 힙(`.sysmem`; libc malloc + FreeRTOS `pvPortMalloc` heap_3 공유)은 `wlan_start` 중 `os_malloc` NULL → FreeRTOS 큐 assert. `example.syscfg` general `heap_size=262144`(256KB)로 증설하면 assert 소멸 (`Hardware init DONE!` 도달). | R32: `cli_r32_wlanstart.log`, 커밋 853f3ac |
+| **MCSPI inputSelect=D1 (MISO=SPI0_D1/B11/J2.14; MOSI=D0/C10/J2.15)** — inputSelect=D0+dpe0=TX_ENABLED는 SysConfig invalid(TX·RX 동일선/3-wire). D1로 교정 후 MISO 비-0 전환 (`0xFFFFFFFF`/변동). | R34: 커밋 71b732e |
+| **JTAG connectTarget 항상 코어 리셋** → 부팅 앱 라이브 attach·assert 포착 불가. 진단은 UART 마커(`cli_interact.ps1`) 고정. | R31/R33 확정 |
+| **LP-AM263P ↔ BP-CC3351 SPI/GPIO 확인 결선** — J1.7=SPI0_CLK(A11), J2.15=SPI0_D0(C10/MOSI), J2.14=SPI0_D1(B11/MISO), J2.18=SPI0_CS0(C11), J1.5=WLAN_EN(M15), J1.8=WLAN_IRQ(G18). BP P1.5=LP_RESET(active-low), P1.7=CLK, P2.14=MISO, P2.15=MOSI, P2.18=CS. | 사용자 직접 확인; SWAU132A Table 2-3/2-4 |
+| **SPI0↔헤더 mux 설정 불필요 추정** — LP-AM263P SPI0는 2:1 mux(SN74CB3Q3257)+TCA6416 경유이나 TI LP SPI0 예제가 mux init no-op로 동일 핀(A11/C10/B11/C11) 동작. | R33 |
 
 칩 클래스 차이(AM243 `S25HL512T` Quad vs AM263P `IS25LX256` Octal native)는 [[is25lx256_vs_spansion_quirks]], dummy 근거는 [[xspi_dummy_cycles]], Open 시퀀스는 [[flash_open_sequence]] 참조.
+
+### cc3351 OSPI pinmux 스크램블 (R28 발견)
+
+cc3351 `example.syscfg`가 OSPI 핀을 `$suggestSolution`(soft 힌트)으로 둬,
+SysConfig 솔버가 7개 핀을 엉뚱한 pad에 MODE(6)으로 오배치. jtag_flasher는
+`$assign`(hard lock)으로 native pad에 정상 고정 — 이 한 글자 차이가 근원.
+
+| 핀 | jtag_flasher (known-good) | cc3351 (스크램블) |
+|----|---------------------------|-------------------|
+| CSn0 | OSPI0_CSn0 (P1) M0 | EPWM11_A (H1) M6 |
+| D0 | OSPI0_D0 (N1) M0 | OSPI0_CSn0 (P1) M6 |
+| D1 | OSPI0_D1 (N4) M0 | EPWM11_B (J1) M6 |
+| D2 | OSPI0_D2 (M4) M0 | MCAN0_TX (L1) M6 |
+| D3 | OSPI0_D3 (P3) M0 | EPWM13_A (K4) M6 |
+| D5 | MCAN0_TX (L1) M2 | EPWM12_A (K2) M6 |
+| D7 | MCAN1_TX (K1) M2 | EPWM12_B (J4) M6 |
+| RESET_OUT0 | EPWM11_B (J1) M2 | EPWM10_B (J3) M5 |
+
+CLK/DQS/D4/D6는 양쪽 일치. **주의: D4-D7은 native OSPI pad가 아니라 MCAN pad(MODE2)가
+정상** — LP-AM263P 물리 배선. "native everywhere"로 교정하면 다시 깨짐.
+
+출처: 양 프로젝트 `Release/syscfg/ti_pinmux_config.c` 직접 비교,
+`example.syscfg`(cc3351 L341-353 `$suggestSolution` / jtag_flasher L54-65 `$assign`).
 
 ---
 
@@ -40,26 +73,28 @@ date: 2026-05-29
 | `skipHwInit=FALSE`로 진단 | SBL 잔여 상태에서 `set888mode` 쓰기 st=-1, status 누적 구조로 이후 단계 신호 오염 → 진단 라운드 자체가 무효 | **R25 폐기** |
 | CONFIG_REG bit30 DUAL_BYTE_OPCODE_EN 잔류가 원인 | 이미 0임을 확인 | **R24 폐기** |
 | RDCAP 레지스터 4조합(0x121·0x021·0x001·0x101) 튜닝으로 해결 | 전부 indirect sweep 실패 | R16~R19 |
+| **R7~R27 SBL-핸드오프/skipHwInit/DQS/RDCAP-tuning 귀인 전체** | "pinmux 정상"이라는 잘못된 전제 위에 쌓인 것 — R28b pinmux 교정 단독으로 S3 통과. 귀인 전부 무효 | **R28 일괄 폐기** |
 
 ---
 
-## 현재 최유력 가설 (미채택)
+## S3 해소 (R28b 확정) / 현재 블로커 (R29)
 
-> chip은 SBL이 남긴 **8D 상태**에 있다. app `Flash_open(skipHwInit=TRUE)`은 chip을 건드리지 않고 8D로 가정하여 RDID 캡처 타이밍(RDCAP delay) 최적화만 시도한다. 그러나 8D RDID가 DQ1-only를 돌려주므로 SetRdCap이 항상 실패한다.
+**S3 해소** — R28b: cc3351 `example.syscfg` OSPI pinmux를 `$assign`(hard lock)으로 교정하자 RDID = `9D 5A 19` (정상), `Flash_open OK`. main.c 변경 없음.
 
-DQ1-only의 원인은 미확정 — 두 갈래가 살아 있다:
-- chip이 진짜 8D 응답하는데 DQ1만 잡히는 것(PHY/캡처 문제)인가?
-- chip이 8D가 아닌 Quad 상태이고 DQ1이 그 Quad 응답의 잔상인가?
+R7~R27에서 쌓인 SBL-핸드오프/skipHwInit/DQS/RDCAP-tuning 귀인은 전부 "pinmux 정상"이라는 잘못된 전제 위에 쌓인 것 → 폐기 (위 표). "DQ1-only RDID"는 8D-PHY 문제(가지 γ)가 아니라 핀 스크램블 증상이었음.
 
-**해법 후보 (R28 예정)**: jtag_flasher 성공 공식 이식 — `board_flash_reset()`(OSPI RESET 핀 HW 토글 → chip 1S known-state) + `OSPI_enableSDR` + `OSPI_clearDualOpCodeMode` + `setProtocol(1,1,1,0)` → `skipHwInit=FALSE`로 `Flash_open`의 `set888mode`가 chip을 1S→8D 정상 승격. 계획 상세는 [[flash_open_diagnostic_log]] §다음.
+**S4 해소 (R31)** — `ti_board_open_close.c` 전역에 in-place 패치(`quirksFxn=NULL`, `skipHwInit=TRUE`, `dummyClksCmd=8`) + freertos_main 원본 구조 복원 → `Board_driversOpen` 완주, CLI 프롬프트 도달. ★ 표준 Board_flashOpen 단독 동작 최초 실측 검증.
+
+**현재**: S7(`wlan_scan` 결과 출력) 실측 대기. S5/S6는 배너 도달로 추정됨 — 미독립검증.
 
 ---
 
 ## 모름 / 미확인
 
-- chip이 현재 **1S인지 / reset됐는지 / 8D인데 PHY 문제인지** (가지 α/β/γ) — 미확정.
-- SBL이 SW1="OSPI 4S Quad(1,1,1,1)" 부팅 시 chip을 **어느 프로토콜로 app에 넘기는가** (가지 α) — SBL 소스 또는 TRM OSPI boot 절차 확인 필요.
-- cc3351 `example.syscfg`에 **OSPI reset 핀 설정 부재** — `board_flash_reset()` 생성 코드 유무를 jtag_flasher syscfg와 비교 필요 (R28 선행 조건).
+- **[H-A] skipHwInit=TRUE 의존성** — `skipHwInit=TRUE`는 `Flash_norOspiSetProtocol` 내부 쓰기(4ByteAddr/protocol/set888 VCR)만 가드. `SetRdCap`(:1332)·`PhyTune`(:1336)은 가드 밖 항상 실행. round31 성공이 "SBL 핸드오프 8D 유지"에 의존한 것인지, PHY tuning이 독립 동작한 것인지 미확정.
+- **R28b 최소 충분 패치셋 미분리** — quirksFxn=NULL / skipHwInit=TRUE / dummyClksCmd=8 세 패치를 동시 적용하여 1회 성공. 어느 것이 필수인지 미확인.
+- **flash FS 쓰기 미검증** — `osi_filesystem.c:131` "Skip flash writing due to APIs issue" 경고. stub일 수 있음. Flash_open 성공 ≠ flash 읽기/쓰기 동작.
+- SBL이 SW1="OSPI 4S Quad(1,1,1,1)" 부팅 시 chip을 **어느 프로토콜로 app에 넘기는가** — 실용적 중요도 낮아짐. 참고용.
 - BoosterPack 헤더 ↔ SoC 핀 물리 대응표 — 미확인.
 
 ---

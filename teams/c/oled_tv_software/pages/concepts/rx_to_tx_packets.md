@@ -13,23 +13,23 @@ subsystem: 01_RX_control, 02_RX_esb, 03_TX_esb
 
 ▶ Rx Module의 시스템 상태 / 운용 정보.
 
-| Data | 의미 (비트별, 0/1) |
-|---|---|
-| `Buffer[0]` Bit.0 | `Rx_Sys_Init_St` — Rx 시스템 초기화 미완료 / 완료 |
-| `Buffer[0]` Bit.1 | `Rx_Sys_Rdy_St` — 출력 준비 안됨 / 준비됨 |
-| `Buffer[0]` Bit.2 | `Rx_Warning_St` — 정상 / Warning 전환 |
-| `Buffer[0]` Bit.3 | `Rx_Fault_St` — 정상 / Fault 전환 |
-| `Buffer[1]` Bit.0 | `RxVrect_Steady_St` — Vrect 불안정 / 안정 (정상 55~200 VDC) |
-| `Buffer[1]` Bit.1 | `RxVrect_LowerLmt` — Vrect 정상 / 하한치 이하 |
-| `Buffer[1]` Bit.2 | `RxVrect_UpperLmt` — Vrect 정상 / 상한치 초과 |
-| `Buffer[1]` Bit.3 | `RxIrect_OC` — Irect 정상 / 과전류 초과 |
-| `Buffer[2]` Bit.0 | `RxBuckRunStop_St` — Rx Buck 출력 Off / On |
+| Data              | 의미 (비트별, 0/1)                                           |
+| ----------------- | ------------------------------------------------------- |
+| `Buffer[0]` Bit.0 | `Rx_Sys_Init_St` — Rx 시스템 초기화 미완료 / 완료                  |
+| `Buffer[0]` Bit.1 | `Rx_Sys_Rdy_St` — 출력 준비 안됨 / 준비됨                        |
+| `Buffer[0]` Bit.2 | `Rx_Warning_St` — 정상 / Warning 전환                       |
+| `Buffer[0]` Bit.3 | `Rx_Fault_St` — 정상 / Fault 전환                           |
+| `Buffer[1]` Bit.0 | `RxVrect_Steady_St` — Vrect 불안정 / 안정 (정상 55~200 VDC)    |
+| `Buffer[1]` Bit.1 | `RxVrect_LowerLmt` — Vrect 정상 / 하한치 이하                  |
+| `Buffer[1]` Bit.2 | `RxVrect_UpperLmt` — Vrect 정상 / 상한치 초과                  |
+| `Buffer[1]` Bit.3 | `RxIrect_OC` — Irect 정상 / 과전류 초과                        |
+| `Buffer[2]` Bit.0 | `RxBuckRunStop_St` — Rx Buck 출력 Off / On                |
 | `Buffer[2]` Bit.1 | `RxNo_Load_St` — 부하 있음(기본) / 무부하 (0.3 A 이하, 출력 On 시 진단) |
-| `Buffer[2]` Bit.2 | `RxVout_SetPoint_St` — 설정 도달 안함 / 도달 |
-| `Buffer[2]` Bit.3 | `RxCtrl_Lmt_St` — 정상 / PWM 제어가 Limit에 의해 출력 제한 |
-| `Buffer[2]` Bit.4 | `RxIout_Upper_Lmt` — 출력 전류 정상 / 상한 도달 |
-| `Buffer[6]` | F/W Version (예: 0x0100 → Ver1.00) |
-| 그 외 | Spare |
+| `Buffer[2]` Bit.2 | `RxVout_SetPoint_St` — 설정 도달 안함 / 도달                    |
+| `Buffer[2]` Bit.3 | `RxCtrl_Lmt_St` — 정상 / PWM 제어가 Limit에 의해 출력 제한          |
+| `Buffer[2]` Bit.4 | `RxIout_Upper_Lmt` — 출력 전류 정상 / 상한 도달                   |
+| `Buffer[6]`       | F/W Version (예: 0x0100 → Ver1.00)                       |
+| 그 외               | Spare                                                   |
 
 > 원문 0x50 표에서 `Buffer[2]`의 일부 비트가 `Bit.3` 라벨로 중복 표기되어 있음. 본 페이지는 `Start Bit` 값(32부터 1씩 증가)을 기준으로 재정렬.
 

@@ -22,7 +22,7 @@ date: 2026-06-01
 
 | task | 범위 | 호 | 상태 |
 |------|------|----|------|
-| **porting** | AM243→AM263P 마이그레이션 + CC33xx bring-up | S0~S8 → [[porting]] | S3 막힘 (R27+) |
+| **porting** | AM243→AM263P 마이그레이션 + CC33xx bring-up | S0~S8 → [[porting]] | S6 막힘 (SPI link-up 무응답 R32) |
 
 단계 spine·완료 기준 표·남은 일정은 작업 로드맵 [[porting]]에 둔다 — 여기서 병렬로 재서술하지 않는다(divergence 방지). 후속 작업(예: 안정화·제품화)이 생기면 `roadmaps/<task>.md`로 추가하고 위 표에 한 행 더한다.
 
@@ -30,8 +30,8 @@ date: 2026-06-01
 
 ## 2. 현재 위치
 
-- **전략 단계**: S3 (부트 플래시 `Flash_open` 통과) 막힘 — 단계 상세는 [[porting]].
-- **전술(다음 시작점·기능별 현황)**: [[status]] 단일 소스 (현재 다음 시작점 = R28 jtag_flasher 성공 공식 이식).
+- **전략 단계**: S6 (SPI/IRQ link-up) 막힘 — `SPI not responsive!` / `CMD_ERR_TIMEOUT` (R32). S5 △(`Hardware init DONE!` 도달). 단계 상세는 [[porting]].
+- **전술(다음 시작점·기능별 현황)**: [[status]] 단일 소스 (현재 다음 시작점 = SPI 전송 링크 진단).
 
 ---
 

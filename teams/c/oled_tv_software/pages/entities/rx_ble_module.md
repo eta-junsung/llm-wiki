@@ -59,7 +59,7 @@ subsystem: 02_RX_esb
 | RX UART 모니터 출력 포맷 개선 | △ 구현됨·미검증 |
 | SPI heartbeat (200ms 독립 타이머) | ✓ 실보드 검증 (P0.17 오실로, 260529) |
 | SPI 오류율 모니터 (ok/fail/err%) | △ 구현됨·장시간 미검증 (260529) |
-| SPI 10ms 폴링 주기 | ✗ 미달 — CS 미동작, STM32 DMA IRQ(NVIC) 의심 (260529) |
+| SPI 10ms 폴링 주기 | ✓ 실보드 검증 (CS Δt=10ms 오실로, ok=4799/49s, crcfail=0, 2026-06-01) |
 
 ## ESB 타이밍 측정값
 
@@ -85,6 +85,16 @@ subsystem: 02_RX_esb
 - SPI 패킷 구조와 핀맵은 유지 가정
 - `BLE_Comm_St` 비트는 명칭/거동 재정의 가능성 — [[comm_state_monitoring]] 참조
 
+## 물리 보드
+
+| 항목 | 내용 |
+|---|---|
+| 보드명 | BLE_Module_Board_Ver0.1E00 |
+| 회로도 | `docs/Schematic/BLE_Module_Board_Ver0.1E00_260318 1.pdf` ([[schematic_ble_module_board_v01e00]]) |
+| 실물 입고 | 2026-06-01 |
+| 비고 | 명칭은 BLE 시절 잔재, 현재 ESB 펌웨어(`02_RX_ble`) 탑재 대상 |
+
 ## 출처
 
 - [[spi_protocol_manual_260513]]
+- [[schematic_ble_module_board_v01e00]]
