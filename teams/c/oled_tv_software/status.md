@@ -6,7 +6,7 @@ date: 2026-06-01
 
 ## 다음 시작점
 
-01_RX_control을 STM32CubeIDE로 빌드해 `_Static_assert(tx=51B, rx=62B, packet=11B)` 통과 확인 (nRF 2개 SES 빌드는 이미 성공). 통과 후 코드 정리 4개 라운드 — eta-explorer로 묶어 진입 권장: ① 모니터 1-헤더-1-줄 압축, ② 공유 출력 함수(`oled_tv_protocol.c` 신설), ③ serialize/deserialize 통합, ④ `SPI_PKT_*` → 링크 중립 이름 개명.
+코드 정리 4개 라운드 — eta-explorer로 묶어 진입 권장: ① 모니터 1-헤더-1-줄 압축, ② 공유 출력 함수(`oled_tv_protocol.c` 신설, 3 빌드 등록), ③ serialize/deserialize 통합, ④ `SPI_PKT_*` → 링크 중립 이름 개명.
 
 ## 구현 현황
 
@@ -28,10 +28,10 @@ date: 2026-06-01
 
 | 기능 | 상태 | 메모 |
 |------|------|------|
-| 모니터 출력 포맷 통일 (3펌웨어) | △ | `[{eta-rx/eta-tx}:{spi/esb}:{in/out}]` 공통 포맷, 1초 주기, `0xNN\|이름=값`. nRF 2개 SES 빌드 성공. STM32 빌드·실보드 미검증 (커밋 `c9cf6a3`) |
-| 0x50 비트맵 매뉴얼 정합 | △ | bit2=Warning, bit3=Fault, BuckRunStop=data[2].bit0. DATA[1..2] 비트 매크로 신설. 동일 미검증 |
-| oled_tv_packet_t 통명 (spi_packet_t alias) | △ | 11B wire 링크 중립 통합 형식. 03_TX_ble 자체 esb_packet_t 제거. 동일 미검증 |
-| 0x51 Zin·Tx Buck Vout Ref 와이어 전송 | △ | data[4..5]=Zin, data[6..7]=Tx_Buck_Vout_Ref. rx_cmd_t 신설(passenger 분리). Uint16 vs i16 잔여 차이 미확인 |
+| 모니터 출력 포맷 통일 (3펌웨어) | △ | `[{eta-rx/eta-tx}:{spi/esb}:{in/out}]` 공통 포맷, 1초 주기, `0xNN\|이름=값`. 3빌드(SES×2+CubeIDE) 통과 (2026-06-01). 실보드 미검증 (커밋 `c9cf6a3`) |
+| 0x50 비트맵 매뉴얼 정합 | △ | bit2=Warning, bit3=Fault, BuckRunStop=data[2].bit0. DATA[1..2] 비트 매크로 신설. 3빌드 통과, 실보드 미검증 |
+| oled_tv_packet_t 통명 (spi_packet_t alias) | △ | 11B wire 링크 중립 통합 형식. 03_TX_ble 자체 esb_packet_t 제거. 3빌드 통과, 실보드 미검증 |
+| 0x51 Zin·Tx Buck Vout Ref 와이어 전송 | △ | data[4..5]=Zin, data[6..7]=Tx_Buck_Vout_Ref. rx_cmd_t 신설(passenger 분리). 3빌드 통과. Uint16 vs i16 잔여 차이 미확인 |
 
 ### ESB — 02_RX_esb / 03_TX_esb
 
@@ -56,7 +56,6 @@ date: 2026-06-01
 
 ## 미결 사항
 
-- 01_RX_control STM32CubeIDE 빌드 + `_Static_assert(tx=51B, rx=62B, packet=11B)` 통과 확인 — 미실시
 - 0x51 Zin·Tx Buck Vout Ref: 코드 Type 재확인 (매뉴얼 Uint16 vs 코드 i16 잔여 차이)
 - nRF52832 SPIS 최대 SCK 클럭 datasheet 미ingest — 9MHz 상향 재시도 전 선결
 - SPI_FAIL 응답 — Warning/Fault 플래그·PWM 차단·상태 머신 미구현 ([[comm_state_monitoring]])
