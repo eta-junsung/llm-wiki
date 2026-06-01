@@ -20,7 +20,7 @@
 
 ### Living docs
 
-- [roadmap.md](teams/c/oled_tv_software/roadmap.md) — 전체 로드맵(M0~M6 마일스톤 호·현재 M3 SPI 10ms 막힘·PRD 지연 목표 게이트). 전략 spine, 현재 위치는 status 위임
+- [roadmap.md](teams/c/oled_tv_software/roadmap.md) — 전체 로드맵(M0~M6 마일스톤 호·M3 ✓·현재 M4 SPI 9MHz 막힘·PRD 지연 목표 게이트). 전략 spine, 현재 위치는 status 위임
 - [status.md](teams/c/oled_tv_software/status.md) — 기능별 구현 현황표·다음 시작점 (파이프라인이 커밋마다 갱신)
 
 ### Entities
@@ -45,11 +45,12 @@
 - [[rx_to_tx_packets]] — RX→TX (ESB ACK payload): 0x50 시스템상태 / 0x51 입력+Tx Vout Ref / 0x52 출력+온도 (코드 실측 레이아웃 + 불일치 추가)
 - [[esb_ptx_ack_assembly]] — PTX 모드 ACK payload 재조립: g_last_ack_by_hdr[3] 패턴 + ISR printf 금지
 - [[comm_state_monitoring]] — SPI_Comm_St 200ms 토글, BLE_Comm_St 페어링 상태
-- [[spi_link_reliability]] — SPI heartbeat 구현(200ms 독립 타이머, P0.17 검증)·오류율 모니터·spi_tx_busy 타임아웃 복구·10ms/9MHz 미달 현황
+- [[spi_link_reliability]] — SPI heartbeat 구현(200ms 독립 타이머, P0.17 검증)·오류율 모니터·spi_tx_busy 타임아웃 복구·10ms 폴링 ✓ 검증 완료·9MHz 상향 미달
 - [[gpio_verification_pinmap]] — 검증 핀맵: 기능 → 프로브 핀 → 기대값 (SPI CS PB12·PWM PC6~9·ESB P0.17/18·ADC). planner가 검증 경로에 인용. 미확인 핀은 "확인 필요"로 호명
 
 ### Sources
 
+- [[spi_10ms_diagnosis_report_260601]] — SPI 10ms 폴링 진단 보고서 (미달 반증·관측 도구 한계·✓ 확정, 2026-06-01)
 - [[spi_debug_log_report_260529]] — 양방향 ESB 데이터 경로 검증 리포트 (시나리오 A/B, 2026-05-29)
 - [[spi_heartbeat_report_260529]] — SPI heartbeat 작업 보고서 (heartbeat 200ms 실보드 검증, 10ms/9MHz 미달, 2026-05-29)
 - [[rx_control_pwm_가이드]] — RX_control PWM 개발 가이드 (2026-04-14)

@@ -25,24 +25,28 @@ subsystem: 01_RX_control, 02_RX_ble
 - **검증**: RX_ble `P0.17`(`PIN_DBG_HB`) GPIO 토글 오실로 측정 — Δt≈190ms (≈200ms), `P3NOFO01.PNG`. **실보드 검증 완료**.
 - 단절 시 거동(Warning/Fault+출력차단)은 [[comm_state_monitoring]] 참조.
 
-## SPI 오류율 모니터 (코드, 장시간 미검증)
+## SPI 오류율 모니터 (△ 49s 검증, 장시간 미확인)
 
-`02_RX_ble Monitor_Loop()` 출력에 1초 윈도우 카운터 추가.
+`01_RX_control common.c:165-185`에 누적 카운터(`spi_ok_cnt` / `spi_crc_fail_cnt`, CRC 이벤트 기반, timeout fail 제외) 추가. `Monitor_Loop()` UART 출력: 누적 + 초당 delta + failrate%.
 
-- `spi_ok_cnt` / `spi_fail_cnt` — Monitor_Loop마다 리셋
-- 출력: `SPI hdr=0x50 fail=0/sec ok=100/sec err=0.0%`
+- 출력 형식: `spi | ok=4799 crcfail=0 | /s ok=100 crcfail=0 failrate=0%`
+- 49s 실보드 확인 (ok=4799, crcfail=0, /s ok=100). 장시간 안정성 미확인
 
 ## spi_tx_busy 타임아웃 복구 (코드, 장시간 미검증)
 
 - **문제**: DMA 완료 콜백 미수신 시 STM32 `spi_tx_busy=true` 영구 잠금 → CS가 안 내려가 통신 정지.
 - **수정**: `SPI_TX_BUSY_TIMEOUT_MS=50ms` 초과 시 `HAL_SPI_Abort()`로 강제 해제·CS 복구. `01_RX_control/Application/Src/app_spi.c:117~` (커밋 `4852f4e`).
-- ⚠️ 이건 증상 완화책. 근본 원인(DMA 콜백이 왜 안 오는가)은 아래 미달 항목과 연결.
+- ⚠️ 이건 증상 완화책. 근본 원인(DMA 콜백이 왜 산발적으로 안 오는가)은 미확인.
 
-## 미달 — SPI 10ms 폴링 (✗)
+## SPI 10ms 폴링 주기 (✓ 실보드 검증)
 
-- `PACKET_INTERVAL` 1000 → 10ms(`_shared/oled_tv_protocol.h:45`) 변경했으나 실보드 CS가 10ms마다 안 내려감.
-- **유력 원인**: `HAL_SPI_MspInit`에 DMA IRQ(`HAL_NVIC_EnableIRQ`) 활성화 부재 → DMA 완료 콜백 미발생 → spi_tx_busy 잠금(위 50ms 타임아웃으로 우회만 됨).
-- ⚠️ **주기 용어 구분**: 이 10ms는 앱 SPI 폴링 주기(PACKET_INTERVAL). [[esb_link_layer]]·[[esb_packet_format]]의 10ms는 ESB RF wire 주기로 별개. ([[spi_debug_log_report_260529]] 미결에서 동일 지적)
+`PACKET_INTERVAL=10`(`_shared/oled_tv_protocol.h:45`)으로 초당 100 트랜잭션 동작 확인. "미동작"의 실제 원인은 동작 결함이 아닌 **관측 도구 한계** — 기존 `rx_status.spi_status` 단일 필드가 매 수신마다 덮어써져 산발 패턴이 보이지 않았던 것.
+
+- UART: `spi | ok=4799 crcfail=0 | /s ok=100 crcfail=0 failrate=0%` (49s 측정)
+- 오실로: CS(STM32 PB12) active-low Δt=10ms, 1/Δt=100Hz, Vpp=3.79V (`assets/spi_cs_10ms_260601.png`)
+- DMA IRQ NVIC: `MX_DMA_Init()`(`app_dma.c:15-19`) 정상 존재 — `MspInit` 부재 가설 반증
+- 진단 경과: [[spi_10ms_diagnosis_report_260601]]
+- ⚠️ **주기 용어 구분**: 이 10ms는 **앱 SPI 폴링 주기(PACKET_INTERVAL)**. [[esb_packet_format]]·[[esb_link_layer]]의 10ms는 ESB RF wire 주기로 별개.
 
 ## 미달 — STM32 SPI 9MHz 클럭 상향 (✗)
 
@@ -53,5 +57,6 @@ subsystem: 01_RX_control, 02_RX_ble
 
 - [[comm_state_monitoring]] — SPI_Comm_St / BLE_Comm_St 비트 사양·fault 거동
 - [[spi_packet_format]] — SPI wire 포맷·전송 파라미터 사양
-- [[spi_heartbeat_report_260529]] — 원본 보고서
+- [[spi_heartbeat_report_260529]] — heartbeat 작업 보고서 (10ms 미달 기록)
+- [[spi_10ms_diagnosis_report_260601]] — 10ms 폴링 진단 보고서 (미달 반증·✓ 확정)
 - [[rx_ble_module]] — heartbeat 생성 측 모듈

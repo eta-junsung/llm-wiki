@@ -4,6 +4,22 @@
 
 ---
 
+## [2026-06-01] ingest | oled_tv_software SPI 10ms 폴링 진단 (미달 반증·✓ 확정)
+
+- 소스: 진단 세션 직접 보고 + 오실로스코프 캡처 `P3NOFO01.PNG` (CS Δt=10ms, 1/Δt=100Hz, Vpp=3.79V)
+- 대상 프로젝트: `teams/c/oled_tv_software`, subsystem: 01_RX_control, 02_RX_ble
+- 결론: "SPI 10ms 미동작"은 동작 결함이 아닌 **관측 도구 한계** (단일 필드 덮어쓰기). 10ms 폴링은 처음부터 정상.
+- 생성:
+  - sources: [[spi_10ms_diagnosis_report_260601]] (진단 경과·3가지 가설 반증·실보드 검증 결과)
+  - assets: `spi_cs_10ms_260601.png` (오실로 캡처 — 기존 heartbeat `P3NOFO01.PNG`와 별도)
+- 갱신:
+  - [[spi_link_reliability]] — "미달 — SPI 10ms 폴링 ✗" → "SPI 10ms 폴링 주기 ✓", 오류율 모니터 카운터명/출력형식 정정(`spi_crc_fail_cnt`·누적+delta), `spi_tx_busy` 주석 정정(근본원인 미확인), 관련 백링크 추가
+  - [[status]] — date 갱신(05-29→06-01), 다음 시작점(nRF52832 SPIS SCK datasheet ingest), SPI 10ms ✗→✓, 오류율 모니터 메모 갱신, "SPI 10ms 미동작 원인 규명" 미결 제거
+  - [[index]] — spi_link_reliability 설명 갱신, 신규 source 등록
+- 핵심 합의: NVIC enable은 `MX_DMA_Init()`에 정상 존재(`app_dma.c:15-19`). `PACKET_INTERVAL=10`도 이미 설정됨. 초당 100tx, CrcFail=0 확인. "미동작" 의심은 `rx_status.spi_status` 단일 필드 덮어쓰기 관측 한계.
+
+---
+
 ## [2026-06-01] roadmap | lp-am263p 포팅 로드맵 project/task 분리 + spine 정리
 
 - 계기: 앞으로 프로젝트·작업 로드맵을 wiki에서 작성. 외부 코드-repo `tasks/porting/roadmap.md`는 이미 2026-05-29 wiki `roadmap.md`로 ingest됨(외부보다 wiki가 최신: R27/R28 vs R24/R26) → 외부 파일 legacy화, 기존 wiki roadmap을 비판적으로 개정.
