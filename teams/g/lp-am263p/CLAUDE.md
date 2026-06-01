@@ -18,7 +18,8 @@ TI **LP-AM263P** LaunchPad에 **BP-CC3351**(Wi-Fi 6 + BLE BoosterPack)을 얹어
 
 | 레이어 | 페이지 | 성격 | 갱신 |
 |--------|--------|------|------|
-| 전략 | [[roadmap]] (`roadmap.md`) | S0~S8 spine·현재 위치·남은 일정. 디테일은 concept 백링크 위임 | 게이트 통과 시 |
+| 전략(프로젝트) | [[roadmap]] (`roadmap.md`) | 프로젝트 목표·작업 호 인덱스·현재 위치. 단계 spine은 작업 로드맵 위임 | 게이트 통과 시 |
+| 전략(작업) | [[porting]] (`roadmaps/porting.md`) | S0~S8 단계 spine·완료 기준 표·남은 일정. 디테일은 concept 백링크 위임 | 게이트 통과 시 |
 | 전술 | [[status]] (`status.md`) | 다음 시작점 한 줄·기능별 구현 현황표·미결 사항 | 매 라운드 (파이프라인) |
 | 누적 사실 | [[flash_open_facts]] | **확정 사실 + 폐기 가설(재시도 금지)**. 증류된 현재 진실. 제자리 수정 | 매 라운드 |
 | 누적 history | [[flash_open_diagnostic_log]] | R7~ 라운드별 가설→변경→관찰→결론. **append-only, 옛 항목 불변** | 매 라운드 append |

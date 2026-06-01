@@ -4,6 +4,24 @@
 
 ---
 
+## [2026-06-01] roadmap | lp-am263p 포팅 로드맵 project/task 분리 + spine 정리
+
+- 계기: 앞으로 프로젝트·작업 로드맵을 wiki에서 작성. 외부 코드-repo `tasks/porting/roadmap.md`는 이미 2026-05-29 wiki `roadmap.md`로 ingest됨(외부보다 wiki가 최신: R27/R28 vs R24/R26) → 외부 파일 legacy화, 기존 wiki roadmap을 비판적으로 개정.
+- 비판 검토에서 잡은 수정:
+  - A. staleness — §6 "24라운드째"가 R27+와 어긋남(외부 R24 잔존) → R27로 정정.
+  - B. "2~4주" false precision — 문서 스스로 "추정 불가"라면서 단일 숫자 제시 → 삭제, S3 게이트 기반 통일.
+  - C. S5~S8 난이도 grading — 전부 미도달인데 등급 부여 → "S3 통과 후 재추정"으로 축약.
+  - D. altitude 과적재 — §1 칩차이·§3 HW표가 spine 아님 + CLAUDE.md와 중복 → 백링크 위임.
+  - E. §7 환원후보 80% 해소 방치 → 미해소 1건만 남기고 나머지는 "facts/handoff 반영 완료" 한 줄.
+  - F. §2 "가능성 높음" 약과장 → "불가 근거 없음·미증명"으로 완화·압축.
+- 구조 결정(사용자): project/task 2단위로 분리.
+  - 신규 `roadmaps/porting.md` — 작업 호. S0~S8 spine·완료 기준 표·현재 위치(→status)·남은 일정·환원후보. 엄격 spine(§1 칩차이→[[is25lx256_vs_spansion_quirks]], 핸드오프→[[sbl_app_flash_handoff]], HW→[[CLAUDE]] 위임).
+  - `roadmap.md` 개정 — 얇은 프로젝트 호. 목표·작업 호 인덱스(1행)·현재 위치만. S0~S8 재서술 금지(divergence 방지) → [[porting]] 위임.
+- 갱신: [[lp-am263p]] `CLAUDE.md` 3-레이어 표(전략을 프로젝트/작업 2단으로), [[index]].
+- 손대지 않음: `status.md`(라운드 갱신 아님, 다음 시작점 R28 유지), [[flash_open_facts]]·[[flash_open_diagnostic_log]](사실/history 단일 소스).
+
+---
+
 ## [2026-06-01] schema | 파이프라인 도메인 자산 — 계측 인벤토리 + GPIO 검증 핀맵 + 로드맵 컨벤션
 
 - 계기: `~eta/firmware-dev-pipeline` 두 단계(explorer/planner)가 wiki를 읽어 쓰도록 갱신됨. 그 계약을 wiki schema에 맞게 세 자산으로 빚음.

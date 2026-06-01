@@ -4,7 +4,7 @@ date: 2026-05-29
 
 # lp-am263p — 구현 현황
 
-> 전략 spine은 [[roadmap]], 확정 사실/폐기 가설은 [[flash_open_facts]], 라운드별 진단 history는 [[flash_open_diagnostic_log]].
+> 전략 spine(S0~S8)은 [[porting]], 프로젝트 호는 [[roadmap]], 확정 사실/폐기 가설은 [[flash_open_facts]], 라운드별 진단 history는 [[flash_open_diagnostic_log]].
 
 ## 다음 시작점
 

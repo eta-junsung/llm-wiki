@@ -92,5 +92,5 @@ OSPI_setProtocol(oHandle, OSPI_NOR_PROTOCOL(1,1,1,0));
 ## 함께 보기
 
 - 증류된 확정/폐기: [[flash_open_facts]]
-- 다음 시작점/현황: [[status]] · 전략: [[roadmap]]
+- 다음 시작점/현황: [[status]] · 전략 spine(S0~S8): [[porting]] · 프로젝트 호: [[roadmap]]
 - 핸드오프 계약: [[sbl_app_flash_handoff]]
