@@ -25,7 +25,7 @@ TI **LP-AM263P** LaunchPad에 **BP-CC3351**(Wi-Fi 6 + BLE BoosterPack)을 얹어
 
 **규칙**: 새 라운드 결과는 ① `flash_open_diagnostic_log`에 append → ② 확정/폐기된 것을 `flash_open_facts`에 반영 → ③ 필요 시 status·roadmap 갱신. 사실 나열은 facts/log가 단일 소스이고, roadmap/status는 그곳으로 위임만 한다.
 
-그 외 concept/source/entities/raw는 루트 `CLAUDE.md` 컨벤션을 따른다.
+그 외 concept/source/entities/raw는 루트 `CLAUDE.md` 컨벤션을 따른다. 위 전략/전술(roadmap·status) 짝의 일반 규약은 루트 `CLAUDE.md` "로드맵 컨벤션" 절을 따른다 — 이 표는 그 프로젝트별 구현. 작업 단위 호가 필요하면 `roadmaps/<task>.md`.
 
 ---
 

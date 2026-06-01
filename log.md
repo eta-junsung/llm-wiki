@@ -4,6 +4,24 @@
 
 ---
 
+## [2026-06-01] schema | 파이프라인 도메인 자산 — 계측 인벤토리 + GPIO 검증 핀맵 + 로드맵 컨벤션
+
+- 계기: `~eta/firmware-dev-pipeline` 두 단계(explorer/planner)가 wiki를 읽어 쓰도록 갱신됨. 그 계약을 wiki schema에 맞게 세 자산으로 빚음.
+- 합의: 시작 컨텍스트 `teams/c/oled_tv_software`(핀맵 seed 풍부), 로드맵은 별도 `roadmap.md`(status 확장 아님, lp-am263p 선례), 인벤토리는 root `pages/reference/` 신설, 작업 로드맵은 `roadmaps/<task>.md`.
+- 생성:
+  - reference: [[instruments]] (회사 공통, Keysight InfiniiVision MSOX3104T — 무엇을·어떻게 측정 + 사용 결. 추가 장비 스텁)
+  - oled concepts: [[gpio_verification_pinmap]] (기능→프로브 핀→기대값. 기존 wiki 사실만 seed, 미확인 핀은 "확인 필요"로 호명 — 추론 금지)
+  - oled `roadmap.md` (M0~M6 마일스톤 호, 현재 M3 SPI 10ms 막힘, PRD 1~2ms 지연 게이트). lp-am263p 선례 결 계승
+  - oled `roadmaps/README.md` (작업 로드맵 폴더 컨벤션 — 파일은 요청 시)
+- 갱신:
+  - root `CLAUDE.md` — 레이아웃에 reference/·roadmap.md·status.md·roadmaps/ 추가, "로드맵 컨벤션" 절 신설, "파이프라인 — roadmap 읽기/갱신 절차" 절 신설(explorer/planner 읽기 전용·wiki 작성)
+  - [[lp-am263p]] `CLAUDE.md` — 3-레이어 표가 root 로드맵 컨벤션의 프로젝트별 구현임을 명시 (중복 정의 회피)
+  - oled `CLAUDE.md` — 전략/검증 자산 절 추가 ([[roadmap]]↔[[status]], [[gpio_verification_pinmap]], [[instruments]])
+  - [[index]]
+- 핵심 결정: 읽기=파이프라인, 작성·갱신=wiki. planner는 핀번호를 추론하지 않고 wiki에 없으면 "확인 필요"로 사용자 호명. 핀맵은 P0.17 의미 충돌(TX 시작 03 vs heartbeat 02)과 RX_control 추가 GPIO 핀번호를 미확정으로 남김 — 사용자 호명 대기.
+
+---
+
 ## [2026-05-29] ingest | lp-am263p report.md R19~R27 — 사실 원장/라운드 로그 분리 + CLAUDE.md schema 신설
 
 - 소스: `~/eta/projects/g/lp-am263p/bp-3351/tasks/porting/report.md` (R19~R27 + R28 계획)

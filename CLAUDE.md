@@ -13,12 +13,16 @@ wiki/
 ├── log.md                # 시간순 작업 로그
 ├── llm-wiki.md           # 카파시 패턴 원본 (참고용)
 ├── pages/                # 루트 공통 지식 (모든 팀·프로젝트에 해당)
-│   └── concepts/         # 운영 전략·방법론 개념 페이지
+│   ├── concepts/         # 운영 전략·방법론 개념 페이지
+│   └── reference/        # 회사 공통 참조 자산 (계측 장비 인벤토리 등)
 └── teams/
     └── <팀>/
         └── <프로젝트>/   # 프로젝트 self-contained
-            ├── CLAUDE.md # 도메인 schema
-            ├── raw/      # 원본 소스 복사본 (immutable)
+            ├── CLAUDE.md  # 도메인 schema
+            ├── roadmap.md # 전략 — 목표까지 마일스톤 호 (living-doc)
+            ├── status.md  # 전술 — 호 위 현재 위치 (파이프라인 갱신)
+            ├── roadmaps/  # 작업별(task) 로드맵
+            ├── raw/       # 원본 소스 복사본 (immutable)
             └── pages/
                 ├── entities/
                 ├── concepts/
@@ -26,7 +30,7 @@ wiki/
 ```
 
 두 번째 프로젝트는 `teams/<팀>/<프로젝트>/` 동일 패턴으로 추가한다.  
-특정 프로젝트에 종속되지 않는 공통 지식은 루트 `pages/`에 작성한다.
+특정 프로젝트에 종속되지 않는 공통 지식은 루트 `pages/`에 작성한다 — 운영 전략·방법론은 `pages/concepts/`, 여러 프로젝트가 참조하는 참조 자산(계측 장비 등)은 `pages/reference/`.
 
 ---
 
@@ -36,6 +40,29 @@ wiki/
 - 백링크: Obsidian 스타일 `[[페이지명]]`
 - YAML frontmatter 필수 필드: `tags`, `source`, `date`
 - 파일명: 소문자 + 언더스코어 권장. 한국어 허용 (e.g. `rx_control_pwm_가이드.md`)
+
+---
+
+## 로드맵 컨벤션
+
+**로드맵 = "목표까지 가는 길 전체"(마일스톤 호), status = "그 호 위 지금 어디".** 둘은 짝이다 — 로드맵은 단계 spine을 그리고, 현재 위치는 `[[status]]`로 위임한다. 로드맵은 living-doc이며 게이트(마일스톤) 통과 시 갱신한다.
+
+두 단위:
+
+| 단위 | 위치 | 성격 |
+|------|------|------|
+| 프로젝트 로드맵 | `teams/<팀>/<프로젝트>/roadmap.md` | 프로젝트 목표까지의 전체 마일스톤 호 |
+| 작업 로드맵 | `teams/<팀>/<프로젝트>/roadmaps/<task>.md` | 한 작업(task) 단위 호. `status.md` "다음 시작점"이 가리키는 task 브랜치와 1:1 |
+
+규약:
+
+- frontmatter: `tags: [roadmap, <프로젝트 또는 task>, living-doc]`, `date`.
+- 권장 섹션: **한 줄 요약 / 마일스톤 호(단계 spine + 완료 기준 표) / 현재 위치(→ `[[status]]` 위임) / 남은 일정([추정]) / 환원 후보**.
+- 디테일은 concept 백링크로 위임 — 로드맵은 spine만. 기능별 현황·다음 시작점은 status가 단일 소스.
+- **사실 / 가설 / 모름을 구분**하고 추정은 `[추정]` 표기.
+- 상태 기호는 status와 동일: `✓` 구현+검증 / `△` 구현됨·미검증 / `?` 불명 / `✗` 미구현.
+
+선례: `teams/g/lp-am263p/roadmap.md` (S0~S8), `teams/c/oled_tv_software/roadmap.md` (M0~M6).
 
 ---
 
@@ -65,6 +92,24 @@ wiki/
 ## 크로스 프로젝트 참조 규칙 — first-ingest-wins
 
 여러 프로젝트가 참조할 수 있는 자료(datasheet, user guide 등)는 **먼저 ingest한 프로젝트에 raw와 sources 페이지를 둔다**. 나중에 같은 자료가 필요한 프로젝트는 raw를 복제하지 않고 Obsidian 백링크(`[[페이지명]]`)로 cross-project 참조한다. 셋 이상의 프로젝트가 명확히 공유하는 자료만 루트 `wiki/pages/`로 승격을 검토한다.
+
+---
+
+## 파이프라인 — roadmap 읽기/갱신 절차
+
+파이프라인 두 단계가 wiki를 읽어 쓴다. **읽기는 파이프라인, 작성·갱신은 wiki 몫**이다.
+
+**eta-explorer (탐색 단계) — 읽기 전용**:
+- 작업 진입 시 해당 프로젝트의 `roadmap.md`(작업 단위면 `roadmaps/<task>.md`)를 읽어, **이 task가 전체 호의 어디에 앉는지**로 탐색을 정향한다.
+- roadmap을 **수정하지 않는다** — 정향용으로만 읽는다.
+
+**eta-planner (계획 단계) — 읽기 전용**:
+- 검증 경로를 제안할 때 [[instruments]](계측 장비)와 프로젝트 검증 핀맵(예: [[gpio_verification_pinmap]])에서 **구체 사실**(핀 번호·신호·기대값·장비)을 인출해, "N번 핀에 스코프, 1kHz 구형파 기대" 식의 **측정 가능한** 검증 문장을 만든다.
+- 핀 번호가 wiki에 없으면 **추론으로 채우지 않는다** — 검증 핀맵의 "확인 필요"로 남기고 사용자에게 호명.
+
+**wiki (작성·갱신)**:
+- 마일스톤(게이트) 통과 시 `roadmap.md` 상태표·현재 위치를 갱신하고 커밋한다 (`wiki: <프로젝트> roadmap 갱신 YYYY-MM-DD`).
+- 사실 갱신의 단일 소스는 status/facts — roadmap은 그곳으로 위임만 한다.
 
 ---
 
