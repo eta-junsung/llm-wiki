@@ -20,10 +20,12 @@ subsystem: 01_RX_control, 02_RX_ble
 | 패킷 적재 | `02_RX_ble/Application/main.c:154` `build_tx_pkt()` case 0 | `hb_bit`를 0x10 STATUS bit5에 실어 STM32로 |
 | 변화 감지 | `01_RX_control/Application/Src/common.c:117~127` | hb 비트 변화 시 `hb_last_change` 갱신 |
 | 단절 판정 | `01_RX_control/Application/Src/common.c:181~184` | `SPI_HB_TIMEOUT_MS=5000` 초과 무변화 → `spi_status=SPI_FAIL` |
+| 경고 출력 | `01_RX_control/Application/Src/common.c` `spi_proc()` (커밋 `fe5bf14`) | `spi_status` 전이 순간 UART 1회 — `spi \| LINK DOWN` / `spi \| LINK UP`. `static spi_status_prev`(초기값 SPI_OK)로 edge 감지. CRC fail·heartbeat timeout 두 FAIL 경로 단일 포착. |
 
 - **200ms 독립화의 의미**: 토글이 SPI 사이클에 종속되지 않으므로, SPI 폴링 주기(PACKET_INTERVAL)를 바꿔도 heartbeat 거동은 불변. STM32는 "토글 주기"가 아니라 "마지막 변화 시각"으로 판정하므로 토글 주기에 무관하게 동작.
-- **검증**: RX_ble `P0.17`(`PIN_DBG_HB`) GPIO 토글 오실로 측정 — Δt≈190ms (≈200ms), `P3NOFO01.PNG`. **실보드 검증 완료**.
-- 단절 시 거동(Warning/Fault+출력차단)은 [[comm_state_monitoring]] 참조.
+- **heartbeat 검증**: RX_ble `P0.17`(`PIN_DBG_HB`) GPIO 토글 오실로 측정 — Δt≈190ms (≈200ms), `P3NOFO01.PNG`. 실보드 검증 완료.
+- **LINK DOWN/UP 검증**: 실보드, SPI 케이블 분리 시 `LINK DOWN` 1회, 재연결 시 `LINK UP` 1회 UART 확인 (2026-06-01). 반복 출력 없음(edge trigger).
+- **단절 후속 응답 구현 상태**: UART 경고(LINK DOWN/UP) ✓. Warning/Fault 플래그·PWM 차단·상태 머신은 ✗ 미구현. 상세 → [[comm_state_monitoring]].
 
 ## SPI 오류율 모니터 (△ 49s 검증, 장시간 미확인)
 
