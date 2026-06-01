@@ -87,3 +87,6 @@ OLED TV 무선 전력 전송 시스템의 **3-MCU 제어신호 교환 펌웨어*
 
 - nRF52832 SPIS 최대 SCK datasheet 미ingest — M4 선결, ingest 시 [[esb_link_layer]] 또는 신규 source 페이지.
 - M5(PRD 1~2 ms 지연)의 end-to-end 측정 방법 미정 — 확정 시 [[gpio_verification_pinmap]]에 검증 행 추가.
+- 코드 정리 라운드 (tasks/monitor-formatting 이후, 미착수): ① 모니터 1-헤더-1-줄 압축, ② 공유 출력 함수(`oled_tv_protocol.c` 신설, 3 빌드 등록), ③ serialize/deserialize 통합, ④ `SPI_PKT_*` → 링크 중립 이름 개명. eta-explorer로 묶어 시작 권장.
+- BLE_Comm_St ESB-health 연결: `ble_link` 현재 항상 0, `esb_rx_cnt` 윈도우 기반 link 판정 후 대입 — 별도 task, 미착수. ([[comm_state_monitoring]])
+- `spi_wr_u16`에 음수 ADC 패턴 교정: `03_TX_ble build_tx_pkt case1·2` → `spi_wr_i16` 신설 — 별도 task, 미착수.

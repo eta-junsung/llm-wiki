@@ -9,7 +9,9 @@ subsystem: 01_RX_control, 02_RX_ble
 
 [[rx_control]](STM32, Master) ↔ [[rx_ble_module]](nRF52832, Slave) 간 SPI 버스의 wire 포맷. **11B 고정 패킷**을 한 번에 하나씩 전송한다. [[esb_packet_format]](ESB wire)와 동일한 패킷 구조를 공유 — nRF가 SPI 수신 패킷을 ESB로 그대로 중계한다.
 
-> **내부 데이터 컨테이너와 구분**: `rx_module_data_t` (56B) / `tx_module_data_t` (45B)는 STM32 코드 내 데이터 저장용 구조체이며 SPI wire 포맷이 아니다 (`oled_tv_protocol.h`). 실제 전송 시 이 구조체의 데이터를 11B 패킷으로 직렬화해 전송한다.
+11B wire 패킷 타입: `oled_tv_packet_t` (구 `spi_packet_t`, 2026-06-01 통명 — 하위호환 alias 유지). SPI·ESB·미래 TX control 보드가 공유하는 링크 중립 통합 형식. 03_TX_ble도 자체 `esb_packet_t` 정의를 제거하고 이 타입으로 통일됨.
+
+> **내부 데이터 컨테이너와 구분**: `rx_module_data_t` (62B) / `tx_module_data_t` (51B)는 STM32·nRF 코드 내 데이터 저장용 구조체이며 SPI wire 포맷이 아니다 (`oled_tv_protocol.h`). 실제 전송 시 이 구조체의 데이터를 11B `oled_tv_packet_t`로 직렬화해 전송한다. **wire 11B는 불변 — 구조체 확장(62B/51B)은 내부 컨테이너만 해당**.
 
 ## Wire 패킷 구조 (11 byte 고정)
 
@@ -40,8 +42,8 @@ subsystem: 01_RX_control, 02_RX_ble
 
 ## 전송 파라미터
 
-- **주기**: 10ms cyclic *(사양)* — ⚠️ **현재 미달**: 앱 폴링 주기 `PACKET_INTERVAL`은 1000ms, 10ms 전환 시도 실패(CS 미동작). [[spi_link_reliability]] 참조. (ESB RF wire 10ms와는 별개 주기 — [[esb_link_layer]])
-- **SPI 속도**: 9.0 Mbps *(사양)* — ⚠️ **현재 미달**: STM32 9MHz 상향 시도 후 revert(`7143f55`), 더 낮은 클럭으로 동작 중.
+- **주기**: 10ms cyclic *(사양)* — ✓ 달성 (2026-06-01): `PACKET_INTERVAL=10`, CS Δt=10ms 오실로 확인. [[spi_link_reliability]] 참조. (ESB RF wire 10ms와는 별개 주기 — [[esb_link_layer]])
+- **SPI 속도**: 9.0 Mbps *(사양)* — ✗ 미달: STM32 9MHz 상향 시도 후 revert(`7143f55`), 더 낮은 클럭으로 동작 중. nRF52832 SPIS 최대 SCK datasheet 선결 필요.
 - **CS**: Low Active, Master = STM32 (클럭 생성)
 - **커넥터**: CN3 (SPI + 3.3V 비절연), CN4 (+5V 절연 — 통신 전원만)
 - **STM32 핀**: SPI2, PB12-15 (NSS_SOFT)

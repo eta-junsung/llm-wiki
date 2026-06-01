@@ -59,31 +59,37 @@ subsystem: 01_RX_control, 02_RX_esb, 03_TX_esb
 
 > Power Stack#1과 #2의 스케일 표기가 원문에서 다름 (`0.1[℃]` vs `0.01[℃]`). 예시값(120.5 → 1205)을 역산하면 양쪽 모두 0.1 ℃ 스케일이어야 일관됨 — **원문 오기 가능성**. 구현 시 확인 필요.
 
-## 코드 실측 레이아웃 (2026-05-29 확인)
+## 코드 실측 레이아웃 (2026-06-01 갱신)
 
 소스: `02_RX_ble/Application/main.c:246-271`. Wire 포맷: `[ HDR(1) | LEN=0x08(1) | DATA[0..7](8) | CRC(1) ]`, Big-Endian.
 
-### 0x50 코드 비트맵 (DATA[0])
+### 0x50 코드 비트맵
+
+**DATA[0]**
 
 | 비트 | 코드 필드명 | 비고 |
 |---|---|---|
-| bit0 | SysInit | 프로토콜 매뉴얼과 일치 |
-| bit1 | Ready (SysRdy) | 프로토콜 매뉴얼과 일치 |
-| bit2 | **BuckSt** | **매뉴얼과 불일치** — 매뉴얼은 Bit.2=Warning |
-| bit3 | **Warning** | **매뉴얼과 불일치** — 매뉴얼은 Bit.3=Fault |
-| bit4 | **Fault** | 매뉴얼에 없는 비트 |
+| bit0 | SysInit | 매뉴얼 일치 |
+| bit1 | Ready (SysRdy) | 매뉴얼 일치 |
+| bit2 | Warning | 매뉴얼 정합 완료 (커밋 `c9cf6a3`, 2026-06-01) — 이전 코드 BuckSt 불일치 해소 |
+| bit3 | Fault | 매뉴얼 정합 완료 — 이전 코드 Warning 위치 불일치 해소 |
 
-DATA[1..5]: reserved 0x00. DATA[6]: FW Major, DATA[7]: FW Minor (매뉴얼은 Buffer[6] 단일 바이트).
+**DATA[1]·DATA[2]**: Vrect/Irect/Buck 상태 비트 — 매뉴얼 기준 비트 매크로 신설 (c9cf6a3).  
+**DATA[2].bit0**: BuckRunStop_St — 정합 후 위치 (이전 코드는 DATA[0].bit2 위치였음).  
+**DATA[6]**: FW Major, **DATA[7]**: FW Minor (매뉴얼은 Buffer[6] 단일 바이트).
 
 ### 0x51 코드 레이아웃
 
-| DATA 인덱스 | 필드 | Type | Scale |
-|---|---|---|---|
-| [0..1] | Vrect | i16 | × 0.01 V |
-| [2..3] | Irect | i16 | × 0.01 A |
-| [4..7] | reserved | — | 0x00 |
+| DATA 인덱스 | 필드 | Type | Scale | 상태 |
+|---|---|---|---|---|
+| [0..1] | Vrect | i16 | × 0.01 V | ✓ |
+| [2..3] | Irect | i16 | × 0.01 A | ✓ |
+| [4..5] | Zin (입력 임피던스) | i16 | × 0.01 Ω | △ 와이어 전송 추가됨 (c9cf6a3) |
+| [6..7] | Tx Buck Vout Ref (→TX 지령) | i16 | × 0.01 V | △ 와이어 전송 추가됨 (c9cf6a3) |
 
-> **매뉴얼과 큰 불일치**: 프로토콜 매뉴얼의 `Buffer[4..5]` Zin(입력 임피던스)과 `Buffer[6..7]` Tx Buck Vout Ref가 **코드에 구현되지 않음**. 또한 매뉴얼은 Uint16이나 코드는 i16(부호있음).
+> **잔여 차이**: 매뉴얼은 Uint16이나 코드는 i16(부호있음). Zin·Vout_Ref에서 실제 음수가 발생하는지 여부 미확인 — 환원 전 코드 재확인 권장.
+
+> **passenger 데이터 인식**: `DATA[6..7]` Tx Buck Vout Ref는 RX 측이 TX에게 보내는 지령값으로, 이 패킷을 전송하는 `02_RX_ble` 자신의 센싱 데이터가 아님. 방향과 라벨이 어긋나는 passenger. 코드상 `rx_cmd_t`로 분리 보관 (c9cf6a3). 동일 패턴: SPI_Comm_St(02_RX_ble heartbeat), BLE_Comm_St(03_TX_ble/ESB heartbeat) — [[comm_state_monitoring]].
 
 ### 0x52 코드 레이아웃
 

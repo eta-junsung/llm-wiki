@@ -7,7 +7,7 @@ subsystem: 02_RX_ble, 03_TX_ble
 
 # ESB 패킷 포맷 (무선 wire 사양)
 
-[[tx_ble_module]](PTX) ↔ [[rx_ble_module]](PRX) 간 ESB RF 구간의 wire 포맷. 총 11 B 고정 길이. STM32-nRF SPI 내부 프레임([[spi_packet_format]], 56B/45B)과 별개 — nRF가 두 포맷 간 변환을 담당한다.
+[[tx_ble_module]](PTX) ↔ [[rx_ble_module]](PRX) 간 ESB RF 구간의 wire 포맷. 총 11 B 고정 길이. SPI wire와 동일한 `oled_tv_packet_t` 구조를 공유하며 — nRF가 SPI 수신 패킷을 ESB로 그대로 중계하므로 포맷 변환이 없다. 03_TX_ble도 자체 `esb_packet_t` 정의를 제거하고 통합 타입으로 통일됨 (2026-06-01, c9cf6a3). STM32 코드 내부 컨테이너(`rx_module_data_t` 62B / `tx_module_data_t` 51B)와는 별개 층위 — [[spi_packet_format]] 참조.
 
 ## 패킷 구조 (총 11 byte)
 
