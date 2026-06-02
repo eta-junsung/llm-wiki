@@ -251,12 +251,36 @@ gFlashConfig[CONFIG_FLASH0].devConfig->protocolCfg.dummyClksCmd = 8U;
 - **S6 블로커 재정의**: MCSPI(마스터) 정상. 원인 = **NP(CC33xx) SPI 비응답** — WLAN_IRQ 미발생, SPI not responsive/CMD_ERR_TIMEOUT.
 - MISO rd#0/1 0xFFFFFFFF는 라인 부동(high) 상태, rd#2~7 0x0으로 전환 = NP가 초기에 라인을 구동하다가 멈추거나 전혀 준비되지 않은 것으로 추정.
 
+### R36 (cont.) — Saleae 125 MS/s 물리 확인
+
+**측정**: 125 MS/s, CS 트리거(하강엣지), D0=CS/D1=CLK/D2=MOSI/D3=MISO/D4=IRQ, GND=P2.20. 참고 로그: `saleae_r36_spi/raw6/digital.csv`.
+
+**결과**:
+- **CLK(P1.7)**: t≈14.09s에 ~16 MHz, ~4 µs 버스트 실측 — 물리 핀 SCLK 도달 확정.
+- **MOSI(P2.15)**: 송신 활성 확인.
+- **MISO(P2.14)**: flat 0 (Saleae) — NP가 데이터선을 전혀 구동하지 않음.
+- **WLAN_IRQ(P1.8)**: flat — NP가 IRQ를 전혀 올리지 않음.
+- **CS(P2.18)**: 전송 중 계속 asserted (프레임별 deassert 없음) — `spi_adapt.c csDisable=FALSE`. Saleae SPI 분석기 0 프레임 디코드의 원인(무클럭 아님).
+
+**추가 확정**:
+- 진단 마커 `[R36-SPI]` 블록(`spi_adapt.c`, MCSPI0 베이스=`0x52200000`) 코드에 유지. 커밋 미완 — R37에서 판단.
+- **계측 교훈**: cc3351 SPI ~16 MHz·µs급 버스트 → Saleae ≥50 MS/s·CS 트리거 필수.
+
 ---
 
 ## 다음 계획 (R37)
 
-1. **Saleae ≥50 MS/s + CS 트리거** — ~16 MHz SCLK 물리 핀 도달 확정 (Shannon 충족).
-2. **NP 비응답 원인 조사** — WLAN_IRQ 발생 여부, 2nd-loader 다운로드 완료, NP 부팅 시퀀스(LP_RESET → WLAN_IRQ rise 타이밍) 확인.
+**목표**: "MCSPI 정상 클럭·송신, NP(CC33xx)가 MISO·IRQ로 전혀 응답 안 함"의 NP측 원인 규명.
+
+**우선순위**:
+
+1. **NP 부팅/기동 경로 추적** — `Software download ! didn't receive HINT_ROM_LOADER_INIT_COMPLETE` / `Init device FAILED` 경로.
+   - WLAN_EN(P1.5/M15) 토글 타이밍·레벨, NP 전원 인가, LP_RESET(active-low) 해제 순서 점검.
+   - `cc33xx_2nd_loader`(0x900000)·`cc33xx_fw`(0x800000) 다운로드 시퀀스가 어디서 멈추는지 마커 확인.
+2. **NP 물리 생존 여부** — 전원 레일·NP 동작 증거 확보. MISO/IRQ 무응답이 NP 미기동 때문인지, 배선/레벨 문제인지 구분.
+3. **CS 프레이밍 정합** — `csDisable=FALSE`(연속 assert) vs CC33xx SDK 요구(워드별 CS deassert 기대 여부) 확인. `spi_adapt.c` vs CC33xx host SPI 프레이밍 규약 비교.
+
+**검증 경로**: NP가 IRQ를 한 번이라도 올리거나 MISO를 구동하면 NP 기동 진전. Saleae MISO/IRQ 변화 확인.
 
 ---
 
