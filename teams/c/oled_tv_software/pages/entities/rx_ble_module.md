@@ -20,7 +20,9 @@ subsystem: 02_RX_esb
 
 ## 인터페이스
 
-### CN3 — SPI 통신용 커넥터
+### CN3 / CN2 — SPI 통신용 커넥터
+
+> 프로토콜 매뉴얼은 CN3, 회로도 실크는 **CN2** (HEADER_1.27mm/10P). 실물 보드에서 CN2로 확인할 것.
 
 | Pin | 신호 | nRF52 GPIO |
 |---|---|---|
@@ -39,12 +41,30 @@ subsystem: 02_RX_esb
 - 핀 정의 출처: `_shared/oled_tv_protocol.h:69-72` — `PIN_SPI_NSS/MISO/MOSI/SCK = 22/26/25/27`
 - 드라이버: `nrf_drv_spis` 더블 버퍼 (RX 버퍼 = `tx_module_data_t`, TX 버퍼 = `rx_module_data_t`. 명칭이 "어디서 오는가" 기준이라 SPIS의 RX/TX와 반대)
 
-### CN4 — 관리자 통신용 전원
+### CN4 / CN1 — 전원 커넥터
+
+> 프로토콜 매뉴얼은 CN4, 회로도 실크는 **CN1** (HEADER_1.27mm/6P). 실물 보드에서 CN1로 확인할 것.
 
 | Pin | 신호 |
 |---|---|
-| 1, 2, 3 | +5 VDC (절연 전원) |
-| 4, 5, 6 | GND (절연) |
+| 1, 2, 3 | +5 VDC (절연 전원, COMM_P5V) |
+| 4, 5, 6 | GND (절연, COMM_GND) |
+
+### CON1 — SWD 프로그래밍/디버그
+
+| 항목 | 내용 |
+|---|---|
+| 커넥터 | SMAW250-05 (2.5mm 5핀) / 대체품 MOLEX 22-05-7055 |
+| 신호 | SWDCLK, SWDIO, nRST(D1 보호 다이오드 경유), BLE_P3V3, GND |
+| 비고 | ST-LINK V2 + OpenOCD/pyOCD로 플래싱 가능. nrfjprog는 J-Link 전용이라 불가 |
+
+### CON2 — UART 모니터링 (절연형)
+
+| 항목 | 내용 |
+|---|---|
+| 커넥터 | SMAW250-04 (2.5mm 4핀) / 대체품 MOLEX 22-05-7045 |
+| 신호 | TXD_uC, RXD_uC (ISO6721RBDR 절연), COMM_P5V, COMM_GND |
+| 비고 | PC 모니터링 전용. 절연형이라 COMM 전원(5V) 별도 공급 필요 |
 
 ## 펌웨어 현황 (PRD v1.0 기준)
 
@@ -90,7 +110,9 @@ subsystem: 02_RX_esb
 | 항목 | 내용 |
 |---|---|
 | 보드명 | BLE_Module_Board_Ver0.1E00 |
+| MCU 모듈 | UTO-NBL-52 (nRF52832 기반) |
 | 회로도 | `docs/Schematic/BLE_Module_Board_Ver0.1E00_260318 1.pdf` ([[schematic_ble_module_board_v01e00]]) |
+| 보드 크기 | 35mm × 35mm 이하 |
 | 실물 입고 | 2026-06-01 |
 | 비고 | 명칭은 BLE 시절 잔재, 현재 ESB 펌웨어(`02_RX_ble`) 탑재 대상 |
 
