@@ -1,12 +1,26 @@
 ---
-date: 2026-06-01
+date: 2026-06-02
 ---
 
 # oled_tv_software — 구현 현황
 
 ## 다음 시작점
 
-코드 정리 4개 라운드 — eta-explorer로 묶어 진입 권장: ① 모니터 1-헤더-1-줄 압축, ② 공유 출력 함수(`oled_tv_protocol.c` 신설, 3 빌드 등록), ③ serialize/deserialize 통합, ④ `SPI_PKT_*` → 링크 중립 이름 개명.
+**03_TX_ble → BLE Module Board (nRF52832) ST-LINK V2 플래싱**
+
+1. CON1(SWD, 2.5mm 5핀) 실물 Pin1 마킹 확인 → ST-LINK V2 배선 (SWDIO·SWDCLK·GND·nRST)
+2. OpenOCD 또는 pyOCD 설치 확인 (`openocd --version` / `pyocd --version`)
+3. 03_TX_ble SES 빌드 → .hex 생성
+4. 플래싱 명령:
+   - OpenOCD: `openocd -f interface/stlink.cfg -f target/nrf52.cfg -c "program <파일>.hex verify reset exit"`
+   - pyOCD: `pyocd flash --target nrf52832 <파일>.hex`
+5. CON2(절연 UART 4핀, MOLEX 22-05-7045) → PC 연결, UART 모니터 출력 확인
+
+참고: [[schematic_ble_module_board_v01e00]] — CON1(SWD), CON2(UART) 커넥터 상세. nrfjprog는 J-Link 전용이라 사용 불가.
+
+---
+
+코드 정리 4개 라운드 (플래싱 검증 후): ① 모니터 1-헤더-1-줄 압축, ② 공유 출력 함수(`oled_tv_protocol.c` 신설, 3 빌드 등록), ③ serialize/deserialize 통합, ④ `SPI_PKT_*` → 링크 중립 이름 개명.
 
 ## 구현 현황
 
