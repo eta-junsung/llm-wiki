@@ -1,5 +1,5 @@
 ---
-date: 2026-06-01
+date: 2026-06-02
 ---
 
 # lp-am263p — 구현 현황
@@ -8,7 +8,7 @@ date: 2026-06-01
 
 ## 다음 시작점
 
-R35 — WLAN_EN(ball M15→J1.5→BP P1.5 LP_RESET, active-low) reset 해제 검증: `wlan_irq_adapt.c wlan_TurnOnWlan` 폴리시(Low→High)·타이밍·GPIO 출력값 확인.
+R36 — `evaluations/spi0` 빌드가 loopback(`mcspi_loopback.c`)인지 외부핀(`mcspi_external_loopback.c`)인지 확인 후, MCSPI_transfer 실호출 여부 마커(`[R36-SPI] transfer count/ret`) 추가 → CLK 무신호 원인(transfer 미호출 vs 호출 후 무출력) 판정.
 
 ## 구현 현황
 
@@ -19,8 +19,8 @@ R35 — WLAN_EN(ball M15→J1.5→BP P1.5 LP_RESET, active-low) reset 해제 검
 | S2 부팅 + UART 진단 마커 | ✓ | `[DIAG] A..G` 출력 |
 | S3 app `Flash_open()` 유효 핸들 | ✓ | pinmux `$assign` 교정으로 R28b 통과. RDID=`9D 5A 19` |
 | S4 Drivers_open / Board_open 완주 | ✓ | R31 통과. 표준 Board_flashOpen 단독 동작 실측 검증 |
-| S5 CC33xx FW 로드 + NP 기동 | △ | `Hardware init DONE!` 도달(R32). MISO D1 교정(R34)으로 비-0 전환 — NP WSPI 핸드셰이크 미완 |
-| S6 SPI/IRQ link-up | ✗ | `SPI not responsive` (R32). MISO 살아남(R34). NP reset/기동 미검증 |
+| S5 CC33xx FW 로드 + NP 기동 | △ | `Hardware init DONE!` 도달(R32). MISO D1 교정(R34). CS 물리 어서트 확인(R35). CLK/MOSI 무신호 — MCSPI_transfer 호출 여부 미판정 |
+| S6 SPI/IRQ link-up | ✗ | `SPI not responsive`. CLK 핀 무신호(R35). MCSPI_transfer 미호출 또는 CLK 미출력 원인 미판정 |
 | S7 network_terminal CLI | ✗ | S6의 2차 결과 |
 | S8 BLE HCI 경로 | ? | 미도달 |
 
@@ -28,7 +28,8 @@ R35 — WLAN_EN(ball M15→J1.5→BP P1.5 LP_RESET, active-low) reset 해제 검
 
 ## 미결 사항
 
-- **NP reset/기동 미검증** — WLAN_EN(M15→J1.5→BP P1.5 LP_RESET, active-low) 해제 폴리시/타이밍 확인 필요.
-- MOSI(C10/J2.15)·CLK(A11/J1.7) NP 물리 도달 미확인 — scope/LA(사용자 손).
+- **MCSPI_transfer 호출 여부 미판정** — CLK(P1.7) 물리 무신호 확인(R35). transfer 미호출인지 vs 호출됐지만 CLK 미출력인지 마커로 판정 필요.
+- **D1(CLK) 프로브 연결 재확인** — CPOL=0(idle=LOW)라 닿음/안닿음 구분 불가. 재캡처 전 물리 확인 필요.
+- **`evaluations/spi0` loopback vs 물리핀** — pinmux 동일 전제의 유효성 최종 확인 필요.
 - flash FS 쓰기 미검증 — `osi_filesystem.c:131` "Skip flash writing due to APIs issue".
 - [H-A] skipHwInit=TRUE 최소 충분 패치셋 미분리 — quirksFxn/skipHwInit/dummyClksCmd 중 필수 조합 미확인.

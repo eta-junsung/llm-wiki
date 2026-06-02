@@ -172,11 +172,40 @@ gFlashConfig[CONFIG_FLASH0].devConfig->protocolCfg.dummyClksCmd = 8U;
 
 ---
 
-## 다음 계획 (R35)
+## R35 — Saleae 물리 실측: CS 어서트 확인 / CLK 무신호 확인
 
-**방향: NP reset/기동 검증 (1순위).** WLAN_EN(ball M15→J1.5→BP P1.5 LP_RESET, active-low)이 NP를 실제로 reset 해제하는가. `wlan_irq_adapt.c wlan_TurnOnWlan` 폴리시(Low→High)·타이밍·GPIO 출력값 검증.
+**측정 환경**: Saleae Logic Pro 16(logic2), 임계 3.3V, 125 MS/s.  
+프로브: D0=CS(P2.18), D1=CLK(P1.7), D2=MOSI(P2.15), D3=MISO(P2.14), D4=WLAN_IRQ(P1.8), GND=P2.20.  
+캡처: ① 10초 블라인드 ② CS 하강엣지 트리거 (두 방법 동일 결과).
 
-**병행 후보**: MOSI(C10/J2.15)·CLK(A11/J1.7) NP 물리 도달(scope/LA, 사용자 손). SPI clock mode(현 mode0/20MHz) vs CC33xx WSPI 요구.
+**관찰**:
+- **CS(P2.18)**: ~1.008µs LOW 펄스 **1회만** 발생 — 어서트 자체는 물리 핀까지 도달 확인.
+- **CLK(P1.7): 토글 0회** — 클럭이 핀에 전혀 안 나옴.
+- MOSI(P2.15): 무변화(HIGH 고정), MISO/IRQ: 무변화.
+- 패턴: "CS는 핀에 나오는데 CLK/MOSI는 안 나온다" = **zero-clock CS 프레임**.
+- 펌웨어: init → RTOS 스케줄러 통과 → `vApplicationIdleHook`(`port.c:405`) 안착. 크래시 아님 — app task 종료 또는 블록 상태.
+
+**pinmux 가설 반증**:
+- SPI0_CLK/D0/D1/CS0 pinmux가 `evaluations/spi0` 실증 빌드와 cc3351이 **PIN_MODE(0)로 동일** (`cc3351 ti_pinmux_config.c:125-148` ↔ `spi0 ti_pinmux_config.c:42-64`).
+- cc3351도 `Pinmux_init()` 경유 (`ti_drivers_config.c:335`).
+- → CLK 침묵 원인은 **IOMUX 바깥**.
+- 유일 차이 `inputSelect(D0↔D1)`는 MISO 선 설정이라 CLK 출력과 무관.
+
+**caveat**:
+- D1(CLK) 프로브 연결 미확정 — CPOL=0(idle=LOW), 연결 양호·불량 구분 불가. **CS 토글(D0=LOW 포착)은 정상이므로 GND/전압은 OK**. D1이 정말 J1.7에 닿아 있으면 클럭이 있었을 때 포착됨. 단, D1 닿음 여부 자체는 사용자 확인 필요.
+
+**결론**:
+- CS pinmux + SPI0 CS 배선 정상 (물리 어서트 확인).
+- CLK/MOSI 무신호 — MCSPI 드라이버가 SPI 클럭을 실제로 구동하지 않음. pinmux가 아님.
+- 후보: ① `MCSPI_transfer` 미호출/반환 직전 종료 (app task block) ② `evaluations/spi0`가 external loopback인지 아닌지 미확인 (동일 핀 실사용 전제 검증 필요).
+
+---
+
+## 다음 계획 (R36)
+
+1. **`evaluations/spi0` loopback vs 물리핀 실증 확인** — `mcspi_loopback.c` (내부 루프백) vs `mcspi_external_loopback.c` (외부 핀) 어느 것을 실증으로 삼은 것인지 확인. pinmux 동일 전제가 유효한지 최종 확인.
+2. **MCSPI_transfer 실호출 여부** — `[R33-SPI]` 마커 로그에서 `rd#0` 출력 위치 재확인. MCSPI_transfer count/반환값 마커 추가 → CLK 안 나오는 게 transfer 미호출 때문인지, transfer 호출됐지만 CLK가 안 나오는 것인지 구분.
+3. **D1(CLK) 프로브 물리 확인** — 닿음 재확인 후 재캡처.
 
 ---
 
