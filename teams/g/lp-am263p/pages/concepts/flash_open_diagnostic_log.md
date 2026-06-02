@@ -233,11 +233,30 @@ gFlashConfig[CONFIG_FLASH0].devConfig->protocolCfg.dummyClksCmd = 8U;
 
 ---
 
-## 다음 계획 (R36)
+## R36 — MCSPI_transfer 마커 + 레지스터 덤프 → R35 "0클럭" 반증
 
-1. **MCSPI_transfer 실호출 여부·반환값 마커** — `[R36-SPI] transfer count/ret` 마커 추가. CLK 무신호 = transfer 미호출 vs 호출됐지만 CLK 미출력 판정.
-2. (완료) ~~`evaluations/spi0` loopback vs 물리핀 확인~~ — 외부핀 CLK·CS·MOSI 실토글 확인됨.
-3. (완료) ~~D1(CLK) 프로브 물리 확인~~ — proven good.
+**가설**: R35 CLK 0회 = MCSPI_transfer 미호출.
+
+**변경**: `[R36-SPI] transfer count/ret` 마커 추가 — 호출·반환값 런타임 기록.
+
+**관찰**:
+- `[R36-SPI]` 로그: device-info 8회 전송 전부 `ret=SystemP_SUCCESS`, `status=MCSPI_TRANSFER_COMPLETED`.
+- `transferTimeout=WAIT_FOREVER` 설정 — 무클럭이면 영구 hang, 완료 불가.
+- 레지스터 덤프: `CH0CONF=0x20160FC8` (mode0/WL32/full-duplex/IS=D1/CLKD=2/CLKG=1/EPOL=1), `MODULCTRL=0x1` (single master), `SYSSTATUS=1`.
+- SCLK ≈ 48 MHz / 3 ≈ **16 MHz** (CLKD=2, CLKG=1).
+- MISO `rd#0/1=0xFFFFFFFF`, `rd#2~7=0x0` — NP 응답 부재.
+
+**결론**:
+- **R35 "CLK 0회" 반증** — MCSPI 마스터 정상 클럭·완료. R35 0클럭 관측은 **샘플링 아티팩트**: Saleae 12.5 MS/s로 16 MHz SPI 캡처 불가 (Shannon: ≥32 MS/s 필요). known-good 12.5 kHz는 12.5 MS/s로 충분했지만 16 MHz에는 턱없이 부족.
+- **S6 블로커 재정의**: MCSPI(마스터) 정상. 원인 = **NP(CC33xx) SPI 비응답** — WLAN_IRQ 미발생, SPI not responsive/CMD_ERR_TIMEOUT.
+- MISO rd#0/1 0xFFFFFFFF는 라인 부동(high) 상태, rd#2~7 0x0으로 전환 = NP가 초기에 라인을 구동하다가 멈추거나 전혀 준비되지 않은 것으로 추정.
+
+---
+
+## 다음 계획 (R37)
+
+1. **Saleae ≥50 MS/s + CS 트리거** — ~16 MHz SCLK 물리 핀 도달 확정 (Shannon 충족).
+2. **NP 비응답 원인 조사** — WLAN_IRQ 발생 여부, 2nd-loader 다운로드 완료, NP 부팅 시퀀스(LP_RESET → WLAN_IRQ rise 타이밍) 확인.
 
 ---
 
