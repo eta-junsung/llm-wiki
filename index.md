@@ -82,6 +82,7 @@
 
 ### Concepts
 
+- [[team_briefing]] — **팀 업무보고 참고 자료**: 전체 로드맵·현재 위치·S3 블로커(비유 포함)·남은 사항. 보고 직전 열어서 참고
 - [[flash_open_facts]] — **S3 블로커 사실 원장**: 확정 사실 + 폐기 가설(재시도 금지) + 현재 최유력 가설. 라운드마다 제자리 수정 (맥락유실 방지 핵심)
 - [[flash_open_diagnostic_log]] — **S3 블로커 진단 라운드 로그** (append-only): R7~R27 가설→변경→관찰→결론 + R28 계획
 - [[xspi_dummy_cycles]] — IS25LX256 Octal DDR(8D-8D-8D) dummy cycle vs 클럭 주파수 표 + 자주 쓰는 값 (16.67/33.33/50/100/133 MHz)
