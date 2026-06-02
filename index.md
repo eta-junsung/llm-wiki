@@ -65,9 +65,14 @@
 
 ## teams/g/bp-cc3351
 
+### Concepts
+
+- [[boosterpack_pinmap]] — P1/P2 2×20핀 전체 할당표 (SDIO/SPI/UART/IRQ/RESET/전원) + AM263P syscfg 대응표
+
 ### Sources
 
 - [[bp_cc3351_evm_ug]] — TI BP-CC3351 EVM User Guide (SWAU132A, 23p). BoosterPack 2×20핀 핀맵·JTAG 헤더·전원·클럭 raw 추출 인덱스
+- [[bp_cc3351_schematic]] — BP-CC3351 회로도 (MCU121 Rev A/B, 3장). P1/P2 핀맵·Reset 회로(Q1 BSS138)·전원(TPS7A8801RTR)·CC3351 IC 연결
 - [[cc3351_datasheet]] — TI CC3350/CC3351 데이터시트 (SWRS284C Rev.C, 34p). 핀맵·전원·SPI/SDIO/UART 타이밍·레퍼런스 회로도
 
 ---
