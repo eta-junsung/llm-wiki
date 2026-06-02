@@ -73,7 +73,7 @@ syscfg 기준 (`teams/g/lp-am263p/CLAUDE.md`):
 | BLE HCI TX (MCU→BP) | USART2 TX | P1.4 | UART_RX_3V3 |
 | BLE HCI RX (BP→MCU) | USART2 RX | P1.3 | UART_TX_3V3 |
 
-> BoosterPack 헤더(J1~J4)↔SoC 핀 물리 대응 (LaunchPad AM263P J1 pin 5 = ball M15 등)은 LP-AM263P LaunchPad 회로도에서 확인 필요 — 현재 [[status]] "미결 사항"에 등재.
+> CLK 경로(BP P1.7 → LP J1.7 → AM263P ball A11 / SPI0_CLK)는 R35(cont.) Saleae known-good 실측으로 물리 접속 확인. MOSI/MISO/CS는 동일 측정에서 SPI 디코드 정합으로 간접 확인 수준. 전체 핀맵 회로도 확인(LP-AM263P LaunchPad 회로도)은 미완.
 
 ---
 

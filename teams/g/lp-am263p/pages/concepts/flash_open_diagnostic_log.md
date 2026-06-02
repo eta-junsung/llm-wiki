@@ -197,15 +197,47 @@ gFlashConfig[CONFIG_FLASH0].devConfig->protocolCfg.dummyClksCmd = 8U;
 **결론**:
 - CS pinmux + SPI0 CS 배선 정상 (물리 어서트 확인).
 - CLK/MOSI 무신호 — MCSPI 드라이버가 SPI 클럭을 실제로 구동하지 않음. pinmux가 아님.
-- 후보: ① `MCSPI_transfer` 미호출/반환 직전 종료 (app task block) ② `evaluations/spi0`가 external loopback인지 아닌지 미확인 (동일 핀 실사용 전제 검증 필요).
+- 후보: ① `MCSPI_transfer` 미호출/반환 직전 종료 (app task block) ② `evaluations/spi0`가 외부핀 실증인지 미확인.
+
+### R35 (cont.) — Saleae 계측 체인 known-good 검증 (spi0 eval)
+
+**목적**: cc3351 CLK 침묵 해석 전, 계측 체인(Saleae+logic2+프로브+핀)이 정확한지 known-good 기준으로 검증.
+
+**spi0 빌드 성질 확인 (소스 읽기)**:
+- `evaluations/spi0/mcspi_loopback.c:92-100` → `while(1)` 무한송신으로 개조됨 (주석: "Pinmap probe: transfer forever so the scope always sees signal").
+- `mcspi_loopback.c:67` 런타임 `bitRate=12500` 덮어씀 → 실제 SPI 클럭 12.5 kHz.
+- `dpe0=ENABLE/trMode=TX_RX` → 외부 핀에 CLK·CS·MOSI(0xFF) 실토글, MISO(D1) 미구동.
+- `.out` timestamp(13:19:24) > 소스(13:19:20) → 재빌드 불필요.
+
+**측정**: 프로브 미이동(cc3351 측정과 동일 핀·헤더). D0=CS(P2.18), D1=CLK(P1.7), D2=MOSI(P2.15), D3=MISO(P2.14), GND=P2.20. 12.5 MS/s, 임계 3.3V, CS 하강엣지 트리거.
+
+**결과 — 전 항목 합격**:
+- CLK: 1024 사이클, 주기 80µs (12.5 kHz 정확).
+- CS: burst 동안 active-low 프레임.
+- MOSI: 128바이트 전부 0xFF 디코드 (POL0/PHA0, MSB, 8bit, CS active-low).
+- MISO: 미구동 HIGH → 0xFF 읽힘 (정상).
+- 단일 GND로 디코드 무결 → GND 추가 불필요 (저속 조건).
+
+**레퍼런스 산출물**: `bp-3351/saleae_spi0_raw/` — `spi0_knowngood_12k5_0xFF.sal`(Logic2 캡처), `spi_decoded.csv`(128B 0xFF), `digital.csv`(raw 전이 1024클럭).
+
+**캐비엣 해소 (cc3351 진단에 결정적)**:
+프로브 미이동 + 동일 SPI0 핀 → spi0=1024클럭 / cc3351=0클럭. 측정·배선·pinmux·물리 매핑 전부 배제.
+
+| 이전 caveat | 상태 |
+|---|---|
+| D1(CLK) 프로브 연결 미확정 | **✓ proven good** — 동일 프로브로 1024클럭 포착 |
+| BP P1.7=SPI0_CLK 물리 매핑 미확정 | **✓ proven correct** — CLK 경로 실접속 확인 |
+| Saleae/logic2 계측 체인 정확도 | **✓ proven** — 12.5 kHz 정밀 일치 |
+
+**최종 결론**: cc3351 CLK 침묵 원인 = **펌웨어/SoC SPI 동작 자체** (MCSPI_transfer 실호출 여부·채널 enable·기능 클럭).
 
 ---
 
 ## 다음 계획 (R36)
 
-1. **`evaluations/spi0` loopback vs 물리핀 실증 확인** — `mcspi_loopback.c` (내부 루프백) vs `mcspi_external_loopback.c` (외부 핀) 어느 것을 실증으로 삼은 것인지 확인. pinmux 동일 전제가 유효한지 최종 확인.
-2. **MCSPI_transfer 실호출 여부** — `[R33-SPI]` 마커 로그에서 `rd#0` 출력 위치 재확인. MCSPI_transfer count/반환값 마커 추가 → CLK 안 나오는 게 transfer 미호출 때문인지, transfer 호출됐지만 CLK가 안 나오는 것인지 구분.
-3. **D1(CLK) 프로브 물리 확인** — 닿음 재확인 후 재캡처.
+1. **MCSPI_transfer 실호출 여부·반환값 마커** — `[R36-SPI] transfer count/ret` 마커 추가. CLK 무신호 = transfer 미호출 vs 호출됐지만 CLK 미출력 판정.
+2. (완료) ~~`evaluations/spi0` loopback vs 물리핀 확인~~ — 외부핀 CLK·CS·MOSI 실토글 확인됨.
+3. (완료) ~~D1(CLK) 프로브 물리 확인~~ — proven good.
 
 ---
 
