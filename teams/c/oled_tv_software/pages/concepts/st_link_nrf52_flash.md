@@ -114,6 +114,41 @@ python -m pyocd cmd -t nrf52832 -u <ST-LINK-UID> -c "reset"
 
 ---
 
+## 드라이버 토글 (nRF ↔ STM32)
+
+ST-LINK V2는 USB 인터페이스가 하나라 드라이버도 하나만 바인딩된다. nRF52832 플래싱(pyOCD, WinUSB 필요)과 STM32 플래싱(CubeIDE/CubeProgrammer, ST 정품 드라이버 필요)은 **드라이버를 바꿔 끼우며 번갈아** 써야 한다. 하나의 동글로 동시 양립 불가.
+
+| 용도 | 드라이버 | 전환 도구 |
+|---|---|---|
+| nRF52832 (pyOCD/OpenOCD) | WinUSB | Zadig |
+| STM32 (CubeIDE/CubeProgrammer/ST-Link Utility) | ST 정품 STLink | 장치 관리자 |
+
+### WinUSB → ST 정품 (STM32용으로 복귀)
+
+Zadig로는 ST 정품 드라이버 복원 불가 → 장치 관리자 사용.
+
+1. 장치 관리자에서 ST-LINK(`STM32 STLink`, USB ID `0483:3748`) 찾기 (WinUSB면 "범용 직렬 버스 장치" 아래).
+2. 우클릭 → 디바이스 제거 → "이 디바이스의 드라이버 소프트웨어를 삭제합니다" 체크 → 제거.
+3. ST-LINK USB 재연결(또는 "하드웨어 변경 사항 검색") → Windows가 ST 정품 드라이버 재설치.
+4. 확인: STM32CubeProgrammer에서 ST-LINK Connect 성공.
+
+### ST 정품 → WinUSB (nRF용으로 전환)
+
+1. Zadig 관리자 실행 → Options → List All Devices.
+2. `STM32 STLink`(USB ID `0483:3748`) 선택 → 타깃 WinUSB → Replace Driver.
+3. 확인: `python -m pyocd list`에 ST-Link 등장.
+
+### 현재 모드 확인
+
+- `python -m pyocd list`에 ST-Link 보임 → WinUSB(nRF) 모드.
+- STM32CubeProgrammer Connect 성공 → ST 정품(STM32) 모드.
+
+### 토글 회피 팁
+
+ST-LINK 동글을 둘 두면 토글 불필요: 하나는 WinUSB 고정(nRF 전용), 하나는 ST 정품(STM32 전용). nRF52 DK는 온보드 J-Link라 별도 ST-LINK 토글 대상이 아님 — 토글은 STM32(01) ↔ 회사 nRF 보드를 한 동글로 오갈 때만 필요.
+
+---
+
 ## 관련
 
 - [[rx_ble_module]] — CON1(SWD) 커넥터 스펙
