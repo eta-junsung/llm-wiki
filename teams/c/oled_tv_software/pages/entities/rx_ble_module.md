@@ -56,7 +56,7 @@ subsystem: 02_RX_esb
 |---|---|
 | 커넥터 | SMAW250-05 (2.5mm 5핀) / 대체품 MOLEX 22-05-7055 |
 | 신호 | SWDCLK, SWDIO, nRST(D1 보호 다이오드 경유), BLE_P3V3, GND |
-| 비고 | ST-LINK V2 + OpenOCD/pyOCD로 플래싱 가능. nrfjprog는 J-Link 전용이라 불가 |
+| 비고 | ST-LINK V2 + pyOCD로 플래싱. 셋업 절차 → [[플래싱 가이드|st_link_nrf52_flash]] |
 
 ### CON2 — UART 모니터링 (절연형)
 

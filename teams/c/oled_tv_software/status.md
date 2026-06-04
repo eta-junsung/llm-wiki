@@ -16,7 +16,7 @@ date: 2026-06-02
    - pyOCD: `pyocd flash --target nrf52832 <파일>.hex`
 5. CON2(절연 UART 4핀, MOLEX 22-05-7045) → PC 연결, UART 모니터 출력 확인
 
-참고: [[schematic_ble_module_board_v01e00]] — CON1(SWD), CON2(UART) 커넥터 상세. nrfjprog는 J-Link 전용이라 사용 불가.
+참고: [[schematic_ble_module_board_v01e00]] — CON1(SWD), CON2(UART) 커넥터 상세. [[플래싱 가이드|st_link_nrf52_flash]] — ST-LINK V2 + pyOCD 절차 (셋업 함정 3개 포함).
 
 ---
 
