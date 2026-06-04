@@ -268,6 +268,59 @@ gFlashConfig[CONFIG_FLASH0].devConfig->protocolCfg.dummyClksCmd = 8U;
 
 ---
 
+## R37 — H1 확정: 마스터 정상·NP 비응답 판정
+
+**배경**: R36에서 MCSPI 정상·NP 비응답까지 확인. R37 계획은 "Saleae ≥50 MS/s 재캡처 + NP 부팅 경로 추적".
+
+**실제 경과**:
+- Saleae 재측정 실시. CH0STAT=`0x6`(EOT+TXS, RXS=0), CH0CONF WL=32/full-duplex/FFER=1, CSL 헤더 교차확인. MISO·IRQ flat 재확인.
+- **판정**: R36 단일 로그가 H1(마스터 정상·NP 침묵)을 이미 완전 입증하고 있었음. R37 신규 측정은 R36 답의 재발견.
+- **교훈**: 새 측정 전 기존 로그 소진을 먼저 했어야 함 — R36 레지스터 덤프+Saleae 결과가 H1 판정에 충분했음.
+- **JTAG-load 경로 부적합**: JTAG connectTarget 항상 코어 리셋(R33·R31 확정). SBL과 다른 부팅 경로이므로 H1 판정 목적(SBL 경유 부팅 상태의 NP 응답)에 부적합.
+
+**결론**:
+- **H1 확정** — NP가 SPI 슬레이브로 무응답, 마스터 정상.
+- 무게중심 이동: 마스터 측 원인 배제 완료 → **NP 부팅·응답 경로** 집중 필요.
+- 다음 R38: NP 부팅 시퀀스(`HINT_ROM_LOADER_INIT_COMPLETE` / `Init device FAILED` 경로, WLAN_EN 타이밍·LP_RESET 순서, 2nd-loader 다운로드 위치) + CS 프레이밍 정합.
+
+---
+
+## R38 — Saleae 라인레벨: NP 전핀 침묵 → "NP 코어 미실행" (1순위 XTAL)
+
+**배경**: R37 H1 확정(마스터 정상·NP 침묵) 후, NP 물리 생존 여부를 Saleae 라인레벨로 추적.
+채널맵 CH0=CS/CH1=SCLK/CH2=MOSI/CH3=MISO/CH4=IRQ_WL/CH5=WLAN_EN (+SoP CH6=IRQ_BLE/CH7=LOGGER).
+
+**측정·판독** (디스크 export 직접 재검증):
+- sanity (`saleae_r38_sanity/digital.csv`, wlan_start 1 burst): SCLK 64사이클·56–64ns(~16.7MHz),
+  MOSI 12전이, MISO 0전이(flat 0), IRQ_WL flat, CS 전구간 asserted, WLAN_EN flat high, burst
+  3.968µs.
+  → 마스터 정상·NP 침묵 라인레벨 확정.
+- 전원 (`saleae_r38_pwr`): 3.3V=3.266V / 1.8V=1.794V flat (analog.csv 삭제, 사용자 추출치;
+  burst 순간 t=18.56s는 analog 버퍼 t≤17s 밖이라 직접 미측정).
+
+**배제표**: 전원(배제, 디스크 직접 미검증) · nRESET 미해제(배제 — D1 Yellow LED 점등=LP_RESET HIGH +
+WLAN_EN flat high) · level-shifter(배제 — J12/J13/J14 모두 3.3V) · master SPI(정상 확정, R36 정합) ·
+NP 전 출력핀(침묵 확정 — MISO·IRQ_WL·IRQ_BLE·LOGGER 모두 NP구동 흔적 0).
+
+**결론**: NP 코어 미실행 — 전원·리셋·클럭공급·level-shifter 다 갖춰졌는데 SPI·IRQ(WL/BLE)·LOGGER
+4계통 출력 전부 침묵. 단일핀 고장 아닌 전 출력 무활동 = 코어 비실행 부합.
+1순위 의심: 40MHz XTAL(Y1) 미발진 (단 추론 — 직접 미측정).
+
+**sop2 confound 교훈** (`saleae_r38_sop2/digital.csv`, 304s·보드리셋 포함 오염):
+- 초기 "LOGGER 활발=NP 생존" 판단 철회. LOGGER 99.14% idle-high, 2.6s low는 단일 공통모드
+  리셋(t=104.48–107.08s, R37d 시그니처)과 일치. 리셋창 밖 LOGGER low 547개 전부 ≤3µs
+  (115200baud 1bit=8.7µs 미만)=UART비트 아님 + t=283/288s 클러스터 → NP 로그 없음.
+- SCLK 670k전이는 t=283–293s 집중(wlan_start보다 176s 뒤, 출처 불명); wlan_start창(104–108s)
+  SCLK는 112전이뿐. wlan_start창 MISO 27전이는 전부 t=107.0831 단일순간(리셋 경계).
+- 교훈: 장시간·리셋포함 캡처에서 "활발=생존" 직관 위험. 판정은 clean manual 캡처로,
+  펄스폭·시간분포로 글리치/리셋과 구분.
+
+**적대적 검토 잔여(미검증)**: "1순위 XTAL"은 추론(측정 아님), 데이터 한계는 "NP 코어 미실행"까지 /
+sop2 t=283–293 SCLK 버스트 출처 불명(반례 후보, 단 MISO 5전이로 NP 응답 증거 아님) / LOGGER=NP
+debug-UART 전제 미확인.
+
+---
+
 ## 다음 계획 (R37)
 
 **목표**: "MCSPI 정상 클럭·송신, NP(CC33xx)가 MISO·IRQ로 전혀 응답 안 함"의 NP측 원인 규명.

@@ -87,5 +87,6 @@ AM263P(3.3V GPIO) 연결 시 J12/J13/J14 점퍼를 3.3V 위치로 설정.
 ## 주의사항
 
 - **P1 핀 번호 불연속**: P1.1~P1.10 다음이 P1.21 (P1.11~P1.20은 P2 헤더 내부 연번이므로 존재하지 않음).
-- **LP_RESET active-low**: `wlan_TurnOnWlan`에서 LOW→딜레이→HIGH 시퀀스로 NP reset pulse 생성. [[status]] R35 참조.
+- **LP_RESET active-low**: `wlan_TurnOnWlan`에서 LOW→딜레이→HIGH 시퀀스로 NP reset pulse 생성. [[status]] R35 참조. **딜레이 단위**: `osi_Sleep(n)` 인자 단위는 **초(second)** — 밀리초가 아님. 예: `osi_Sleep(2)` = 2초 대기. 포팅 시 지나치게 짧은 딜레이 삽입에 주의.
 - **D1 Yellow LED**: LP_RESET=HIGH(running)이면 점등. 보드에서 nRESET 상태 시각 확인 가능.
+- **SoP strap은 LP헤더(3.3V측)에서 못 읽음 (R38 confound)**: strap핀(IRQ_WL/IRQ_BLE/LOGGER)을 LP헤더 3.3V측에서 프로브하면 리셋 LOW 구간에 strap이 동반 LOW로 끌려감 — level shifter가 리셋에 게이팅되기 때문. LP헤더에서 본 값은 1.8V IC측 진짜 SoP strap이 아님. 진짜 SoP 확인은 CC3351 1.8V IC측(R7/R8 strap 저항) 직접 프로브 필요. (R38 sop2에서 확인)
