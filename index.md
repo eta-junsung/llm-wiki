@@ -84,6 +84,7 @@
 
 - [roadmap.md](teams/g/lp-am263p/roadmap.md) — 프로젝트 로드맵(목표·작업 호 인덱스·현재 위치). 단계 spine은 작업 로드맵 위임
 - [roadmaps/porting.md](teams/g/lp-am263p/roadmaps/porting.md) — `porting` 작업 호(S0~S8 단계 spine·완료 기준 표·현재 S3 블로커·남은 일정). 디테일은 concept 백링크
+- [roadmaps/eta-adc.md](teams/g/lp-am263p/roadmaps/eta-adc.md) — `eta-adc` 작업 호(A0~A4). eta 보드 J3 6채널 ADC 브링업, 신호별 스케일링 포함
 - [status.md](teams/g/lp-am263p/status.md) — 기능별 구현 현황표·다음 시작점 (파이프라인이 커밋마다 갱신)
 
 ### Concepts
@@ -95,6 +96,10 @@
 - [[is25lx256_vs_spansion_quirks]] — bp-3351→AM263P 포팅 시 Spansion 분기 제거 체크리스트 (UNHYSA 부재, RDAR/WRAR 부재, set888mode=0x81 정정, AM243 Quad/AM263P Octal 라인 차이)
 - [[flash_open_sequence]] — `Flash_norOspiOpen` 단계별 시퀀스 + 종료 시 OSPI 컨트롤러/chip 상태 표
 - [[sbl_app_flash_handoff]] — `skipHwInit` 게이트, SBL → 앱 핸드오프 시 정합성 깨지는 지점·flashFixUpOspiBoot 비대칭·진단 절차
+
+### Entities
+
+- [[adc_pinmap]] — eta 보드 J3 커넥터 → ADC 인스턴스/채널 → 신호 대응표 (6채널: 온도×2, 전압×1, 전류×2, 선형×1). 스케일링 스펙 미확인 항목 포함
 
 ### Sources
 

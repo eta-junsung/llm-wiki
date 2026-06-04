@@ -4,6 +4,15 @@
 
 ---
 
+## [2026-06-04] ingest | lp-am263p eta-adc 작업 호 개설 + ADC 핀맵 ingest
+
+- eta 보드 J3 커넥터 6채널 ADC 핀맵(사용자 제공) → [[adc_pinmap]] 엔티티 생성.
+- `eta-adc` 작업 로드맵(A0~A4) 신설: SysConfig 설정 → 단채널 검증 → 전채널 읽기 → 신호별 스케일링 → 실보드 교차검증.
+- A3(스케일링) 블로커: Temp 모듈 특성·전류 센서 감도·분압비 미입수 — 추가 정보 대기.
+- [[roadmap]] tasks 표에 eta-adc 행 추가, index 갱신.
+
+---
+
 ## [2026-06-04] ingest | oled_tv_software ST-LINK V2 + pyOCD nRF52832 플래싱 절차 확립
 
 - 계기: BLE_Module_Board_Ver0.1E00(nRF52832)에 `03_TX_ble` 플래싱 성공. SES 내장 다운로더·nrfjprog가 J-Link 전용이라 ST-LINK로 사용 불가 → pyOCD 우회 경로 확립.
