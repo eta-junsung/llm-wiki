@@ -1,5 +1,5 @@
 ---
-tags: [entity, adc, 8kw-ev-wpt-tx-board-ver1_0e00, pinmap]
+tags: [entity, adc, 8kw-ev-wpt-tx, pinmap]
 source: 사용자 제공 (2026-06-04) — 회로도 전체 미ingest, 해당 신호 핀만 발췌
 date: 2026-06-04
 ---

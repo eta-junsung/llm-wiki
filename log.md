@@ -4,13 +4,13 @@
 
 ---
 
-## [2026-06-04] ingest | 8kw-ev-wpt-tx-board-ver1_0e00 프로젝트 신설 + adc 작업 호 개설
+## [2026-06-04] ingest | 8kw-ev-wpt-tx 프로젝트 신설 + adc 작업 호 개설
 
 - eta 보드 J3 커넥터 6채널 ADC 핀맵(사용자 제공) → [[adc_pinmap]] 엔티티 생성.
 - `adc` 작업 로드맵(A0~A4) 신설: SysConfig 설정 → 단채널 검증 → 전채널 읽기 → 신호별 스케일링 → 실보드 교차검증.
 - A3(스케일링) 블로커: Temp 모듈 특성·전류 센서 감도·분압비 미입수 — 추가 정보 대기.
 - lp-am263p에 잘못 붙었던 eta-adc 항목 모두 제거 후 이 프로젝트로 이관.
-- 신규 프로젝트 `teams/g/8kw-ev-wpt-tx-board-ver1_0e00` 생성 — 8kW EV WPT 송신 보드 Ver1.0E00, LP-AM263P 기반.
+- 신규 프로젝트 `teams/g/8kw-ev-wpt-tx` 생성 — 8kW EV WPT 송신 보드 Ver1.0E00, LP-AM263P 기반.
 
 ---
 

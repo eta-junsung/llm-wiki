@@ -1,5 +1,5 @@
 ---
-tags: [roadmap, adc, 8kw-ev-wpt-tx-board-ver1_0e00, living-doc]
+tags: [roadmap, adc, 8kw-ev-wpt-tx, living-doc]
 date: 2026-06-04
 ---
 

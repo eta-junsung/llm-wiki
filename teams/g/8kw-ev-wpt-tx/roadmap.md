@@ -1,9 +1,9 @@
 ---
-tags: [roadmap, 8kw-ev-wpt-tx-board-ver1_0e00, living-doc]
+tags: [roadmap, 8kw-ev-wpt-tx, living-doc]
 date: 2026-06-04
 ---
 
-# 8kw-ev-wpt-tx-board-ver1_0e00 — 프로젝트 로드맵
+# 8kw-ev-wpt-tx — 프로젝트 로드맵
 
 > 프로젝트 목표까지의 전체 호. 단계 spine은 작업 로드맵으로 위임하고, 여기는 **목표·작업 호 인덱스·현재 위치**만 둔다.
 > 전술(기능별 현황·다음 시작점)은 [[status]]가 단일 소스.

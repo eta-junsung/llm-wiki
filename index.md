@@ -103,13 +103,13 @@
 
 ---
 
-## teams/g/8kw-ev-wpt-tx-board-ver1_0e00
+## teams/g/8kw-ev-wpt-tx
 
 ### Living docs
 
-- [roadmap.md](teams/g/8kw-ev-wpt-tx-board-ver1_0e00/roadmap.md) — 프로젝트 로드맵(목표·작업 호 인덱스·현재 위치)
-- [roadmaps/adc.md](teams/g/8kw-ev-wpt-tx-board-ver1_0e00/roadmaps/adc.md) — `adc` 작업 호(A0~A4). eta 보드 J3 6채널 ADC 브링업, 신호별 스케일링 포함
-- [status.md](teams/g/8kw-ev-wpt-tx-board-ver1_0e00/status.md) — 기능별 구현 현황표·다음 시작점 (파이프라인이 커밋마다 갱신)
+- [roadmap.md](teams/g/8kw-ev-wpt-tx/roadmap.md) — 프로젝트 로드맵(목표·작업 호 인덱스·현재 위치)
+- [roadmaps/adc.md](teams/g/8kw-ev-wpt-tx/roadmaps/adc.md) — `adc` 작업 호(A0~A4). eta 보드 J3 6채널 ADC 브링업, 신호별 스케일링 포함
+- [status.md](teams/g/8kw-ev-wpt-tx/status.md) — 기능별 구현 현황표·다음 시작점 (파이프라인이 커밋마다 갱신)
 
 ### Entities
 

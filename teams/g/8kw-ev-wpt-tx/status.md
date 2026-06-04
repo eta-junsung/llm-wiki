@@ -2,7 +2,7 @@
 date: 2026-06-04
 ---
 
-# 8kw-ev-wpt-tx-board-ver1_0e00 — 구현 현황
+# 8kw-ev-wpt-tx — 구현 현황
 
 > 전략 spine은 [[roadmap]], 작업 단위 호는 [[adc]].
 
