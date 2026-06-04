@@ -118,12 +118,14 @@ ADC 가용 핀: P0.02/AIN0, P0.03/AIN1, P0.04/AIN2, P0.05/AIN3, P0.28/AIN4, P0.2
 | 대체품 | MOLEX 22-05-7045 (KK 2.5mm 4핀) |
 | 용도 | UART 모니터링 (`(연결@PC Monitoring)`) |
 
-| 신호 | 방향 | 비고 |
-|---|---|---|
-| TXD_uC | uC → PC | ISO6721RBDR 절연 경유 |
-| RXD_uC | PC → uC | ISO6721RBDR 절연 경유 |
-| COMM_P5V | — | 절연 전원 (CN1에서 공급) |
-| COMM_GND | — | 절연 GND |
+| 신호 | 방향 | nRF52 GPIO | 비고 |
+|---|---|---|---|
+| TXD_uC | uC → PC | **P0.15** | ISO6721RBDR 절연 경유 |
+| RXD_uC | PC → uC | **P0.14** | ISO6721RBDR 절연 경유 |
+| COMM_P5V | — | — | 절연 전원 (CN1에서 공급) |
+| COMM_GND | — | — | 절연 GND |
+
+> UART GPIO 핀 P0.15(TX)/P0.14(RX) — 사용자 확인 2026-06-04, 펌웨어 `custom_board.h`의 `TX_PIN_NUMBER=15 / RX_PIN_NUMBER=14`에 반영. (PCA10040 기본값 TX=6/RX=8과 다름.)
 
 ISOL1 (ISO6721RBDR/SOIC-8): 2채널 디지털 아이솔레이터. D2 (SZNUP2105LT1G/SOT23-3): ESD 보호.
 
@@ -131,13 +133,17 @@ ISOL1 (ISO6721RBDR/SOIC-8): 2채널 디지털 아이솔레이터. D2 (SZNUP2105L
 
 ## LED 인디케이터
 
-| 부품 | 색상 | 기능 | 신호 |
-|---|---|---|---|
-| LED1 | Green | System Ready (점등) | LED1_uC |
-| LED2 | Yellow | SPI Comm Status (점멸) | LED2_uC |
-| LED3 | Green | BLE Comm Status (점멸) | LED3_uC |
+| 부품 | 색상 | 기능 | 신호 | nRF52 GPIO |
+|---|---|---|---|---|
+| LED1 | Green | System Ready (점등) | LED1_uC | **P0.09** |
+| LED2 | Yellow | SPI Comm Status (점멸) | LED2_uC | **P0.08** |
+| LED3 | Green | BLE Comm Status (점멸) | LED3_uC | **P0.06** |
 
-구동 방식: PDTC143ZT/SOT-23 (pre-biased NPN) 트랜지스터. LED GPIO 핀 번호는 펌웨어 board config에서 확인 필요.
+구동 방식: PDTC143ZT/SOT-23 (pre-biased NPN) 트랜지스터 — GPIO HIGH → LED 점등(**active-high**, 1=ON).
+
+핀 번호·극성 `03_TX_ble` 실보드 실측 확정 (2026-06-04): LED1(P0.09) 상시 점등, LED2(P0.08)/LED3(P0.06) 200 ms 토글. 펌웨어 핀 정의 단일 소스는 `_shared/oled_tv_protocol.h` `PIN_LED1/2/3 = 9/8/6`. 검증 행 → [[gpio_verification_pinmap]].
+
+> ⚠ **펌웨어 board define 함정**: 펌웨어는 historically `BOARD_PCA10040`로 빌드됐으나 이 보드는 PCA10040 DK가 아니라 UTO-NBL-52 기반 커스텀 보드다. PCA10040 기준이면 P0.06=UART TX·P0.08=UART RX·P0.17~20=온보드 LED라 위 LED 핀과 충돌한다. 2026-06-04 `BOARD_CUSTOM` + `_shared/custom_board.h`로 전환해 회사 보드 UART(P0.15/P0.14)·LED를 분리. 상세 → [[tx_ble_module]].
 
 ---
 

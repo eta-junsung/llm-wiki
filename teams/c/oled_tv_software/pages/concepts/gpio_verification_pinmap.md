@@ -40,9 +40,14 @@ subsystem: 01_RX_control, 02_RX_ble, 03_TX_ble
 | ESB TX→ACK 지연 | 03_TX_ble | P0.17 → **P0.18** | TX 시작 → ACK 수신 | ~470 µs (두 엣지 시간차, 커서) | [[esb_timing_measurements]] |
 | ESB ACK 수신 주기 | 03_TX_ble | **P0.18** | ACK 수신 토글 (측정 전용) | ~940 µs 주기 | [[esb_timing_measurements]] |
 | SPI heartbeat 200 ms | 02_RX_ble | **P0.17** `PIN_DBG_HB` | heartbeat 디버그 토글 | 200 ms 토글 (Δt≈190 ms 실측) | [[spi_link_reliability]] |
+| LED1 System Ready | 03_TX_ble | **P0.09** `PIN_LED1` | LED1_uC (회사 보드) | 상시 점등 (active-high, 1=ON) | [[schematic_ble_module_board_v01e00]] |
+| LED2 SPI Comm Status | 03_TX_ble | **P0.08** `PIN_LED2` | LED2_uC | 200 ms 토글 (점멸) | [[schematic_ble_module_board_v01e00]] |
+| LED3 BLE(=ESB) Comm Status | 03_TX_ble | **P0.06** `PIN_LED3` | LED3_uC | 200 ms 토글 (점멸) | [[schematic_ble_module_board_v01e00]] |
 
 > P0.17/P0.18 토글은 측정 전용 디버그 코드 — 검증 종료 후 제거 여부 결정 대상 ([[tx_ble_module]]).
-> **P0.17 중복은 충돌 아님**: 02_RX_ble와 03_TX_ble는 동일 nRF52832 **PCA10040** 모델이지만 **물리적으로 별개 보드 2대**다. 같은 핀번호(P0.17)가 각 보드에서 다른 용도(02=heartbeat `PIN_DBG_HB` / 03=TX 시작 토글)로 쓰이는 것이며, 한 핀의 의미 충돌이 아니다.
+> **P0.17 중복은 충돌 아님**: 02_RX_ble와 03_TX_ble는 동일 nRF52832 커스텀 보드(UTO-NBL-52 기반) **물리적으로 별개 보드 2대**다. 같은 핀번호(P0.17)가 각 보드에서 다른 용도(02=heartbeat `PIN_DBG_HB` / 03=TX 시작 토글)로 쓰이는 것이며, 한 핀의 의미 충돌이 아니다.
+
+> LED 핀/극성은 **회사 BLE_Module_Board(BOARD_CUSTOM 빌드)** 기준 — 2026-06-04 실보드 실측 확정. PCA10040 DK로 빌드하면 P0.06/08은 UART, P0.17~20은 온보드 LED라 의미가 다르며, LED 코드는 `#if defined(BOARD_CUSTOM)` 가드로 회사 빌드에서만 컴파일된다. LED 핀맵 1차 출처 → [[schematic_ble_module_board_v01e00]].
 
 ---
 

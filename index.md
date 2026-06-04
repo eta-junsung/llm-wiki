@@ -29,7 +29,7 @@
 - [[tim8]] — Advanced Timer, PWM1(CH1/CH2) + BKIN(PA6)
 - [[tim3]] — General Timer, PWM2(CH3/CH4). BDTR 없음
 - [[rx_ble_module]] — 02_RX_ble, nRF52832 ESB PRX. SPI Slave 9Mbps. BLE 시절 명칭 잔류
-- [[tx_ble_module]] — 03_TX_ble, nRF52832 ESB PTX. TX 보드 SPI 미구현
+- [[tx_ble_module]] — 03_TX_ble, nRF52832 ESB PTX. LED 인디케이터(P0.09/08/06, active-high)·DK↔회사 보드 분기(custom_board.h). TX 보드 SPI 미구현
 
 ### Concepts
 
@@ -60,7 +60,7 @@
 - [[prd]] — 시스템 PRD v1.0 (2026-05-26). 인수 시점 이해 스냅샷, 펌웨어 현황·미해결 의문점 일람
 - [[schematic_stm32_mini_pro_v10]] — STM32 mini-pro v10 회로도 (이미지 PDF, SPI 수동 추출). STM32↔nRF52832 PCA10040 배선표 포함
 - [[schematic_rx_regulator_control_board]] — Rx OLED Regulator Control Board 회로도 (OrCAD Design XML + PDF). MCU 전체 핀맵·39개 신호 인벤토리·TEMP swap 회로도 확인
-- [[schematic_ble_module_board_v01e00]] — BLE Module Board Ver0.1E00 회로도 (02_RX_ble nRF52832). 실물 보드 2026-06-01 입고, 상세 ingest 미완
+- [[schematic_ble_module_board_v01e00]] — BLE Module Board Ver0.1E00 회로도 (02_RX_ble nRF52832). LED GPIO(P0.09/08/06)·UART(P0.15/14) 핀 확정(2026-06-04 실측)
 
 ---
 

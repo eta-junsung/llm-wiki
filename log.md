@@ -14,6 +14,18 @@
 
 ---
 
+## [2026-06-04] ingest | oled_tv_software 03_TX_ble LED 인디케이터 + 보드 분기
+
+- 03_TX_ble LED 3개 구현·실보드 검증: LED1(P0.09) System Ready 상시 점등, LED2(P0.08) SPI Comm Status·LED3(P0.06) BLE(ESB) Comm Status 200ms 토글. 극성 **active-high(1=ON)** 실측 확정.
+- LED 핀맵 정정 과정: 초기 잘못된 핀(10/9/8) → 실측 혼선 → 정정(9/8/6, = `_shared/oled_tv_protocol.h` 원래 값). 극성도 active-low 오판정 → 정정해 active-high 확정.
+- DK(PCA10040) ↔ 회사 보드 핀맵 분기: `_shared/custom_board.h` 신설(`LEDS_NUMBER 0`, UART RX=14/TX=15) + emProject `BOARD_CUSTOM`. LED 코드는 `#if defined(BOARD_CUSTOM)` 가드 — DK에선 P0.06/08이 UART라 충돌 회피.
+- 갱신:
+  - [[schematic_ble_module_board_v01e00]] — LED 인디케이터 GPIO 핀(P0.09/08/06)·극성, CON2 UART 핀(P0.15/14) 채움
+  - [[gpio_verification_pinmap]] — 03_TX_ble LED 검증 행 3개 추가, P0.17 중복 주석 "PCA10040" → "커스텀 보드" 정정
+  - [[tx_ble_module]] — LED 인디케이터·보드 분기 섹션 신설 + 현황표 2행 추가
+
+---
+
 ## [2026-06-04] ingest | oled_tv_software ST-LINK V2 + pyOCD nRF52832 플래싱 절차 확립
 
 - 계기: BLE_Module_Board_Ver0.1E00(nRF52832)에 `03_TX_ble` 플래싱 성공. SES 내장 다운로더·nrfjprog가 J-Link 전용이라 ST-LINK로 사용 불가 → pyOCD 우회 경로 확립.
