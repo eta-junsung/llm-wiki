@@ -4,6 +4,24 @@
 
 ---
 
+## [2026-06-04] ingest | oled_tv_software ST-LINK V2 + pyOCD nRF52832 플래싱 절차 확립
+
+- 계기: BLE_Module_Board_Ver0.1E00(nRF52832)에 `03_TX_ble` 플래싱 성공. SES 내장 다운로더·nrfjprog가 J-Link 전용이라 ST-LINK로 사용 불가 → pyOCD 우회 경로 확립.
+- 핵심 함정 3개 (Windows Python 3.14 환경):
+  1. `libusb-package` 바이너리 wheel 없음 → cp311 wheel에서 `libusb-1.0.dll` 수동 추출·복사
+  2. ST-LINK WinUSB 바인딩(Zadig) → STM32CubeIDE 플래싱 불가(부작용), 장치 관리자로 복구
+  3. `target_nRF52.py` CTRL-AP 패치 — `is_locked()`에서 `ProbeError` try/except → `return False` (ST-LINK V2가 AP#1 접근 불가)
+- 추가 환원: ST-LINK 드라이버 토글 절차 (WinUSB↔ST 정품, 양방향·모드 확인·동글 2개 팁)
+- 생성:
+  - concepts: [[st_link_nrf52_flash]] (플래싱 how-to — 셋업·배선·절차·트러블슈팅·드라이버 토글·미확정)
+- 갱신:
+  - [[status]] — 다음 시작점 참고 줄에 [[st_link_nrf52_flash]] 링크 추가
+  - [[rx_ble_module]] — CON1 비고에 역링크 추가
+  - [[index]] — Concepts 섹션에 st_link_nrf52_flash 등록
+- 미확정 잔류: CON1 물리 핀번호↔네트 매핑 (실크 Pin1 확인 필요), CON2 UART nRF GPIO 핀 라우팅
+
+---
+
 ## [2026-06-01] ingest | oled_tv_software SPI 10ms 폴링 진단 (미달 반증·✓ 확정)
 
 - 소스: 진단 세션 직접 보고 + 오실로스코프 캡처 `P3NOFO01.PNG` (CS Δt=10ms, 1/Δt=100Hz, Vpp=3.79V)
