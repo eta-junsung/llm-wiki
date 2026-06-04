@@ -1,13 +1,13 @@
 ---
-tags: [entity, adc, lp-am263p, pinmap]
+tags: [entity, adc, 8kw-ev-wpt-tx-board-ver1_0e00, pinmap]
 source: 사용자 제공 (2026-06-04) — 회로도 전체 미ingest, 해당 신호 핀만 발췌
 date: 2026-06-04
 ---
 
-# adc_pinmap — LP-AM263P eta 보드 ADC 핀맵
+# adc_pinmap — 8kW WPT TX 보드 ADC 핀맵
 
 > eta 보드 커넥터(J3) → LP-AM263P ADC 인스턴스/채널 → 신호 이름 대응표.
-> 스케일링(변환식, 분압비, 센서 감도)은 [[eta-adc]] 작업 A3 단계에서 채운다.
+> 스케일링(변환식, 분압비, 센서 감도)은 [[adc]] 작업 A3 단계에서 채운다.
 
 ---
 

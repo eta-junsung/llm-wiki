@@ -1,12 +1,12 @@
 ---
-tags: [roadmap, eta-adc, lp-am263p, living-doc]
+tags: [roadmap, adc, 8kw-ev-wpt-tx-board-ver1_0e00, living-doc]
 date: 2026-06-04
 ---
 
-# eta-adc — LP-AM263P eta 보드 ADC 브링업 작업 호 (A0~A4)
+# adc — 8kW WPT TX 보드 ADC 브링업 작업 호 (A0~A4)
 
 > 단순 기능 확인이 아닌 **eta 보드 신호 정합** 브링업 작업.
-> 6채널 ADC(온도 2 + 전압 1 + 전류 2 + 선형 1)를 SysConfig 설정 → 폴링 검증 → 신호별 스케일링 → 실보드 교차검증 순으로 진행.
+> 6채널 ADC(온도 2 + 전압 1 + 전류 2 + 선형 1)를 SysConfig 설정 → polling 검증 → 신호별 스케일링 → 실보드 교차검증 순으로 진행.
 > 핀 대응표는 [[adc_pinmap]], 기능별 현황·다음 시작점은 [[status]].
 
 상위 프로젝트 호는 [[roadmap]].
@@ -91,7 +91,7 @@ A0 미시작 (2026-06-04).
 ## 4. 블로커 / 추가 정보 대기
 
 - **A3 블로커**: 신호별 센서 스펙 미입수 — Temp 모듈 출력 특성, 전류 센서 감도, 분압비
-- **A0 전제**: `porting` 작업의 빌드 환경(CCS 프로젝트) 정상 동작 확인됨 — AM263P SysConfig 편집 가능 상태
+- **A0 전제**: LP-AM263P CCS 프로젝트 정상 동작 상태 (SysConfig 편집 가능)
 
 ---
 

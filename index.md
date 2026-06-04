@@ -84,7 +84,6 @@
 
 - [roadmap.md](teams/g/lp-am263p/roadmap.md) — 프로젝트 로드맵(목표·작업 호 인덱스·현재 위치). 단계 spine은 작업 로드맵 위임
 - [roadmaps/porting.md](teams/g/lp-am263p/roadmaps/porting.md) — `porting` 작업 호(S0~S8 단계 spine·완료 기준 표·현재 S3 블로커·남은 일정). 디테일은 concept 백링크
-- [roadmaps/eta-adc.md](teams/g/lp-am263p/roadmaps/eta-adc.md) — `eta-adc` 작업 호(A0~A4). eta 보드 J3 6채널 ADC 브링업, 신호별 스케일링 포함
 - [status.md](teams/g/lp-am263p/status.md) — 기능별 구현 현황표·다음 시작점 (파이프라인이 커밋마다 갱신)
 
 ### Concepts
@@ -97,11 +96,21 @@
 - [[flash_open_sequence]] — `Flash_norOspiOpen` 단계별 시퀀스 + 종료 시 OSPI 컨트롤러/chip 상태 표
 - [[sbl_app_flash_handoff]] — `skipHwInit` 게이트, SBL → 앱 핸드오프 시 정합성 깨지는 지점·flashFixUpOspiBoot 비대칭·진단 절차
 
-### Entities
-
-- [[adc_pinmap]] — eta 보드 J3 커넥터 → ADC 인스턴스/채널 → 신호 대응표 (6채널: 온도×2, 전압×1, 전류×2, 선형×1). 스케일링 스펙 미확인 항목 포함
-
 ### Sources
 
 - [[is25lx256_datasheet]] — ISSI IS25LX/WX 256/128Mb xSPI Flash 데이터시트 (Rev. A14, 챕터별 raw 추출 인덱스)
 - [[mcupsdk_flash_nor_ospi]] — TI MCU+ SDK `flash_nor_ospi.c` (NOR OSPI 공용 드라이버), 라인 인덱스 + 파생 페이지 링크
+
+---
+
+## teams/g/8kw-ev-wpt-tx-board-ver1_0e00
+
+### Living docs
+
+- [roadmap.md](teams/g/8kw-ev-wpt-tx-board-ver1_0e00/roadmap.md) — 프로젝트 로드맵(목표·작업 호 인덱스·현재 위치)
+- [roadmaps/adc.md](teams/g/8kw-ev-wpt-tx-board-ver1_0e00/roadmaps/adc.md) — `adc` 작업 호(A0~A4). eta 보드 J3 6채널 ADC 브링업, 신호별 스케일링 포함
+- [status.md](teams/g/8kw-ev-wpt-tx-board-ver1_0e00/status.md) — 기능별 구현 현황표·다음 시작점 (파이프라인이 커밋마다 갱신)
+
+### Entities
+
+- [[adc_pinmap]] — eta 보드 J3 커넥터 → ADC 인스턴스/채널 → 신호 대응표 (6채널: 온도×2, 전압×1, 전류×2, 선형×1). 스케일링 스펙 미확인 항목 포함
