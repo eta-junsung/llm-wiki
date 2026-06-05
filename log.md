@@ -4,6 +4,17 @@
 
 ---
 
+## [2026-06-05] ingest | oled_tv_software — buck RF 지령 경로·UART 수신 메커니즘·newlib float 함정 + 작업 로드맵 2건
+
+- **buck end-to-end 경로 (실보드 검증)**: 신규 [[buck_vout_ref_command_path]]. 01 UART5 `buck <v>` → 전역 `rx_cmd.tx_buck_vout_ref`(float, 0~300V clamp) → 0x51 `DATA[6,7]` `u16=volts×100`(`_shared/oled_tv_protocol.c` build_rx/apply_rx) → 03 Monitor `tx_buck_vout_ref=<raw>`. 검증 `buck 123.34`→`12334`. **01 UART 커맨드 중 RF 링크 건너 tx-nrf까지 가는 유일한 지령** — 새 tx 지령 추가 패턴(키워드 접두·`rx_cmd_t` passenger·protocol.c 매핑) 정리. 커밋 `eca4d96`(추가)/`175a8f7`(키워드 단축).
+- **UART 명령 레퍼런스·수신 메커니즘**: [[uart_command_set]] 갱신 — `buck`(RF 지령)·`stop` 추가, 명령 요약표 신설. 수신·파싱 메커니즘 절: ISR 구동(`HAL_UART_Receive_IT` 1바이트→`UART5_IRQHandler`→`HAL_UART_RxCpltCallback`, 매 바이트 자기 재무장, IRQ pri 14), `cmd_buf[64]` 라인 파싱(63자 초과 폐기), **파싱·실행이 ISR 컨텍스트에서 main loop 선점**, else-if `strncmp` prefix 매칭(분기순=우선순위, `stopXYZ`도 `stop`에 걸림, `phase ` 끝공백 필수).
+- **newlib-nano float 빌드 함정**: 신규 [[cubeide_newlib_nano_float]]. `01_RX_control/.cproject` `nanoprintffloat=true`(Debug만)·`nanoscanffloat=true`(이번 세션 활성화). 꺼지면 `buck 15.5` `sscanf("%f")` 소수 깨짐. GUI 경로(MCU/MPU Settings)·구성별 독립·Release 재확인 주의.
+- **01 메인 루프 교정**: [[rx_control]] "메인 루프" 절 신설 — 실제 `while(1)`은 `adc_proc(); spi_proc(); Monitor_Loop();` 3개(`Core/Src/main.c:128-130`). 코드 repo CLAUDE.md의 `LED/SPI/ESB/Monitor_Loop` 4종 polling 묘사는 **nRF52(02/03) 펌웨어용** — 코드가 정본. **현재 01 `Monitor_Loop()` 주석처리 비활성**(커밋 `175a8f7`, 03 모니터로 검증하느라 임시로 끔) — [[status]] 미결에 기록.
+- **CON2 핀맵**: 변경 없음 — 이미 [[rx_ble_module]]·[[schematic_ble_module_board_v01e00]]에 확정 기재(1 COMM_P5V·2 TXD_uC/P0.15·3 RXD_uC/P0.14·4 COMM_GND, 사용자 확인 2026-06-05). 확정 상태 재확인만.
+- **작업 로드맵 2건 (아이디어·미착수)**: [[roadmaps/pc-gui]](G0~G3, UART 모니터링+buck 설정, G0 포트 조합 결정 선행), [[roadmaps/spi-esb-refactor]](R1~R4, 기존 코드 정리 4라운드 흡수). [[roadmap]] 환원 후보·[[status]] 예정 작업에 등재. index 5건.
+
+---
+
 ## [2026-06-05] ingest | oled_tv_software — BLE Module Board 회로도 재독·교정 + raw 확보
 
 - **계기**: 사용자가 `BLE_Module_Board_Ver0.1E00_260318 1.pdf` 재ingest 요청 → 이미 [[schematic_ble_module_board_v01e00]]로 ingest됨 확인. 중복 생성 대신 실제 PDF(4시트) 재독으로 미확정 해소·교정.

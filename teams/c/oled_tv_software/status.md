@@ -20,6 +20,8 @@ date: 2026-06-05
 
 코드 정리 4개 라운드 (별도 트랙): ① 모니터 1-헤더-1-줄 압축, ② 공유 출력 함수(`oled_tv_protocol.c` 신설, 3 빌드 등록), ③ serialize/deserialize 통합, ④ `SPI_PKT_*` → 링크 중립 이름 개명.
 
+예정 작업 (아이디어 단계·미착수): [[roadmaps/pc-gui|PC GUI]] (UART 패킷 모니터링 + buck 설정), [[roadmaps/spi-esb-refactor|SPI·ESB 리팩토링]] (타인 작업과 merge — 위 코드 정리 트랙 포함).
+
 ## 구현 현황
 
 ### SPI 통신 — STM32(01_RX_control) ↔ nRF52832(02_RX_ble)
@@ -77,3 +79,4 @@ date: 2026-06-05
 - SPI 오류율 모니터 / spi_tx_busy 타임아웃 복구 실보드 장시간 안정성 검증
 - TX_ble stack_temp 실측 값 정상 여부 확인
 - (ESB) 실보드 장시간 안정성, GPIO 토글 핀 제거 여부, 01_RX_control ↔ 02_RX_esb UART 브리지 동작 확인
+- 01_RX_control `Monitor_Loop()` 현재 주석처리 비활성 (커밋 `175a8f7`, 03 모니터로 검증하느라 임시로 끔) — 재활성 시점 미정 ([[rx_control#메인-루프]])

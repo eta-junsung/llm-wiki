@@ -95,6 +95,60 @@ subsystem: 01_RX_control
 
 ---
 
+### `stop` / `start` — PWM 정지/시작
+
+**형식:** `stop`, `start`
+- `stop`: 4채널 출력 정지. `start`: 4채널 동시 출력 시작 (위 `start` 절 참조).
+
+---
+
+### `buck` — **(RF 지령)** Tx Buck 출력 전압 Ref
+
+**형식:** `buck <v>`
+- `v`: 0 ~ 300 [V] (clamp). 소수 허용 — `sscanf("%f")` 파싱 (→ [[cubeide_newlib_nano_float]] 선결).
+- 동작: 전역 `rx_cmd.tx_buck_vout_ref`(float) 설정 → 0x51 `DATA[6,7]`에 `u16 = volts × 100`으로 실려 **RF 링크를 건너 03_TX_ble까지 전달**.
+- 예: `buck 123.34` → 03 Monitor에 `tx_buck_vout_ref=12334` (검증 완료).
+- **01_RX_control UART 커맨드 중 RF 링크 너머 tx-nrf까지 가는 유일한 지령.** 나머지는 전부 로컬 PWM 제어. (커밋 `eca4d96` 추가, `175a8f7`에서 키워드 `eta-tx buck vout ref`→`buck` 단축)
+- 전체 경로·패턴: [[buck_vout_ref_command_path]]
+
+---
+
+## 명령어 요약표
+
+| 커맨드 | 동작 |
+|---|---|
+| `duty <pct>` / `duty <ch> <pct>` | PWM 듀티 (ch: 0=PWM1_P 1=PWM1_N 2=PWM2_P 3=PWM2_N) |
+| `freq <hz>` | 주파수, dt_ratio 자동 3~5% 재계산 |
+| `dt <ch> <ns>` | 데드타임 (ch 0=TIM8, 2=TIM3) |
+| `phase <deg>` / `p<deg>` | 위상차 |
+| `start` / `stop` / `reset` | PWM 시작 / 정지 / 시스템 리셋 |
+| `buck <v>` | **(RF 지령)** Tx Buck Vout Ref [0~300V] → [[buck_vout_ref_command_path]] |
+
+---
+
+## 수신·파싱 메커니즘
+
+소스: `app_usart.c` `HAL_UART_RxCpltCallback`.
+
+### 인터럽트 구동 (폴링 아님)
+
+- `HAL_UART_Receive_IT`로 **1바이트씩** 수신 → `UART5_IRQHandler` → `HAL_UART_RxCpltCallback`(ISR).
+- 부팅 시 `uart_init()`(while 루프 진입 **전**)에서 1회 무장. 이후 **콜백이 매 바이트 자기 재무장**한다.
+- UART5 IRQ 우선순위 **14**.
+
+### 라인 단위 파싱
+
+- `cmd_buf[64]`에 누적, `\r` / `\n`에서 한 라인 확정. **63자 초과분은 폐기.**
+- **커맨드 파싱·실행이 ISR 컨텍스트에서 직접 일어난다** — main loop로 디퍼하지 않음. 즉 엔터를 친 순간 main loop를 선점해 처리한다. (main loop 구성은 [[rx_control#메인-루프]])
+
+### 분기 = else-if `strncmp` prefix 매칭
+
+- 명령 분기는 `else-if strncmp` prefix 매칭 체인. **분기 순서 = 우선순위.**
+- prefix 매칭이라 **트레일링 문자는 무시** — `stopXYZ`도 `stop`에 걸린다.
+- `phase ` (끝 공백) 형식은 공백이 필수.
+
+---
+
 ## TIM8_BRK 과전류 보호
 
 - 핀: PA6 (PWM_TZ, active high)
@@ -110,4 +164,5 @@ subsystem: 01_RX_control
 
 ## 출처
 
-- [[uart_cmd_reference_테스트용]] (sources)
+- [[uart_cmd_reference_테스트용]] (sources) — `duty`/`freq`/`dt`/`phase`/`start`/`reset` 매뉴얼
+- 코드 실측 (`app_usart.c`, 사용자 세션 2026-06-05) — `buck` 지령, 수신·파싱 메커니즘(ISR 구동·prefix 매칭)

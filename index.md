@@ -21,6 +21,8 @@
 ### Living docs
 
 - [roadmap.md](teams/c/oled_tv_software/roadmap.md) — 전체 로드맵(M0~M6 마일스톤 호·M3 ✓·현재 M4 SPI 9MHz 막힘·PRD 지연 목표 게이트). 전략 spine, 현재 위치는 status 위임
+- [roadmaps/pc-gui.md](teams/c/oled_tv_software/roadmaps/pc-gui.md) — `pc-gui` 작업 호(G0~G3, 아이디어·미착수). UART 패킷 모니터링 + buck 설정 호스트 툴. G0 포트 조합 결정 선행
+- [roadmaps/spi-esb-refactor.md](teams/c/oled_tv_software/roadmaps/spi-esb-refactor.md) — `spi-esb-refactor` 작업 호(R1~R4, 코드 정리 4라운드). merge 목적 SPI·ESB 구조 정리
 - [status.md](teams/c/oled_tv_software/status.md) — 기능별 구현 현황표·다음 시작점 (파이프라인이 커밋마다 갱신)
 
 ### Entities
@@ -36,7 +38,9 @@
 - [[pwm_system]] — TIM8/TIM3 64MHz·100kHz·120도 위상, `pwm_init`/`set_duty`/`pwm_set_freq`
 - [[dead_time]] — SW CCR offset 방식. TIM3에 BDTR 없어 두 타이머 통일
 - [[trip_zone]] — TIM8 BKIN(PA6) → `HAL_TIMEx_BreakCallback`로 PWM 전체 차단
-- [[uart_command_set]] — `duty`/`freq`/`dt`/`phase`/`start`/`reset` (UART5, 115200/8N1, PC12/PD2)
+- [[uart_command_set]] — `duty`/`freq`/`dt`/`phase`/`start`/`stop`/`reset`/`buck` (UART5, 115200/8N1, PC12/PD2). ISR 구동 수신·prefix 매칭 파싱
+- [[buck_vout_ref_command_path]] — `buck <v>` = RF 링크 건너는 유일한 UART 지령. 01 UART5 → 0x51 DATA[6,7](volts×100) → 03 Monitor. 검증 `buck 123.34`→`12334`. 새 tx 지령 추가 패턴
+- [[cubeide_newlib_nano_float]] — CubeIDE newlib-nano float 함정(`nanoprintffloat`/`nanoscanffloat`). scanf float 꺼지면 `buck 15.5` 소수 깨짐. 구성별 독립·Release 재확인
 - [[adc_channel_map]] — ADC1 6채널 핀맵(PA0~PA3, PC4/PC5) + TEMP1/TEMP2 라벨 swap 함정 + 평가보드 시험 가이드
 - [[spi_packet_format]] — STM32-nRF 내부 SPI wire 포맷 (11B 고정, HDR 0x10~0x12/0x50~0x52). ESB와 동일 패킷 구조
 - [[esb_packet_format]] — ESB wire 포맷 (11B, HDR round-robin 0x10-0x12/0x50-0x52, 10ms, ACK with payload)
