@@ -4,6 +4,14 @@
 
 ---
 
+## [2026-06-05] status | 8kw-ev-wpt-tx — CCS 프로젝트 스캐폴드 완료 반영
+
+- A0 전제 완료: hello_world 기반 CCS 프로젝트 생성·Release 빌드 통과·커밋됨 → 구현 현황 ✓ 갱신.
+- 다음 시작점 업데이트: A0 착수 전 SysConfig MCP 버전 정합 확인 절차 추가.
+- `직전 완료` 섹션 신설 — CCS workspace 참조 import 작업환경 메모 포함.
+
+---
+
 ## [2026-06-04] ingest | 8kw-ev-wpt-tx 프로젝트 신설 + adc 작업 호 개설
 
 - eta 보드 J3 커넥터 6채널 ADC 핀맵(사용자 제공) → [[adc_pinmap]] 엔티티 생성.
