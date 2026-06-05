@@ -4,6 +4,17 @@
 
 ---
 
+## [2026-06-05] ingest | lp-am263p — AM263P ADC 브링업 정본(RTI 타이머 트리거) + 8kw adc A1 검증 반영
+
+- **출처**: 2026-06-05 8kw-ev-wpt-tx ADC 브링업 실보드 실측(단일 핀 AIN0, 1 kSPS) + TI SDK `examples/drivers/adc/adc_soc_rti`. flash-time 도구 정본([[jtag_flash_harness]])과 동일 패턴으로 **AM263P 플랫폼 지식 정본을 lp-am263p에 둠**, 8kw가 백링크.
+- **생성**: [[am263p_adc_rti_trigger]] (lp-am263p concept) — 3절:
+  - **§1 RTI→ADC SOC 트리거 결선 함정(핵심)**: `soc0Trigger=ADC_TRIGGER_RTI1`만으론 부족. RTI 인스턴스 SysConfig `enableIntr0`(Enable Compare Interrupt) 미설정 시 생성 코드가 `RTI_intDisable(..INT0_FLAG)`를 내보내 INT0 이벤트 export가 막힘 → ADC SOC가 tap하는 라인 게이트 닫힘 → compare 발생해도 변환 0회. 해결=`enableIntr0=true`. DMA-trigger 불필요, ISR 본체 자동 생성. 레퍼런스 `adc_soc_rti`와 유일 차이가 이 한 줄.
+  - **§2 JTAG/RAM 레지스터 검증 측정 시점 함정**: `loadProgram` 후 reset 없이 read하면 `Drivers_open()` 실행 전(전부 0) 상태를 봐서 "ADC 미설정" 오진. 절차 `reset→reload→run→main loop 도달→read`. SW force(`ADCSOCFRC`)로 변환 경로 생존 먼저 확인 = "설정 문제 vs 트리거 결선 문제" 분리 기법.
+  - **§3 검증된 설계 패턴**: RTI 주기 트리거 + EOC ISR(결과 read+flag) + main 루프 consuming(ISR-flag). SPS=RTI compare 주기. AIN0 1 kSPS 검증 완료.
+- **8kw 갱신**: [[adc]] A1 ✓(polling→RTI 트리거 설계 전환 명기)·A0 △(단일 채널만)·A1.5 신설(UART 1초 주기화[조절 파라미터]+`src/bsp/adc.{c,h}` 다핀 리팩토링). [[status]] 다음 시작점=UART 주기화→리팩토링→남은 핀(A2), 현황표·미결 갱신. [[roadmap]] task 상태·현재 위치 갱신. index 1건.
+
+---
+
 ## [2026-06-05] ingest | oled_tv_software — buck RF 지령 경로·UART 수신 메커니즘·newlib float 함정 + 작업 로드맵 2건
 
 - **buck end-to-end 경로 (실보드 검증)**: 신규 [[buck_vout_ref_command_path]]. 01 UART5 `buck <v>` → 전역 `rx_cmd.tx_buck_vout_ref`(float, 0~300V clamp) → 0x51 `DATA[6,7]` `u16=volts×100`(`_shared/oled_tv_protocol.c` build_rx/apply_rx) → 03 Monitor `tx_buck_vout_ref=<raw>`. 검증 `buck 123.34`→`12334`. **01 UART 커맨드 중 RF 링크 건너 tx-nrf까지 가는 유일한 지령** — 새 tx 지령 추가 패턴(키워드 접두·`rx_cmd_t` passenger·protocol.c 매핑) 정리. 커밋 `eca4d96`(추가)/`175a8f7`(키워드 단축).

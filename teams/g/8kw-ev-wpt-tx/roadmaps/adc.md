@@ -1,6 +1,6 @@
 ---
 tags: [roadmap, adc, 8kw-ev-wpt-tx, living-doc]
-date: 2026-06-04
+date: 2026-06-05
 ---
 
 # adc — 8kW WPT TX 보드 ADC 브링업 작업 호 (A0~A4)
@@ -23,13 +23,17 @@ LP-AM263P 5개 ADC 인스턴스(ADC0~ADC4)에 eta 보드 J3 커넥터 6채널(Te
 
 | 단계 | 범위 | 완료 기준 | 상태 |
 |------|------|---------|------|
-| **A0** | SysConfig ADC 설정 | ADC0~4 인스턴스 + 채널 핀 할당 완료, 빌드 성공 | ✗ |
-| **A1** | 단채널 polling 검증 | ADC1_AIN0(Temp_Module2) raw count → voltage, UART 출력 확인 | ✗ |
+| **A0** | SysConfig ADC 설정 | ADC0~4 인스턴스 + 채널 핀 할당 완료, 빌드 성공 | △ |
+| **A1** | 단채널 검증 | 단일 핀(AIN0) raw count → voltage, UART 출력 확인 | ✓ |
+| **A1.5** | UART 주기화 + ADC 리팩토링 | 1초 주기 출력(조절 가능 파라미터) + `src/bsp/adc.{c,h}` 다핀 확장 정리 | ✗ |
 | **A2** | 전채널 순차 읽기 | 6채널 전부 신호 레이블 붙여 UART 출력 | ✗ |
 | **A3** | 신호별 스케일링 적용 | 변환식 구현 (센서 스펙 입수 후 진행) | ? |
 | **A4** | 실보드 교차검증 | 멀티미터/소스 기준값으로 ADC 출력 오차 정량화 | ✗ |
 
 상태 기호: `✓` 구현+검증 / `△` 구현됨·미검증 / `?` 추가 정보 필요 / `✗` 미구현
+
+> **설계 변경(2026-06-05)**: A1 원안 "polling 검증"을 **RTI 타이머 주기 트리거 + EOC 인터럽트(ISR-flag 패턴)** 로 전환. 단일 핀(AIN0) 1 kSPS로 실보드 검증 완료. 검증된 패턴·SysConfig 결선 함정(`enableIntr0`)·측정 시점 함정은 AM263P 플랫폼 정본 [[am263p_adc_rti_trigger]]로 환원.
+> A0는 단일 채널(AIN0)+RTI1 트리거만 설정·검증됨 → 나머지 5채널은 A1.5 리팩토링 후 A2에서 추가하므로 △.
 
 ---
 
@@ -47,12 +51,18 @@ LP-AM263P 5개 ADC 인스턴스(ADC0~ADC4)에 eta 보드 J3 커넥터 6채널(Te
 - 샘플링 모드: 단발(Single) polling — 트리거 없이 SW 기동
 - 완료 기준: `ti_drivers_config.c` 생성, 빌드 에러 없음
 
-### A1 — 단채널 polling 검증
+### A1 — 단채널 검증 ✓ (2026-06-05)
 
-- ADC1_AIN0(Temp_Module2) 한 채널로 raw count 폴링
+- 단일 핀 **AIN0** 으로 ADC 변환 경로 검증 — **RTI 타이머 1 ms(1 kSPS) 주기 트리거 + EOC 인터럽트**에서 결과 read+flag, main 루프 consuming(ISR-flag 패턴). polling 원안에서 전환.
 - 변환: `voltage = (raw * 1.8) / 4095` [추정: Vref=1.8V, 12-bit, TRM 확인 필요]
-- UART0(115200) 출력으로 수치 확인
-- 완료 기준: 보드 통전 상태에서 전압값이 GND~Vref 범위 내 안정적 출력
+- UART(115200) 출력으로 수치 확인 — **검증 완료**.
+- **트리거 결선 함정**: SysConfig `enableIntr0`(Enable Compare Interrupt) 미설정 시 RTI INT0 이벤트 export가 막혀 ADC SOC 트리거 무동작. SW force로 변환 경로 생존 먼저 확인 후 트리거 결선 문제로 좁힘. 정본 [[am263p_adc_rti_trigger]].
+
+### A1.5 — UART 주기화 + ADC 코드 리팩토링 (다음 작업)
+
+1. **UART 모니터링 주기화** — 현재 매 샘플마다 무제한 print. 1초 주기 출력으로 변경하되 **주기를 조절 가능한 파라미터**로 둘 것.
+2. **ADC 코드 리팩토링** — `src/bsp/adc.{c,h}`를 다핀 확장에 맞게 정리(채널별 결과 버퍼 + main 루프 소비 유지).
+- 완료 기준: 1초 주기 UART 출력 동작, adc.{c,h}가 N채널 일반화 구조로 정리됨.
 
 ### A2 — 전채널 순차 읽기
 
@@ -84,7 +94,7 @@ LP-AM263P 5개 ADC 인스턴스(ADC0~ADC4)에 eta 보드 J3 커넥터 6채널(Te
 
 → [[status]] 단일 소스.
 
-A0 미시작 (2026-06-04).
+A1 단채널(AIN0) 실보드 검증 완료 (2026-06-05). 다음: A1.5 UART 주기화 + adc.{c,h} 리팩토링.
 
 ---
 
@@ -98,4 +108,4 @@ A0 미시작 (2026-06-04).
 ## 5. 환원 후보
 
 - ADC 변환식 → `pages/concepts/adc_scaling.md` (A3 완료 후)
-- SysConfig ADC 설정 노하우 → concept 페이지
+- ~~SysConfig ADC 설정 노하우 → concept 페이지~~ ✓ 환원됨: [[am263p_adc_rti_trigger]] (lp-am263p, AM263P 플랫폼 정본 — RTI 트리거 결선·측정 시점 함정·검증된 설계 패턴).
