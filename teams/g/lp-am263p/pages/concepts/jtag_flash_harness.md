@@ -1,0 +1,118 @@
+---
+tags: [concept, flash, jtag, ospi, am263p, tooling, harness, boot, gotcha]
+source: 실측 (2026-06-05, 8kw-ev-wpt-tx 실보드 JTAG flash 세션)
+date: 2026-06-05
+---
+
+# AM263P JTAG flash 자동화 하네스 + 굽기 운영 규율
+
+> **flash-time(굽는 환경) 층위의 정본.** 런타임 `Flash_open()` 블로커([[flash_open_facts]] 등)와 층위가 다르다 — 이 페이지는 "어떻게 안정적으로 굽고, 굽은 걸 어떻게 검증하는가".
+> jtag_flasher·flash_node.js는 lp-am263p(cc3351) 원산이고 8kw-ev-wpt-tx가 코드 복제본 → 도구 지식의 정본은 여기 둔다. 사실 전부 2026-06-05 8kw 실보드 세션에서 측정 확정.
+
+---
+
+## 한 줄 요약
+
+AM263P OSPI JTAG flash 자동화는 **① run.bat Node.js(`runAsynch`) 하네스로 / ② CCS IDE 완전 종료한 클린 호스트에서 / ③ 연속 시도 사이 보드 파워 사이클하고 / ④ standalone 부팅 UART banner로 검증한다.** 네 규율 모두 측정으로 확정.
+
+---
+
+## 1. 검증된 하네스 = run.bat Node.js (`runAsynch`); DSS/Rhino(`GEL_RunF`)는 깨진다
+
+| 경로 | 동작 |
+|------|------|
+| **run.bat Node.js scripting** (`C:\ti\ccs2050\ccs\scripting\run.bat` → `flash_node.js`) | ✓ `runAsynch` + `run(false)`로 R5 resume 후 `gCmd.status` 폴링 → **6/6 OK 완주 다회 검증** |
+| **java.exe + uniflash JRE Rhino** (`GEL_RunF()`) | ✗ 깨짐 — OP를 한 번도 완주 못 함 |
+
+**왜 Rhino 경로가 깨지는가** (인과 확정):
+- `GEL_RunF()`는 애초에 `runAsynch`가 Java21+XPCOM 환경에서 JVM 크래시해서 **우회한 것**.
+- 그런데 `GEL_RunF` resume는 R5를 **JTAG halt 없이 free-run** 상태로 둔다.
+- 그 free-run 상태에서 DSS `readData`로 내부/TCM 영역(`gCmd.status` @`0x70038010`)을 읽으면 **`Error 0x400000`으로 거부** → status 폴링이 깨짐 → OP 완주 판정 불가.
+
+→ **결론: AM263P JTAG flash 자동화는 run.bat Node.js(`runAsynch`) 하네스로.** (DSS Rhino는 status 폴링이 구조적으로 깨지므로 자동화에 부적합.)
+
+---
+
+## 2. 굽기는 CCS IDE를 완전히 종료한 클린 호스트에서
+
+요지(전체 서사·증거·확인법은 [[jtag_flash_clean_host]] — 8kw 첫 ingest):
+- host-driven 스크립팅(run.bat Node.js / DSS Rhino)은 CCS IDE(Theia) 상주 **cloudagent + DSLite** 디버그 백엔드와 **같은 백엔드를 두고 경합**.
+- IDE 켜둔 채 돌리면 `ds.configure()`/`openSession`/`resume` 중 **런마다 다른 지점**에서 죽음(30s `ScriptingTimeoutError`, `DebugServer.1` timeout 등 **비일관** → 펌웨어/보드 오인 위험).
+- **`getDebugSessions=[]`(논리 세션 0)라도 cloudagent가 띄운 DSLite는 상주 가능** → 작업관리자에서 `node`(cloudagent)/`DSLite` 프로세스까지 사라졌는지 확인.
+- 증거: flashwriter `.out` 바이트 동일(펌웨어 무죄)인데 **IDE 켜둠=ERASE_ALL 실패 / IDE 완전 종료=6/6 OK 완주**.
+- **양립 불가**: MCP `loadProgram`(IDE 경유 RAM 로드)은 IDE 켜짐 필요 / 독립 flash 스크립팅은 IDE 꺼짐 필요.
+
+---
+
+## 3. 연속 flash 시도 사이엔 보드 파워 사이클 필수
+
+- **트리거**: 다수의 `loadProgram` / GEL soft reset / 중단된 런 / 직전 굽기를 **파워 사이클 없이 연속**으로 겪으면 R5/OSPI가 **wedged** 된다.
+- **증상**: ERASE_ALL에서 magic write·halt까지 OK인데 **run 후 `gCmd.status`가 IDLE(`0x0`)에서 BUSY로 전이조차 안 함** → 300s timeout.
+- **해소**: **전원 완전 차단→복원** (단순 JTAG 재연결로는 안 됨).
+- **측정 확정**: 파워 사이클 후 동일 하네스로 **OP1이 ~61s에 IDLE 탈출→OK, 3/3 완주**.
+
+→ soft reset류는 wedged 상태를 못 푼다. "전이조차 안 하는 IDLE"을 보면 코드/펌웨어 의심 전에 **파워 사이클** 먼저.
+
+---
+
+## 4. 검증의 ground truth = standalone 부팅 + UART banner
+
+하네스 자기보고(`status=0x2`)나 MCP readback **보다**, SW1을 OSPI boot 모드로 두고 **전원만으로 부팅시켜 UART에 banner가 뜨는지**가 가장 정확한 검증 — ROM→SBL→app **전 경로를 실증**하기 때문.
+
+**성공 부팅 프로파일 (증거)**:
+
+| 항목 | 값 |
+|------|-----|
+| Boot Media | NOR SPI FLASH |
+| Boot Media Clock | 16.667 MHz |
+| Boot Image Size | 30 KB |
+| SBL Total | ~28967 µs |
+| banner | `eta-tx: 8kw-ev-wpt v1.0e00` |
+
+**SW1 부트모드** (정정본, 근거 LP-AM263P UG SPRUJ85B Table 2-5 — 단일 소스는 [[CLAUDE]] "하드웨어" 절):
+- **굽기용 DevBoot = `0,1,0,0`** (SW1.3만 ON, "No SBL").
+- **standalone 부팅 OSPI(4S) Quad Read = `1,1,1,1`** — 이번에 `sbl_ospi_am263p.tiimage`로 실증.
+- ※ 과거 cc3351 노트의 `DevBoot=1,1,0,0`은 **오기**(`1,1,0,0`은 OSPI 8S Octal Read 값) — [[CLAUDE]]에서 2026-06-05 정정 완료.
+
+---
+
+## 5. flashwriter / OSPI flash map 사실
+
+**flashwriter** = `jtag_flasher.out` (= SDK `sbl_jtag_uniflash` + `AutoCmd_t` auto-mode). 메모리 인터페이스:
+
+| 심볼 | 주소 |
+|------|------|
+| gCmd base | `0x70038000` |
+| gCmd status | `0x70038010` |
+| magic | `0xDEAD1234` |
+| 파일 버퍼 | `0x70040020` |
+
+**OSPI flash 맵**: SBL @`0x0`, 앱 mcelf @`0x81000`. (boot flow·플래시 base `0x53808000`는 [[CLAUDE]] "하드웨어" 절.)
+
+**PHY 경고는 무해**: `Flash_norOspiPhyTune:1520 PHY enabling failed!!! Continuing without PHY...` — standalone 부팅이 **이 경고 위에서 성공**함이 증거. (PHY 비활성 운용 시 capture delay 거동은 [[sbl_app_flash_handoff]] §2.)
+
+---
+
+## 6. 하네스 위치
+
+| 프로젝트 | 파일 | 비고 |
+|----------|------|------|
+| lp-am263p (cc3351) | `flash_node.js` (+ `run.bat`) | 원산 |
+| 8kw-ev-wpt-tx | `8kw-ev-wpt-tx/tools/jtag_flash/flash_node_8kw.js` + `run_flash_node_8kw.ps1` | cc3351 `flash_node.js`와 **코드 로직 동일, OPS만 3개로 교체** |
+
+---
+
+## 빈자리 (미검증)
+
+- **OSPI 독립 readback 미검증** — 이번 세션에서 굽기 검증은 **standalone 부팅(§4)으로 대체**했다. 하네스/MCP를 통한 별도 flash 독립 read-back 검증은 수행하지 않음.
+- §1 `Error 0x400000`이 R5 free-run + TCM 접근 조합 외 다른 영역(외부 OSPI 매핑)에서도 동일하게 거부되는지 — 미확인(필요시 추가 측정).
+
+---
+
+## 함께 보기
+
+- 클린 호스트 deep-dive(8kw 첫 ingest): [[jtag_flash_clean_host]]
+- 런타임 `Flash_open()` 블로커(층위 다름): [[flash_open_facts]] · [[flash_open_diagnostic_log]] · [[sbl_app_flash_handoff]] · [[flash_open_sequence]]
+- 부트 흐름·SW1 부트모드·플래시 base: [[CLAUDE]] "하드웨어 — 부트 모드 / boot flow" 절
+- 전략 spine: [[porting]] · 다음 시작점/현황: [[status]]
+- 프로브 인벤토리: [[instruments]]

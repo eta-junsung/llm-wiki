@@ -4,6 +4,20 @@
 
 ---
 
+## [2026-06-05] ingest | lp-am263p — AM263P JTAG flash 자동화 하네스 + 굽기 운영 규율 (정본)
+
+- **출처**: 2026-06-05 8kw-ev-wpt-tx 실보드 JTAG flash 세션 실측. 도구(jtag_flasher·flash_node.js)는 lp-am263p(cc3351) 원산·8kw 복제 → **flash-time 도구 지식 정본을 lp-am263p에 둠**.
+- **생성**: [[jtag_flash_harness]] (lp-am263p concept) — 4대 규율 전부 측정 확정:
+  - ① **하네스**: run.bat Node.js `runAsynch`+`run(false)`+`gCmd.status` 폴링 = 6/6 OK. **DSS/Rhino `GEL_RunF`는 깨짐** — GEL_RunF resume가 R5를 JTAG halt 없이 free-run, 그 상태 DSS `readData`로 TCM(`gCmd.status@0x70038010`) 읽으면 `Error 0x400000` 거부 → status 폴링 붕괴.
+  - ② **클린 호스트**: IDE 상주 cloudagent+DSLite 경합(요지만, deep-dive는 [[jtag_flash_clean_host]] 위임).
+  - ③ **파워 사이클 필수**: 연속 loadProgram/soft reset/중단런으로 R5/OSPI wedged → run 후 status IDLE(0x0)→never BUSY/300s timeout. 전원 차단→복원만 해소(JTAG 재연결 불가). 측정: OP1 ~61s IDLE 탈출, 3/3.
+  - ④ **검증 ground truth = standalone 부팅 banner**: 하네스 자기보고/MCP readback보다 정확. 프로파일: NOR SPI FLASH·16.667MHz·30KB·SBL ~28967µs·banner `eta-tx: 8kw-ev-wpt v1.0e00`.
+- **보조 사실**: flashwriter(`jtag_flasher.out`=`sbl_jtag_uniflash`+`AutoCmd_t`) gCmd base `0x70038000`/status `0x70038010`/magic `0xDEAD1234`/파일버퍼 `0x70040020`. flash map SBL@`0x0`·app mcelf@`0x81000`. PHY 경고(`PhyTune:1520 PHY enabling failed`) 무해(부팅 성공이 증거). SW1 standalone=`1,1,1,1`/DevBoot=`0,1,0,0`. 하네스 위치 `8kw-ev-wpt-tx/tools/jtag_flash/flash_node_8kw.js`.
+- **DevBoot 오기**: 이미 [[CLAUDE]]에서 정정 완료(`1,1,0,0`→`0,1,0,0`, commit 0b59571) — wiki 내 잔존 stale 없음(정정 주석/raw만). 신규 페이지는 정정값 인용.
+- **빈자리**: OSPI 독립 readback 미검증(standalone 부팅으로 대체). 갱신: [[flash_open_facts]]·[[jtag_flash_clean_host]] cross-ref, index 1건.
+
+---
+
 ## [2026-06-05] ingest | 8kw-ev-wpt-tx — JTAG flash 굽기는 CCS IDE 내린 클린 호스트에서
 
 - **운영 함정 확정 (격리 입증)**: AM263P OSPI를 JTAG로 굽는 host-driven 스크립팅(`run.bat`/Node.js `flash_node.js`, 또는 DSS Rhino)은 CCS IDE(Theia)의 상주 cloudagent+DSLite 디버그 백엔드와 **같은 디버그 백엔드를 두고 경합**. IDE 켜둔 채 flash 돌리면 `ds.configure()`/`openSession`/`resume` 중 런마다 다른 지점에서 죽음 (30s ScriptingTimeoutError / DebugServer.1 timeout / rd32 Error 0x400000 — **비일관 → 펌웨어·보드 결함으로 오인 위험**).

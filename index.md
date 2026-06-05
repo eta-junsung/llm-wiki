@@ -96,6 +96,7 @@
 - [[flash_open_sequence]] — `Flash_norOspiOpen` 단계별 시퀀스 + 종료 시 OSPI 컨트롤러/chip 상태 표
 - [[sbl_app_flash_handoff]] — `skipHwInit` 게이트, SBL → 앱 핸드오프 시 정합성 깨지는 지점·flashFixUpOspiBoot 비대칭·진단 절차
 - [[am263p_mcspi_controller]] — AM263P MCSPI(13.1.3) 환원: CS 프레이밍·EDMA·클록. S6 `SPI not responsive` 디버그용 (TRM demand-ingest 예시)
+- [[jtag_flash_harness]] — **JTAG flash 굽기 정본(flash-time 층위)**: ① runAsynch Node.js 하네스(DSS Rhino GEL_RunF는 R5 free-run+TCM read 0x400000으로 깨짐) ② 클린 호스트(IDE 종료) ③ 연속 시도 사이 파워 사이클(IDLE→never BUSY/300s timeout 해소) ④ standalone 부팅 banner 검증. flashwriter 내부(gCmd 0x70038000)·boot 프로파일·하네스 위치 (2026-06-05 8kw 실측)
 
 ### Sources
 
