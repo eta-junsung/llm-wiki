@@ -63,7 +63,7 @@ subsystem: 02_RX_esb
 | 항목 | 내용 |
 |---|---|
 | 커넥터 | SMAW250-04 (2.5mm 4핀) / 대체품 MOLEX 22-05-7045 |
-| 신호 | TXD_uC, RXD_uC (ISO6721RBDR 절연), COMM_P5V, COMM_GND |
+| 핀 순서 | 1 COMM_P5V · 2 TXD_uC(P0.15) · 3 RXD_uC(P0.14) · 4 COMM_GND (사용자 확인 2026-06-05) |
 | 비고 | PC 모니터링 전용. 절연형이라 COMM 전원(5V) 별도 공급 필요 |
 
 ## 펌웨어 현황 (PRD v1.0 기준)

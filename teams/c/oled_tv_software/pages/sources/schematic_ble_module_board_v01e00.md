@@ -127,14 +127,14 @@ ADC 가용 핀: P0.02/AIN0, P0.03/AIN1, P0.04/AIN2, P0.05/AIN3, P0.28/AIN4, P0.2
 | 대체품 | MOLEX 22-05-7045 (KK 2.5mm 4핀) |
 | 용도 | UART 모니터링 (`(연결@PC Monitoring)`) |
 
-| 신호 | 방향 | nRF52 GPIO | 비고 |
-|---|---|---|---|
-| TXD_uC | uC → PC | **P0.15** | ISO6721RBDR 절연 경유 |
-| RXD_uC | PC → uC | **P0.14** | ISO6721RBDR 절연 경유 |
-| COMM_P5V | — | — | 절연 전원 (CN1에서 공급) |
-| COMM_GND | — | — | 절연 GND |
+| 핀 | 신호 | 방향 | nRF52 GPIO | 비고 |
+|---|---|---|---|---|
+| 1 | COMM_P5V | — | — | 절연 5V (CN1에서 공급) |
+| 2 | TXD_uC | uC → PC | **P0.15** | ISO6721RBDR 절연 경유 |
+| 3 | RXD_uC | PC → uC | **P0.14** | ISO6721RBDR 절연 경유 |
+| 4 | COMM_GND | — | — | 절연 GND |
 
-> UART GPIO 핀 P0.15(TX)/P0.14(RX) — 사용자 확인 2026-06-04, 펌웨어 `custom_board.h`의 `TX_PIN_NUMBER=15 / RX_PIN_NUMBER=14`에 반영. (PCA10040 기본값 TX=6/RX=8과 다름.)
+> 물리 핀번호(1~4) 사용자 확인 2026-06-05. UART GPIO 핀 P0.15(TX)/P0.14(RX)는 사용자 확인 2026-06-04, 펌웨어 `custom_board.h`의 `TX_PIN_NUMBER=15 / RX_PIN_NUMBER=14`에 반영. (PCA10040 기본값 TX=6/RX=8과 다름.)
 
 ISOL1 (ISO6721RBDR/SOIC-8): 2채널 디지털 아이솔레이터. D2 (SZNUP2105LT1G/SOT23-3): ESD 보호.
 
