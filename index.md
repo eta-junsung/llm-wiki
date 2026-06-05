@@ -114,6 +114,10 @@
 - [roadmaps/adc.md](teams/g/8kw-ev-wpt-tx/roadmaps/adc.md) — `adc` 작업 호(A0~A4). eta 보드 J3 6채널 ADC 브링업, 신호별 스케일링 포함
 - [status.md](teams/g/8kw-ev-wpt-tx/status.md) — 기능별 구현 현황표·다음 시작점 (파이프라인이 커밋마다 갱신)
 
+### Concepts
+
+- [[jtag_flash_clean_host]] — **운영 함정**: AM263P OSPI JTAG 굽기는 CCS IDE를 완전히 내린 클린 호스트에서. host-driven 스크립팅(run.bat/flash_node.js, DSS Rhino) ↔ IDE 상주 cloudagent+DSLite 디버그 백엔드 경합 → 비일관 실패(펌웨어/보드 오인 위험). `getDebugSessions=[]`라도 프로세스 레벨 확인 (2026-06-05 실측)
+
 ### Entities
 
 - [[adc_pinmap]] — eta 보드 J3 커넥터 → ADC 인스턴스/채널 → 신호 대응표 (6채널: 온도×2, 전압×1, 전류×2, 선형×1). 스케일링 스펙 미확인 항목 포함

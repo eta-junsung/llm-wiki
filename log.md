@@ -4,6 +4,16 @@
 
 ---
 
+## [2026-06-05] ingest | 8kw-ev-wpt-tx — JTAG flash 굽기는 CCS IDE 내린 클린 호스트에서
+
+- **운영 함정 확정 (격리 입증)**: AM263P OSPI를 JTAG로 굽는 host-driven 스크립팅(`run.bat`/Node.js `flash_node.js`, 또는 DSS Rhino)은 CCS IDE(Theia)의 상주 cloudagent+DSLite 디버그 백엔드와 **같은 디버그 백엔드를 두고 경합**. IDE 켜둔 채 flash 돌리면 `ds.configure()`/`openSession`/`resume` 중 런마다 다른 지점에서 죽음 (30s ScriptingTimeoutError / DebugServer.1 timeout / rd32 Error 0x400000 — **비일관 → 펌웨어·보드 결함으로 오인 위험**).
+- **증거**: flashwriter `.out` 바이트 동일(펌웨어 무죄)인데 **IDE 켜둠=ERASE_ALL 실패 / IDE 완전 종료=6/6 OK 완주**. 변수는 IDE 상주 여부 하나뿐.
+- **확인법 함정**: `getDebugSessions=[]`라도 cloudagent가 띄운 DSLite는 상주 가능 → 작업관리자에서 `node`/`DSLite` **프로세스 레벨**로 확인 후 종료.
+- **양립 불가**: MCP `loadProgram`(IDE 경유 RAM 로드)은 IDE 켜짐 필요 / 독립 flash 스크립팅은 IDE 꺼짐 필요.
+- **생성**: [[jtag_flash_clean_host]] (8kw concept). index 1건. lp-am263p [[flash_open_facts]]에 cross-ref 추가 (app Flash_open 블로커 ≠ flash-time 호스트 함정, 층위 구분).
+
+---
+
 ## [2026-06-05] ingest | oled_tv_software — 플래싱 듀얼 프로브 셋업 (드라이버 스왑 종료)
 
 - **사실 확정 (CLI 실측)**: MCU별 전용 프로브 + 네이티브 도구로 분담. ① `01_RX_control`(STM32F103) → **ST-Link V2 네이티브**(STM32_Programmer_CLI v2.22, FW V2J47S7, Device ID 0x414, connect+read만 실측 — write 미측정). ② `03_TX_ble`(nRF52832 회사보드) → **J-OB v2 = J-Link OB-nRF5340-NordicSemi** S/N 1050329071(정품), program+verify 통과(Bank0@0x0 53248B, exit 0). ③ `02_RX_ble` → DK 온보드 J-Link. 드라이버 분리 → 동시 연결·충돌 없음.
