@@ -32,12 +32,20 @@ TI **LP-AM263P** LaunchPad에 **BP-CC3351**(Wi-Fi 6 + BLE BoosterPack)을 얹어
 
 ## 하드웨어 — 부트 모드 / boot flow
 
-**SW1 부트 모드 스위치**:
+**SW1 부트 모드 스위치** — 근거: LP-AM263P UG SPRUJ85B Table 2-5 ([[raw/lp_am263p_ug/ug_lp-am263p.md]] :463–470).
 
-| SW1 (1,2,3,4) | 모드 |
-|---|---|
-| `1,1,0,0` | DevBoot |
-| `1,1,1,1` | OSPI 4S Quad Read |
+컬럼 순서는 UG 표기 그대로 **SW1.4 / SW1.3 / SW1.2 / SW1.1** (왼→오른쪽). 스위치 ON = SOP 핀을 GND로 당김 = **논리 0** (:453) — SOP 레벨의 논리 반전임에 주의.
+
+| 모드 | SW1.4 | SW1.3 | SW1.2 | SW1.1 |
+|---|---|---|---|---|
+| OSPI (4S) Quad Read | 1 | 1 | 1 | 1 |
+| UART | 1 | 1 | 1 | 0 |
+| OSPI (1S) Single Read | 1 | 1 | 0 | 1 |
+| OSPI (8S) Octal Read | 1 | 1 | 0 | 0 |
+| **DevBoot** | **0** | **1** | **0** | **0** |
+| xSPI 8D (SFDP) | 0 | 0 | 1 | 1 |
+
+> 정정(2026-06-05): 기존 표는 DevBoot를 `1,1,0,0`으로 적었으나 이는 **OSPI (8S) Octal Read** 값의 오기였다. DevBoot 정확값은 `0,1,0,0`(SW1.3만 ON) — UG Table 2-5 :469. DevBoot = "No SBL. Used for development purposes only." (Table 2-6 :494). 기존 헤더 `SW1 (1,2,3,4)` 라벨도 실제 기입값이 UG의 SW1.4-우선 순서였어 혼동을 유발 → 헤더를 UG 순서로 명시.
 
 **boot flow**: ROM → SBL(`sbl_ospi_am263p.tiimage`) → app @`0x81000`. 부트 플래시는 OSPI **IS25LX256**(ISSI, 32MB, Octal xSPI 8D DDR), base `0x53808000`. BoosterPack과 무관한 AM263P 온보드 플래시.
 

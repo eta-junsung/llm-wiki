@@ -4,6 +4,22 @@
 
 ---
 
+## [2026-06-05] lint | lp-am263p — SW1 부트모드 표 DevBoot 값 정정
+
+- **오류**: `teams/g/lp-am263p/CLAUDE.md` SW1 표가 DevBoot를 `1,1,0,0`으로 기재 → 실제로는 OSPI (8S) Octal Read 값의 오기.
+- **정정**: DevBoot = `0,1,0,0`(SW1.3만 ON). 근거 LP-AM263P UG SPRUJ85B Table 2-5 ([[raw/lp_am263p_ug/ug_lp-am263p.md]] :469), DevBoot 정의 Table 2-6 :494.
+- **부가 수정**: 기존 헤더 `SW1 (1,2,3,4)` 라벨이 실제 기입값(UG의 SW1.4-우선 순서)과 불일치 → 헤더를 UG 순서 **SW1.4/3/2/1**로 명시. 전체 6개 모드 값을 Table 2-5와 교차확인해 표 정합성 확보. ON=논리0(:453) 주석 추가.
+
+---
+
+## [2026-06-05] status | oled_tv_software — 회사 커스텀보드 플래싱·LED 점멸 확인 반영
+
+- **사실 확정**: 회사 커스텀보드(BLE_Module_Board_Ver0.1E00, nRF52832) 입고 + `03_TX_ble` ST-LINK V2 + pyOCD 플래싱 성공 + LED 점멸 육안 확인(LED1 상시점등·LED2/LED3 200ms 토글, active-high). 절차·셋업 함정은 기존 [[st_link_nrf52_flash]]에 정리됨(2026-06-04).
+- **status.md 갱신**: stale했던 "다음 시작점"(완료된 ST-LINK 플래싱 지목)을 **LED2/LED3 ↔ 실제 comm-status 비트 연계**로 교체. 하드웨어 입수 표에 플래싱 열·LED 확인 추가. frontmatter date → 2026-06-05.
+- **예정**: 플래싱 이슈·해결 추가 공유 시 [[st_link_nrf52_flash]] 트러블슈팅에 ingest.
+
+---
+
 ## [2026-06-05] ingest | AM263P TRM/UG wiki 통합 + RAG MCP 폐기
 
 - **결정**: AM263P 자료를 위한 별도 RAG MCP 서버(`C:\firmware-rag\`, ChromaDB 벡터검색 + 800단어 청크 + all-MiniLM-L6-v2)를 폐기하고 wiki 단독으로 전환. 근거: ① wiki 철학 = "원본 텍스트가 아닌 이해된 지식" ② 800단어 청킹이 레지스터 표를 절단(TRM 질의의 핵심 손상) ③ "wiki 단독 ≠ LLM이 1725쪽 정독" — 기계추출(토큰 0) + Grep 발견 + demand 환원 구조.
