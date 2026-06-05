@@ -55,7 +55,7 @@ subsystem: 02_RX_esb
 | 항목 | 내용 |
 |---|---|
 | 커넥터 | SMAW250-05 (2.5mm 5핀) / 대체품 MOLEX 22-05-7055 |
-| 신호 | SWDCLK, SWDIO, nRST(D1 보호 다이오드 경유), BLE_P3V3, GND |
+| 핀 순서 | 1 SWDCLK · 2 SWDIO · 3 nRST(D1 경유) · 4 GND · 5 BLE_P3V3 (사용자 확인 2026-06-05) |
 | 비고 | DK는 온보드 J-Link, 회사보드는 J-Link 외부 프로브로 플래싱(ST-Link+pyOCD는 폴백 강등). 절차 → [[플래싱 가이드|st_link_nrf52_flash]] |
 
 ### CON2 — UART 모니터링 (절연형)

@@ -4,6 +4,17 @@
 
 ---
 
+## [2026-06-05] ingest | oled_tv_software — BLE Module Board 회로도 재독·교정 + raw 확보
+
+- **계기**: 사용자가 `BLE_Module_Board_Ver0.1E00_260318 1.pdf` 재ingest 요청 → 이미 [[schematic_ble_module_board_v01e00]]로 ingest됨 확인. 중복 생성 대신 실제 PDF(4시트) 재독으로 미확정 해소·교정.
+- **raw 확보**: PDF를 `raw/BLE_Module_Board_Ver0.1E00_260318.pdf`로 복사(483KB), source frontmatter를 raw 경로로 전환. subsystem `02_RX_ble` → `02_RX_ble, 03_TX_ble`(공용 커스텀 모듈).
+- **커넥터 핀번호 확정(사용자 확인)**: CON1(SWD) 1 SWDCLK·2 SWDIO·3 nRST·4 GND·5 BLE_P3V3 / CN2(SPI 10P) 1·2 PD3V3·3 nCS·5 MISO·7 MOSI·8 SCK·9·10 DGND(4·6 NC) / CN1(전원 6P) 1~3 COMM_P5V·4~6 COMM_GND. 기존 "확인 필요" 전부 해소. [[st_link_nrf52_flash]] 미확정의 CON1 항목도 해소 표기.
+- **전원 아키텍처 교정(모순 해소)**: 기존 페이지 "COMM_P5V(5V)→B1+FLT1→BLE_P3V3"는 오기. 회로도 `전원분리` 블록 실측 = **PD3V3(비절연 3.3V, CN2)→B1 페라이트(SHH-1M2012-221)+FLT1 피드스루(NFM41PC155B1H3L)→BLE_P3V3=nRF VCC**(강압 없음, EMI 필터). COMM_P5V(절연 5V, CN1)은 ISO6721 PC측+CON2 전용. One Point=R5 0Ω DGND↔BLE_GND. (이미 [[st_link_nrf52_flash]]가 "PD3V3 직결"로 맞게 적혀 있던 것과 정합 — 두 페이지 모순 제거.)
+- **신규 디테일**: System Reset 회로(SW1 ITS-1107+R12 풀업/R13 직렬/C12 디바운스), 안테나(L1 3.9nH π-매칭→PCB 패턴 안테나, C8/C9 DNP), nRF 내장 DC/DC 인덕터 L2/L3(MLZ1608, 외부 LDO 아님).
+- **B1/FLT1 미확정 해소**: 블록 제목 `전원분리`로 필터 확정(강압 아님).
+
+---
+
 ## [2026-06-05] ingest | lp-am263p — AM263P JTAG flash 자동화 하네스 + 굽기 운영 규율 (정본)
 
 - **출처**: 2026-06-05 8kw-ev-wpt-tx 실보드 JTAG flash 세션 실측. 도구(jtag_flasher·flash_node.js)는 lp-am263p(cc3351) 원산·8kw 복제 → **flash-time 도구 지식 정본을 lp-am263p에 둠**.
