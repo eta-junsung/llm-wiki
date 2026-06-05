@@ -12,7 +12,7 @@
 
 ### Reference
 
-- [[instruments]] — 회사 공통 계측 장비 인벤토리 (Keysight InfiniiVision MSOX3104T). 장비별 무엇을·어떻게 측정 + 사용 결. planner가 검증 경로에 인용
+- [[instruments]] — 회사 공통 계측 장비 + 프로그래밍/디버그 프로브 인벤토리 (Keysight MSOX3104T·Saleae Logic Pro 16 / ST-Link V2·J-Link OB SN1050329071·SAM-ICE SN24012600). planner가 검증 경로에 인용
 
 ---
 
@@ -47,7 +47,7 @@
 - [[comm_state_monitoring]] — SPI_Comm_St 200ms 토글, BLE_Comm_St 페어링 상태
 - [[spi_link_reliability]] — SPI heartbeat 구현(200ms 독립 타이머, P0.17 검증)·오류율 모니터·spi_tx_busy 타임아웃 복구·10ms 폴링 ✓ 검증 완료·9MHz 상향 미달
 - [[gpio_verification_pinmap]] — 검증 핀맵: 기능 → 프로브 핀 → 기대값 (SPI CS PB12·PWM PC6~9·ESB P0.17/18·ADC). planner가 검증 경로에 인용. 미확인 핀은 "확인 필요"로 호명
-- [[st_link_nrf52_flash]] — ST-LINK V2 + pyOCD로 nRF52832 플래싱 절차 (libusb DLL·WinUSB·CTRL-AP 패치 3개 함정, 2026-06-04 확립)
+- [[st_link_nrf52_flash]] — 3-MCU 플래싱 정본 (듀얼 프로브: 01 ST-Link 네이티브 / 03 J-Link OB / 02 DK 온보드). SN 고정 함정·CLI 실측·pyOCD 폴백 강등 (2026-06-05)
 
 ### Sources
 

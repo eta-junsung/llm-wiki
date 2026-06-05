@@ -4,6 +4,16 @@
 
 ---
 
+## [2026-06-05] ingest | oled_tv_software — 플래싱 듀얼 프로브 셋업 (드라이버 스왑 종료)
+
+- **사실 확정 (CLI 실측)**: MCU별 전용 프로브 + 네이티브 도구로 분담. ① `01_RX_control`(STM32F103) → **ST-Link V2 네이티브**(STM32_Programmer_CLI v2.22, FW V2J47S7, Device ID 0x414, connect+read만 실측 — write 미측정). ② `03_TX_ble`(nRF52832 회사보드) → **J-OB v2 = J-Link OB-nRF5340-NordicSemi** S/N 1050329071(정품), program+verify 통과(Bank0@0x0 53248B, exit 0). ③ `02_RX_ble` → DK 온보드 J-Link. 드라이버 분리 → 동시 연결·충돌 없음.
+- **함정**: J-Link급 프로브 둘(J-OB v2 + SAM-ICE S/N 24012600) 공존 → `-SelectEmuBySN 1050329071` 고정 필수. ST-Link은 S/N이 `@`로 보고(cosmetic).
+- **갱신**: [[st_link_nrf52_flash]] 전면 재작성(정본 — 듀얼 프로브 절차·실측·함정, **pyOCD+Zadig 폴백 강등**, ST-Link WinUSB→네이티브 원복 절차). [[instruments]] "프로그래밍/디버그 프로브" 절 신설(프로브 3종 정체·S/N·드라이버). [[rx_ble_module]] CON1 플래싱 비고 갱신. index 2건.
+- **교정**: 회사보드 CON2 UART = **TX P0.15 / RX P0.14**(`custom_board.h:16-17`), NRF_LOG는 RTT(SWD) 전용·UART 미출력. (schematic 소스는 2026-06-04에 이미 정정됨 — 잔존 stale은 st_link 페이지 "미확정" 항목뿐이었고 재작성으로 해소.)
+- **빈자리(미검증)**: SES 번들 JLinkARM DLL의 SN 선택 동작, ST-Link 실플래시(write), 플래시 펌웨어 런타임 거동(ESB/SPI/LED), SAM-ICE 연결 대상.
+
+---
+
 ## [2026-06-05] lint | lp-am263p — SW1 부트모드 표 DevBoot 값 정정
 
 - **오류**: `teams/g/lp-am263p/CLAUDE.md` SW1 표가 DevBoot를 `1,1,0,0`으로 기재 → 실제로는 OSPI (8S) Octal Read 값의 오기.

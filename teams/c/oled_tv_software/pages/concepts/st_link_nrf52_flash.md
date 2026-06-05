@@ -1,155 +1,155 @@
 ---
-tags: [concept, howto, flashing, nrf52832, st-link, pyocd]
-source: 2026-06-04 03_TX_ble 플래싱 성공 경험
-date: 2026-06-04
-subsystem: 02_RX_ble, 03_TX_ble
+tags: [concept, howto, flashing, nrf52832, stm32f103, j-link, st-link, segger, pyocd]
+source: 2026-06-05 CLI 실측 (JLink.exe / STM32_Programmer_CLI / emBuild)
+date: 2026-06-05
+subsystem: 01_RX_control, 02_RX_ble, 03_TX_ble
 ---
 
-# ST-LINK V2 + pyOCD로 nRF52832 보드 플래싱
+# 3-MCU 플래싱 셋업 (듀얼 프로브 — J-Link / ST-Link 네이티브)
 
-[[rx_ble_module]](BLE_Module_Board_Ver0.1E00, nRF52832)에 `02_RX_ble` / `03_TX_ble` 펌웨어를 **ST-LINK V2 + pyOCD**로 굽는 검증된 절차. 2026-06-04 `03_TX_ble` 플래싱 성공으로 확립.
+oled_tv_software 세 펌웨어를 실보드에 굽는 **정본** 절차. 2026-06-05 CLI 실측으로 확립.
 
----
+핵심 전환(2026-06-04 → 06-05): 예전엔 ST-Link V2 하나를 WinUSB(pyOCD)↔ST 정품 드라이버로 **번갈아 끼우며**(드라이버 스왑) STM32와 nRF를 오갔다. 이제 **MCU별 전용 프로브 + 네이티브 도구**로 분담한다 — 드라이버가 분리되어 **동시 연결·충돌 없음**. pyOCD+Zadig 경로는 [폴백](#폴백-pyocd--zadig-강등)으로 강등.
 
-## 왜 pyOCD인가
-
-SES(SEGGER Embedded Studio)의 내장 다운로드와 `nrfjprog`는 **J-Link 전용** → ST-LINK로 사용 불가.
-따라서 SES는 **.hex 빌드까지만** 쓰고, **플래싱은 pyOCD**로 우회한다. (OpenOCD도 가능하나 동일하게 WinUSB 필요.)
+> 프로브 하드웨어 정체(S/N·HW·라이선스)·드라이버는 회사 공통 [[instruments]] "프로그래밍/디버그 프로브" 절에 등록. 이 페이지는 **절차·실측·함정**.
 
 ---
 
-## 전제 (Windows)
+## 프로브 분담 (드라이버 스왑 종료)
 
-- Python 설치(pip 사용 가능). 본 환경은 Python 3.14.
-- `pip install pyocd`. Scripts가 PATH에 없으면 `python -m pyocd ...`로 호출.
+| 펌웨어 | MCU | 프로브 | 네이티브 도구 |
+|---|---|---|---|
+| `01_RX_control` | STM32F103RCTx | **ST-Link V2** (네이티브) | STM32CubeProgrammer GUI+CLI / CubeIDE F11 |
+| `03_TX_ble` | nRF52832 (회사 커스텀보드) | **J-OB v2** = `J-Link OB-nRF5340-NordicSemi` (정품) | SES Download&Reset / nrfjprog / JLink.exe |
+| `02_RX_ble` | nRF52832 (DK PCA10040) | 보드 **온보드 J-Link** | SES / nrfjprog / JLink.exe |
+
+세 프로브는 드라이버가 분리(ST-Link 네이티브 / SEGGER J-Link)되어 한 PC에 동시 꽂아도 충돌하지 않는다.
 
 ---
 
-## 일회성 호스트 셋업 (처음 한 번, 3개 함정)
+## 03_TX_ble (nRF52832 회사보드) — J-OB v2 / J-Link [정본]
 
-### 1. libusb 네이티브 DLL 공급
+프로브 정체·라이선스 → [[instruments]]. 요점: `J-Link OB-nRF5340-NordicSemi`, S/N **1050329071** (클론 아님, FW mismatch 경고 없음). 설치 경로 `C:\Program Files\SEGGER\JLink_V948\JLink.exe` (V942도 공존).
 
-Python 3.14엔 `libusb-package` 바이너리 wheel이 없어 DLL이 빠진다. cp311 wheel을 받아 `libusb-1.0.dll`만 추출해 현재 환경 `site-packages/libusb_package/`에 복사.
+### ⚠ 함정 — SN 고정 필수
 
-없으면 `pyocd list`가 `"no libusb library was found"`로 ST-Link를 못 본다.
+이 PC엔 J-Link급 프로브가 **둘**(J-OB v2 + `SAM-ICE` S/N 24012600) → 무지정 시 어느 것을 쓸지 모호해 **connect 실패**. 반드시 `-SelectEmuBySN 1050329071`로 못박는다.
 
-### 2. ST-LINK를 WinUSB로 바인딩
+### 빌드 (SES CLI)
 
-Zadig로 ST-LINK 인터페이스(USB ID `0483:3748`)를 WinUSB로 교체.
+```
+'C:/Program Files/SEGGER/SEGGER Embedded Studio 8.28/bin/emBuild.exe' \
+  -config Debug 03_TX_ble/TX_BLE.emProject
+# → 산출: 03_TX_ble/Output/Debug/Exe/TX_BLE.hex
+```
 
-⚠️ **부작용**: 이 동글로는 **STM32CubeIDE/CubeProgrammer 플래싱이 불가**해진다. 장치관리자에서 드라이버 제거 → 재인식으로 복구.
+### 플래싱 (JLink.exe, program+verify)
 
-증상 식별: libusb가 ST-Link를 열거는 하나 string descriptor 읽기 실패(`"no langid"`).
+```
+JLink.exe -device nRF52832_xxAA -if SWD -speed 4000 \
+  -SelectEmuBySN 1050329071 -NoGui 1 -ExitOnError 1 -CommandFile <script>
+```
 
-### 3. pyOCD CTRL-AP 패치
+CommandFile 내용 (loadfile = program + 자동 verify):
 
-ST-LINK V2 펌웨어는 nRF52의 보조 AP(CTRL-AP, AP#1) 접근을 못 한다. pyOCD nRF52 init이 `is_locked()`에서 CTRL-AP의 `APPROTECTSTATUS`를 읽다 `STLink error (29): Bad AP`로 죽는다.
+```
+si SWD
+speed 4000
+connect
+loadfile <hex>
+r
+g
+q
+```
 
-`site-packages/pyocd/target/family/target_nRF52.py`의 `is_locked()`에 `try/except`로 `ProbeError`를 잡아 `return False`(= unlocked 간주) 추가.
+**connect 실측** (위 명령): device `nRF52832_xxAA`, SWD 4000 kHz, `Found SW-DP ID 0x2BA01477`, `Cortex-M4 r0p1 identified`, VTref=**3.300 V**, FICR `0x10000060 = 0x2365A055`.
 
-- AHB-AP가 살아있으면 칩은 정상이며 잠기지도 않았으므로 안전.
-- **pyocd 재설치 시 패치 소실 → 재적용 필요.**
+**플래시 실측** (program+verify 통과): `Erasing...Done` → `Programming 100% Done` → `Verifying ... O.K.`, **Bank0@0x0 = 53248 bytes**, reset+go, **exit 0**, APPROTECT 잠김 없음.
+
+---
+
+## 01_RX_control (STM32F103) — ST-Link V2 네이티브
+
+ST-Link V2를 ST 정품 드라이버로 둔 채 STM32_Programmer_CLI / CubeIDE로 직접 다룬다 (WinUSB·Zadig 불필요).
+
+CLI 진입점 (CubeIDE 2.1.1 번들, v2.22):
+
+```
+C:\ST\STM32CubeIDE_2.1.1\...\cubeprogrammer.win32_2.2.400.*\tools\bin\STM32_Programmer_CLI.exe \
+  -l st-link \
+  -c port=SWD mode=normal
+```
+
+**connect 실측**: ST-Link FW **V2J47S7**, `Device ID 0x414` (STM32F101/F103 High-density), Cortex-M3, NVM **256 KB**, **3.27 V**, UID@0x1FFFF7E8 = `05DAFF36 32374742 57016011`.
+
+> ⚠ 함정 — 이 ST-Link은 S/N이 `@`로 보고됨(cosmetic). 다중 ST-Link 환경이면 `sn=`으로 타게팅 불가 → 인덱스 우회 필요. 현재 단일이라 무영향.
+
+실플래시(write)는 미측정(아래 [빈자리](#미확정-빈자리)) — connect+read까지만 실측. 실플래시는 **CubeIDE F11** 자리.
+
+---
+
+## 02_RX_ble (DK PCA10040) — 온보드 J-Link
+
+DK는 보드에 J-Link가 내장 → 외부 프로브 불요. SES Download&Reset / nrfjprog / JLink.exe 그대로 사용 (J-OB v2와 동일 도구군, SN만 다름).
+
+---
+
+## 모니터 출력 보는 법 — RTT(SWD) vs UART(CON2)
+
+회사 커스텀보드(BOARD_CUSTOM)의 두 출력 경로는 **별개 커넥터**다:
+
+- **NRF_LOG → RTT 전용** (SWD/CON1 경유, J-Link RTT Viewer). UART엔 안 나온다.
+- **모니터 printf → app_uart → UART 핀 → ISO6721 절연 → CON2** 로 PC 직결. UART **TX=P0.15 / RX=P0.14** (`_shared/custom_board.h:16-17`, `TX_PIN_NUMBER=15 / RX_PIN_NUMBER=14`). CON2는 SWD용 CON1과 **다른 커넥터**.
+
+> 낡은 기록 교정: 회사보드 CON2 UART를 DK 기본값 P0.06/P0.08로 적은 페이지가 있으면 위 P0.15/P0.14로 본다. (P0.06/P0.08은 회사보드에선 LED3/LED2 핀 — [[schematic_ble_module_board_v01e00]].) 커넥터·핀 1차 출처 → [[schematic_ble_module_board_v01e00]] CON2 절.
 
 ---
 
 ## 배선 (전원 + SWD)
 
-커넥터 상세 → [[schematic_ble_module_board_v01e00]] CON1 절.
+커넥터 상세 → [[schematic_ble_module_board_v01e00]] CON1 절. (회사보드 nRF는 SWD CON1, 급전은 CON1 `BLE_P3V3`=3.3V / `BLE_GND`. 프로브 3.3V 핀이 VTREF면 전원 미인가이므로 멀티미터로 3.3V 실측.)
 
-- **CON1(SWD, 5핀)** 신호: `SWDCLK_uC / SWDIO_uC / SWD_nRST / BLE_P3V3 / BLE_GND`. 물리 핀 순서는 회로도에 핀번호 없음 → **실물 실크 Pin1 마킹** 기준.
-- **급전**: CON1의 `BLE_P3V3` 핀에 **3.3V**(ST-LINK V2의 3.3V 출력 사용). GND는 `BLE_GND`.
-- TP1/TP2 테스트핀이 `BLE_GND` → 측정 기준점으로 사용.
-- **확인 필수**: `BLE_P3V3` ↔ TP1 전압이 **3.3V**인지 멀티미터 실측(ST-LINK 3.3V 핀이 VTREF면 전원이 안 들어옴).
-
-⚠️ **전원 금지사항**: CN2(SPI, 매뉴얼 CN3)의 **핀1·2 = PD3V3(3.3V), 핀9·10 = GND**. 핀2는 GND가 아니다. PD3V3는 강압 없이 nRF VCC에 직결 → **5V 인가 금지(과전압)**.
+⚠ 전원 금지: CN2(SPI)의 PD3V3는 강압 없이 nRF VCC 직결 → **5V 인가 금지**.
 
 ---
 
-## 플래싱 절차
+## 폴백: pyOCD + Zadig (강등)
 
-```
-# 1. 빌드 (SES CLI)
-'C:/Program Files/SEGGER/SEGGER Embedded Studio 8.28/bin/emBuild.exe' \
-  -config Debug 03_TX_ble/TX_BLE.emProject
-# → 산출: 03_TX_ble/Output/Debug/Exe/TX_BLE.hex
+J-Link/ST-Link 네이티브가 막힐 때만 쓰는 우회로. **현재 불필요** — 드라이버 분리로 스왑 자체가 사라졌다. 2026-06-04 `03_TX_ble`를 ST-Link V2 + pyOCD로 처음 구운 경로이며, 일회성 호스트 셋업에 함정 3개가 있었다:
 
-# 2. 프로브 확인
-python -m pyocd list
-# → STM32 STLink 등장 확인
-# ⚠️ TI XDS110(AM263P용, UID S26E0086)이 공존 → 반드시 ST-Link UID로 못박을 것
+1. **libusb 네이티브 DLL** — Python 3.14엔 `libusb-package` 바이너리 wheel이 없어 cp311 wheel에서 `libusb-1.0.dll`만 추출해 `site-packages/libusb_package/`에 복사. 없으면 `pyocd list`가 `"no libusb library was found"`로 ST-Link를 못 봄.
+2. **ST-Link를 WinUSB로 바인딩** — Zadig로 USB ID `0483:3748`을 WinUSB로 교체. 부작용: 이 동글로 CubeIDE/CubeProgrammer 플래싱 불가.
+3. **pyOCD CTRL-AP 패치** — `site-packages/pyocd/target/family/target_nRF52.py`의 `is_locked()`에 `try/except ProbeError → return False` 추가 (ST-Link V2가 nRF CTRL-AP(AP#1) 접근 불가 → `STLink error (29): Bad AP`로 죽음). 재설치 시 패치 소실.
 
-# 3. 연결 점검
-python -m pyocd cmd -t nrf52832 -u <ST-LINK-UID> -c "reset halt"
-# → "Successfully halted"
-
-# 4. 플래싱
-python -m pyocd flash --target nrf52832 -u <ST-LINK-UID> "<hex 경로>"
-# → "programmed N bytes" 확인
-
-# 5. 실행
-python -m pyocd cmd -t nrf52832 -u <ST-LINK-UID> -c "reset"
-```
-
-이번 환경 ST-LINK UID 예: `40004100040000433539594E`.
-
----
-
-## 트러블슈팅
+절차: `python -m pyocd flash --target nrf52832 -u <ST-LINK-UID> "<hex>"`. (이번 환경 ST-Link UID 예: `40004100040000433539594E`.)
 
 | 증상 | 원인 | 조치 |
 |---|---|---|
-| `pyocd list`에 ST-Link 없음, `"no libusb"` | libusb DLL 부재 | 셋업 1 |
+| `pyocd list`에 ST-Link 없음 / `"no libusb"` | libusb DLL 부재 | 셋업 1 |
 | ST-Link 열거되나 `"no langid"` / 접근 실패 | 드라이버 비-WinUSB | 셋업 2 (Zadig) |
-| `STLink error (29): Bad AP` | ST-Link가 CTRL-AP(AP#1) 접근 불가 | 셋업 3 (pyocd 패치). `-t cortex_m`으로 `reset halt` + `readdp 0`=`0x2ba01477`이면 칩 정상·미잠금 확인 |
-| `STLink error (9): Get IDCODE error` | SWDIO/SWDCLK 스왑 또는 미접촉 | SWD 두 선 바로잡기 |
-| 무응답 · `Bad AP` 지속 | 전원 미급전 / GND 미연결 | `BLE_P3V3`=3.3V · GND 실측 |
+| `STLink error (29): Bad AP` | ST-Link가 CTRL-AP 접근 불가 | 셋업 3 (pyocd 패치) |
+| `STLink error (9): Get IDCODE error` | SWDIO/SWDCLK 스왑·미접촉 | SWD 두 선 바로잡기 |
+| 무응답 · `Bad AP` 지속 | 전원 미급전 / GND 미연결 | `BLE_P3V3`=3.3V·GND 실측 |
+
+### ST-Link을 WinUSB → ST 정품으로 원복 (네이티브 경로 복귀)
+
+폴백(Zadig WinUSB)을 썼다가 STM32 네이티브로 돌아갈 때: 장치관리자에서 ST-Link(`STM32 STLink`, `0483:3748`) → 우클릭 → **디바이스 제거 + "드라이버 소프트웨어 삭제" 체크** → 재플러그 → Windows가 ST 정품 드라이버 재설치. (Zadig로는 정품 복원 불가.) 확인: CubeProgrammer Connect 성공.
 
 ---
 
-## 미확정
+## 미확정 (빈자리)
 
-- CON1 물리 핀번호 ↔ 네트 매핑 (실크 Pin1 확인 필요).
-- B1(SHH-1M2012-221) / FLT1(NFM41PC155B1H3L)이 필터인지 (강압 없음 강력 시사, 데이터시트 미확인).
-- CON2 UART의 nRF GPIO 핀 (펌웨어는 PCA10040 P0.06/P0.08 사용, 회사 보드 라우팅 미확인).
-
----
-
-## 드라이버 토글 (nRF ↔ STM32)
-
-ST-LINK V2는 USB 인터페이스가 하나라 드라이버도 하나만 바인딩된다. nRF52832 플래싱(pyOCD, WinUSB 필요)과 STM32 플래싱(CubeIDE/CubeProgrammer, ST 정품 드라이버 필요)은 **드라이버를 바꿔 끼우며 번갈아** 써야 한다. 하나의 동글로 동시 양립 불가.
-
-| 용도 | 드라이버 | 전환 도구 |
-|---|---|---|
-| nRF52832 (pyOCD/OpenOCD) | WinUSB | Zadig |
-| STM32 (CubeIDE/CubeProgrammer/ST-Link Utility) | ST 정품 STLink | 장치 관리자 |
-
-### WinUSB → ST 정품 (STM32용으로 복귀)
-
-Zadig로는 ST 정품 드라이버 복원 불가 → 장치 관리자 사용.
-
-1. 장치 관리자에서 ST-LINK(`STM32 STLink`, USB ID `0483:3748`) 찾기 (WinUSB면 "범용 직렬 버스 장치" 아래).
-2. 우클릭 → 디바이스 제거 → "이 디바이스의 드라이버 소프트웨어를 삭제합니다" 체크 → 제거.
-3. ST-LINK USB 재연결(또는 "하드웨어 변경 사항 검색") → Windows가 ST 정품 드라이버 재설치.
-4. 확인: STM32CubeProgrammer에서 ST-LINK Connect 성공.
-
-### ST 정품 → WinUSB (nRF용으로 전환)
-
-1. Zadig 관리자 실행 → Options → List All Devices.
-2. `STM32 STLink`(USB ID `0483:3748`) 선택 → 타깃 WinUSB → Replace Driver.
-3. 확인: `python -m pyocd list`에 ST-Link 등장.
-
-### 현재 모드 확인
-
-- `python -m pyocd list`에 ST-Link 보임 → WinUSB(nRF) 모드.
-- STM32CubeProgrammer Connect 성공 → ST 정품(STM32) 모드.
-
-### 토글 회피 팁
-
-ST-LINK 동글을 둘 두면 토글 불필요: 하나는 WinUSB 고정(nRF 전용), 하나는 ST 정품(STM32 전용). nRF52 DK는 온보드 J-Link라 별도 ST-LINK 토글 대상이 아님 — 토글은 STM32(01) ↔ 회사 nRF 보드를 한 동글로 오갈 때만 필요.
+- **SES 번들 JLinkARM DLL의 SN 선택 동작**(`-SelectEmuBySN` 등가) 미검증 — JLink.exe CLI에서만 SN 고정 실측.
+- **ST-Link → STM32 실플래시(write)** 미측정 — connect+read까지만. 실플래시는 CubeIDE F11 자리.
+- **플래시한 펌웨어의 런타임 거동**(ESB/SPI/LED) 미측정.
+- SAM-ICE(S/N 24012600)의 연결 대상·용도 미상 — 현재는 SN 충돌원으로만 인지. → [[instruments]].
+- CON1 물리 핀번호 ↔ 네트 매핑 (실크 Pin1 확인 필요) → [[schematic_ble_module_board_v01e00]].
 
 ---
 
 ## 관련
 
-- [[rx_ble_module]] — CON1(SWD) 커넥터 스펙
-- [[schematic_ble_module_board_v01e00]] — 회로도 상세 (CON1 신호, 전원 아키텍처)
+- [[instruments]] — 프로브 3종 정체·S/N·드라이버 (회사 공통)
+- [[rx_ble_module]] — CON1(SWD)·CON2(UART) 커넥터 스펙
+- [[tx_ble_module]] — 03_TX_ble LED·보드 분기(custom_board.h)
+- [[schematic_ble_module_board_v01e00]] — 회로도 (CON1 SWD·CON2 UART P0.15/14·전원)

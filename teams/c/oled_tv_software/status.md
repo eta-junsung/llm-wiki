@@ -1,26 +1,24 @@
 ---
-date: 2026-06-02
+date: 2026-06-05
 ---
 
 # oled_tv_software — 구현 현황
 
 ## 다음 시작점
 
-**03_TX_ble → BLE Module Board (nRF52832) ST-LINK V2 플래싱**
+**03_TX_ble → LED2/LED3를 실제 comm-status 비트와 연계**
 
-1. CON1(SWD, 2.5mm 5핀) 실물 Pin1 마킹 확인 → ST-LINK V2 배선 (SWDIO·SWDCLK·GND·nRST)
-2. OpenOCD 또는 pyOCD 설치 확인 (`openocd --version` / `pyocd --version`)
-3. 03_TX_ble SES 빌드 → .hex 생성
-4. 플래싱 명령:
-   - OpenOCD: `openocd -f interface/stlink.cfg -f target/nrf52.cfg -c "program <파일>.hex verify reset exit"`
-   - pyOCD: `pyocd flash --target nrf52832 <파일>.hex`
-5. CON2(절연 UART 4핀, MOLEX 22-05-7045) → PC 연결, UART 모니터 출력 확인
+(플래싱·LED 점멸 확인 완료 — 아래 "하드웨어 입수" 참조. LED2/LED3는 현재 200ms 토글뿐, 통신 상태 미연계)
 
-참고: [[schematic_ble_module_board_v01e00]] — CON1(SWD), CON2(UART) 커넥터 상세. [[플래싱 가이드|st_link_nrf52_flash]] — ST-LINK V2 + pyOCD 절차 (셋업 함정 3개 포함).
+1. **LED3 (P0.06, BLE=ESB Comm Status)**: `03_TX_ble`의 `ble_link` 변수(현재 항상 0) → `esb_rx_cnt` 윈도우 기반 ESB 수신 활성 판정 후 대입. "페어링" → "ESB 수신 카운터 기반 링크 활성" 재정의 ([[comm_state_monitoring]] BLE_Comm_St 절)
+2. **LED2 (P0.08, SPI Comm Status)**: SPI heartbeat/단절 판정 상태와 LED 구동 연계
+3. 가드 주의: LED 코드는 `#if defined(BOARD_CUSTOM)` 안. 극성 active-high(1=ON). 빌드(emBuild) → J-Link 플래싱(J-OB v2, [[st_link_nrf52_flash]]) → 오실로/육안 확인
+
+참고: [[comm_state_monitoring]] — SPI/BLE Comm_St 사양·구현 현황. [[tx_ble_module]] — LED 핀맵·동작. [[st_link_nrf52_flash]] — 플래싱 절차.
 
 ---
 
-코드 정리 4개 라운드 (플래싱 검증 후): ① 모니터 1-헤더-1-줄 압축, ② 공유 출력 함수(`oled_tv_protocol.c` 신설, 3 빌드 등록), ③ serialize/deserialize 통합, ④ `SPI_PKT_*` → 링크 중립 이름 개명.
+코드 정리 4개 라운드 (별도 트랙): ① 모니터 1-헤더-1-줄 압축, ② 공유 출력 함수(`oled_tv_protocol.c` 신설, 3 빌드 등록), ③ serialize/deserialize 통합, ④ `SPI_PKT_*` → 링크 중립 이름 개명.
 
 ## 구현 현황
 
@@ -64,9 +62,11 @@ date: 2026-06-02
 
 ## 하드웨어 입수
 
-| 보드 | 입고 | 비고 |
-|---|---|---|
-| BLE_Module_Board_Ver0.1E00 (nRF52832, `02_RX_ble`) | ✓ 2026-06-01 | 회로도 [[schematic_ble_module_board_v01e00]] |
+| 보드 | 입고 | 플래싱 | 비고 |
+|---|---|---|---|
+| BLE_Module_Board_Ver0.1E00 (회사 커스텀, nRF52832) | ✓ 2026-06-01 | ✓ 2026-06-04 `03_TX_ble` | 회로도 [[schematic_ble_module_board_v01e00]]. ST-LINK V2 + pyOCD 성공, LED 점멸 육안 확인 (LED1 상시점등·LED2/LED3 200ms 토글, active-high). 절차·함정 [[st_link_nrf52_flash]] |
+
+> 플래싱 셋업 함정 3개(libusb DLL·Zadig WinUSB 바인딩·pyOCD CTRL-AP 패치)와 트러블슈팅은 [[st_link_nrf52_flash]]에 정리됨. 추가 이슈/해결 공유 시 해당 페이지에 ingest.
 
 ## 미결 사항
 
