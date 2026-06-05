@@ -4,6 +4,16 @@
 
 ---
 
+## [2026-06-05] ingest | AM263P TRM/UG wiki 통합 + RAG MCP 폐기
+
+- **결정**: AM263P 자료를 위한 별도 RAG MCP 서버(`C:\firmware-rag\`, ChromaDB 벡터검색 + 800단어 청크 + all-MiniLM-L6-v2)를 폐기하고 wiki 단독으로 전환. 근거: ① wiki 철학 = "원본 텍스트가 아닌 이해된 지식" ② 800단어 청킹이 레지스터 표를 절단(TRM 질의의 핵심 손상) ③ "wiki 단독 ≠ LLM이 1725쪽 정독" — 기계추출(토큰 0) + Grep 발견 + demand 환원 구조.
+- **기계추출**: `pymupdf4llm` 1.27.2.3로 TRM 1725쪽을 `get_toc()` 기반 26개 챕터 마크다운(텍스트+표, 이미지 제외)으로 → `raw/am263p_trm/chNN_*.md`. ch7·ch13만 level-2 세분. UG 60쪽은 이미지 포함 전체 → `raw/lp_am263p_ug/`(md+img 42장).
+- **source 페이지**: [[am263p_trm]](TOC 맵 + "발견은 Grep" 가이드 + ingested/candidate 섹션 인덱스), [[lp_am263p_ug]](핀맵·부트모드·핀먹스·OSPI 배선 + §5.3 보드 함정 — DQS/LBCLK swap·XDS110 bricking).
+- **demand-ingest 예시**: [[am263p_mcspi_controller]] — S6 `SPI not responsive` 직결 MCSPI(13.1.3) 환원.
+- **폐기 처리**: `~/.claude.json`의 `ti-am263p` mcpServers 등록 제거(재시작 시 도구 사라짐, 다른 CCS 서버 보존). 22MB TRM PDF는 `.gitignore`(디스크 only). `C:\firmware-rag\` rm_db/스크립트 삭제는 사용자 확인 대기.
+
+---
+
 ## [2026-06-05] status | 8kw-ev-wpt-tx — CCS 프로젝트 스캐폴드 완료 반영
 
 - A0 전제 완료: hello_world 기반 CCS 프로젝트 생성·Release 빌드 통과·커밋됨 → 구현 현황 ✓ 갱신.
