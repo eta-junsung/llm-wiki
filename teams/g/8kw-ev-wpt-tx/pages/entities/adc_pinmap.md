@@ -8,7 +8,8 @@ date: 2026-06-04
 
 > eta 보드 커넥터(J3) → LP-AM263P ADC 인스턴스/채널 → 신호 이름 대응표.
 > 스케일링(변환식, 분압비, 센서 감도)은 [[adc]] 작업 A3 단계에서 채운다.
-> 인스턴스 배치 근거·다음 보드 설계 규칙은 [[am263p_adc_instance_placement]].
+> 인스턴스 배치 근거·다음 보드 설계 규칙은 [[am263p_adc_instance_allocation]].
+> 논리↔물리 인스턴스 고정(soft 재배치 함정)은 [[am263p_syscfg_soft_vs_hard_assign]].
 
 ---
 

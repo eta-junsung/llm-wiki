@@ -51,11 +51,16 @@ date: 2026-06-05
 
 이 패턴이 polling 방식보다 타이밍이 결정적이고 ISR이 가벼워 권장. 다핀 확장 시에는 채널별 결과 버퍼 + main 루프 소비를 유지한 채 ADC 인스턴스/채널을 늘린다.
 
+- **어느 인스턴스/채널에 무엇을 배정하는가** → [[am263p_adc_instance_allocation]] (동시성 요구·변환시간 예산 기준, 안정성 아님).
+- **논리 인스턴스명을 물리에 고정하는 법** → [[am263p_syscfg_soft_vs_hard_assign]] (soft `$suggestSolution`은 인스턴스 추가 시 reshuffle돼 엉뚱한 핀을 읽음 — hard `$assign` 필수).
+
 ---
 
 ## 관련 페이지
 
 - [[adc]] — 8kw-ev-wpt-tx ADC 작업 호(A0~A4). 이 노하우의 적용 현장.
+- [[am263p_adc_instance_allocation]] — ADC 인스턴스/채널 배치 결정 가이드라인.
+- [[am263p_syscfg_soft_vs_hard_assign]] — 논리↔물리 인스턴스 배정 함정(soft 재배치).
 - [[adc_pinmap]] — 8kw eta 보드 J3 6채널 ADC 핀맵.
 - [[jtag_flash_harness]] — 동일 "AM263P 플랫폼 정본 in lp-am263p" 패턴. 측정/ground-truth 함정 형제 사례.
 - [[am263p_trm]] — ADC/RTI 레지스터 정의 출처(필요 시 demand-ingest).

@@ -4,6 +4,18 @@
 
 ---
 
+## [2026-06-08] ingest | lp-am263p — ADC 인스턴스 배치 보강 + SysConfig soft/hard 물리배정 정본 (8kw J3.27/J3.28 작업·실보드 검증)
+
+- **출처**: 8kw-ev-wpt-tx adc 브랜치 commit `b8b0ad8` — J3.28/J3.27 ADC 핀 추가 작업 + 실보드 검증. AM263P 플랫폼 공통 지식이라 lp-am263p concept으로, [[am263p_adc_rti_trigger]] 자매.
+- **페이지 A (개명+보강)**: 직전 `am263p_adc_instance_placement` → **[[am263p_adc_instance_allocation]]** 개명(`git mv`). 보강분: 각 인스턴스=독립 SAR(자체 S/H·시퀀서·결과레지스터·ADCINT), 마지막 SOC EOC에서 coherent read, 8kw 현황(ADC1=Temp_Module2 SOC0+GA_Iin_SEN SOC1, 1 ISR=IRQ146 / ADC0=I_COIL_SEN·ADC4=I_LCC_SEN 별도), **사실/가설/모름 가름**(아키텍처=사실, △변환시간 예산 수치 미산정, △다중 인스턴스 동시 RTI 트리거 정밀 동시성 미실측).
+- **페이지 B (신규)**: **[[am263p_syscfg_soft_vs_hard_assign]]** — SysConfig 논리 `$name`≠물리 페리페럴. 물리 배정이 soft(`$suggestSolution`)면 새 인스턴스 addInstance 시 솔버가 기존 배정까지 reshuffle.
+  - **관찰 사고(2026-06-08, J3.27 추가)**: ADC4 추가 순간 솔버가 `CONFIG_ADC0`→물리 ADC2, `CONFIG_ADC4`→물리 ADC0으로 밀어냄. ADC AIN은 물리에 1:1 고정 → **엉뚱한 핀을 읽음**. 증상=ISR·변환 정상인데 인가전압 미추종(가장 헷갈리는 함정, 죽은 게 아님). "J3.27 추가 전 J3.28 동작"이 reshuffle-on-add 방증.
+  - **부분수정 안 됨**: int_xbar 소스(`ADCx_INT1`)·base·AIN은 모두 물리 기준. int_xbar만 맞추는 우회는 핀 여전히 틀림.
+  - **수정(✓실보드 검증)**: hard `ADC.$assign="ADCn"`(+AIN→ADCn_AINx). 물리 맞으면 base·int_xbar 자동 정렬, C코드 무수정. 검증=`ti_drivers_config.h` `CONFIG_ADCn_BASE_ADDR`==의도 `CSL_CONTROLSS_ADCn_U_BASE`+실보드.
+  - **일반화**: 보드배선 고정 모든 페리페럴은 처음부터 hard `$assign`.
+  - **△ 후속**: UART5도 같은 soft 재배치인지 점검 후보 — 단 TXD 패드 P15 정상 생성 기확인이라([[am263p_iomux_force_io_enable]]) RS-485 트랜시버 DE/485_EN가 유력. **2026-06-09 점검 예정**.
+- **갱신**: [[am263p_adc_rti_trigger]] §3·관련페이지에 두 자매 백링크 추가. [[adc_pinmap]] 헤더 백링크 2건. index 2줄(allocation 개명행 보강 + soft/hard 신규행). 두 페이지 상호 백링크.
+
 ## [2026-06-08] ingest | oled_tv_software — BLE(ESB)_Comm_St 구현 완료 환원 + 코드 어긋난 기록 정정
 
 - **출처**: 커밋 `6cd7e6c` (esb 브랜치), 실보드 양방향 검증 완료.
@@ -17,7 +29,7 @@
 ## [2026-06-08] ingest | lp-am263p — AM263P ADC 인스턴스 배치 설계 규칙 정본 (8kw ADC0 추가에서 도출)
 
 - **출처**: 사용자 제공 설계 규칙 (8kw ADC0 인스턴스 추가 작업 중 정리). 플랫폼 설계 지식이라 lp-am263p에 정본, 8kw `adc_pinmap` 백링크.
-- **생성**: [[am263p_adc_instance_placement]] (lp-am263p concept) — [[am263p_adc_rti_trigger]] 형제.
+- **생성**: [[am263p_adc_instance_allocation]] (lp-am263p concept; 최초 파일명 `_placement`, 2026-06-08 후속 ingest에서 `_allocation`으로 개명·보강) — [[am263p_adc_rti_trigger]] 형제.
   - **전제 교정**: 멀티 ADC 인스턴스는 **표준·정상** 사용법(ADC0~4 존재 이유=동시 다신호 캡처). 비안정 아님. 차이는 안정성 아닌 ①동시성 ②펌웨어 복잡도.
   - **HW 사실**: 한 인스턴스 다중 SOC=**직렬**(SAR·S/H 1개 → 채널 스큐 + 변환시간 합이 트리거 주기 안에 들어와야). 다른 인스턴스=**병렬**(공통 트리거에 동시 샘플, 스큐 없음).
   - **결정 규칙**(안정성 아닌 신호 특성 기준): 상관·고속(V·I 쌍·코일/입력 전류, 제어루프) → 인스턴스 분산+공통 트리거. 무상관·저속(온도) → 한 인스턴스에 몰고 마지막 EOC 인터럽트 1개.
