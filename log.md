@@ -4,6 +4,13 @@
 
 ---
 
+## [2026-06-08] update | oled_tv_software — Comm_St 의미 재정의 "칩 생사 → 통신 생사(CRC + 도착 윈도우)"
+
+- **계기**: 사용자가 SPI_Comm_St / BLE_Comm_St의 판정 의미를 "해당 통신으로 소통하는 칩의 생사유무" → "해당 통신이 살아있는지"로 재정의. 패킷 말미 CRC 확인 방식 검토 요청.
+- **합의(사용자 결정 2026-06-08)**: ① 판정식 = **CRC AND 도착 윈도우**(`최근 T 내 CRC-valid ≥ N개`) — CRC 단독은 침묵/단선을 못 잡으므로 도착(timeout)과 AND. ② **SPI_Comm_St → STM32 로컬 `spi_status`**(기존 CRC fail·hb timeout 통합 신호) 사용, 0x10 bit5 패킷 전달 불필요화. ③ **BLE(ESB)_Comm_St → 수신측 `02_RX_esb`가 ESB CRC-valid 윈도우로 로컬 판정 후 0x10 bit6 적재**(RF 상태는 nRF만 알므로 반드시 전달).
+- **갱신**: [[comm_state_monitoring]] — "정의 변천" 표(구/중/현 3세대)+판정식 신설, SPI_Comm_St·BLE_Comm_St 절 현 정의 추가(historical 보존). [[status]] 다음 시작점 재작성·미결 2건(재정의 미구현, 윈도우 파라미터 T/N 미정)·date 갱신.
+- **주의**: 판정 주체가 송신측 03이 아니라 **수신측 02_RX_esb**임 — 구 메모/status의 `esb_rx_cnt`·`ble_link` 위치는 코드 대조 재확인 필요(코드 repo 이 PC에 부재).
+
 ## [2026-06-05] ingest | lp-am263p — AM263P ADC 브링업 정본(RTI 타이머 트리거) + 8kw adc A1 검증 반영
 
 - **출처**: 2026-06-05 8kw-ev-wpt-tx ADC 브링업 실보드 실측(단일 핀 AIN0, 1 kSPS) + TI SDK `examples/drivers/adc/adc_soc_rti`. flash-time 도구 정본([[jtag_flash_harness]])과 동일 패턴으로 **AM263P 플랫폼 지식 정본을 lp-am263p에 둠**, 8kw가 백링크.
