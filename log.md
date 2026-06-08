@@ -4,12 +4,14 @@
 
 ---
 
-## [2026-06-08] update | oled_tv_software — Comm_St 의미 재정의 "칩 생사 → 통신 생사(CRC + 도착 윈도우)"
+## [2026-06-08] update | oled_tv_software — Comm_St 정리: SPI는 heartbeat 유지, ESB만 CRC 재정의
 
-- **계기**: 사용자가 SPI_Comm_St / BLE_Comm_St의 판정 의미를 "해당 통신으로 소통하는 칩의 생사유무" → "해당 통신이 살아있는지"로 재정의. 패킷 말미 CRC 확인 방식 검토 요청.
-- **합의(사용자 결정 2026-06-08)**: ① 판정식 = **CRC AND 도착 윈도우**(`최근 T 내 CRC-valid ≥ N개`) — CRC 단독은 침묵/단선을 못 잡으므로 도착(timeout)과 AND. ② **SPI_Comm_St → STM32 로컬 `spi_status`**(기존 CRC fail·hb timeout 통합 신호) 사용, 0x10 bit5 패킷 전달 불필요화. ③ **BLE(ESB)_Comm_St → 수신측 `02_RX_esb`가 ESB CRC-valid 윈도우로 로컬 판정 후 0x10 bit6 적재**(RF 상태는 nRF만 알므로 반드시 전달).
-- **갱신**: [[comm_state_monitoring]] — "정의 변천" 표(구/중/현 3세대)+판정식 신설, SPI_Comm_St·BLE_Comm_St 절 현 정의 추가(historical 보존). [[status]] 다음 시작점 재작성·미결 2건(재정의 미구현, 윈도우 파라미터 T/N 미정)·date 갱신.
-- **주의**: 판정 주체가 송신측 03이 아니라 **수신측 02_RX_esb**임 — 구 메모/status의 `esb_rx_cnt`·`ble_link` 위치는 코드 대조 재확인 필요(코드 repo 이 PC에 부재).
+- **계기·경과**: 사용자가 Comm_St 의미를 "칩 생사" → "통신 생사(CRC)"로 재고. 1차로 SPI/ESB 둘 다 CRC 재정의했으나, 사용자가 **공식 프로토콜 문서 260513이 SPI_Comm_St를 200ms 교번 heartbeat로 명시**함을 지적 → **SPI는 heartbeat 유지로 철회**, ESB만 재정의로 정정.
+- **확정(사용자 결정 2026-06-08)**:
+  - **SPI_Comm_St = 200ms heartbeat 유지** (공식 문서 명시·의미 타당). 토글이 SPI를 건너오는 것 자체가 SPI 통신 생존 테스트. payload 무결성(CRC)은 STM32 로컬 `spi_status`(CRC fail+hb timeout 통합 LINK DOWN/UP)가 **보조 fault 경로**로 이미 존재 — 비트 재정의 불필요, 둘이 상호보완.
+  - **BLE(ESB)_Comm_St = CRC-valid 도착 윈도우로 재정의** (`최근 T 내 CRC-valid ≥ N개`). BLE "페어링" 개념이 ESB에 부재. 판정 주체는 **수신측 `02_RX_esb`**(RF는 nRF만 앎) → 0x10 bit6 적재 → STM32 전달.
+- **갱신**: [[comm_state_monitoring]] — "두 비트는 서로 다른 링크" 표·판정식, SPI_Comm_St 절 heartbeat 정의 복원, BLE_Comm_St 절 ESB CRC 재정의. [[status]] 다음 시작점·미결 정정.
+- **주의**: ESB 판정 주체는 송신 03 아니라 **수신 02_RX_esb** — 구 메모/status의 `esb_rx_cnt`·`ble_link` 위치 코드 대조 재확인 필요(코드 repo 이 PC에 부재).
 
 ## [2026-06-05] ingest | lp-am263p — AM263P ADC 브링업 정본(RTI 타이머 트리거) + 8kw adc A1 검증 반영
 
