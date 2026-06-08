@@ -31,7 +31,7 @@
 - [[tim8]] — Advanced Timer, PWM1(CH1/CH2) + BKIN(PA6)
 - [[tim3]] — General Timer, PWM2(CH3/CH4). BDTR 없음
 - [[rx_ble_module]] — 02_RX_ble, nRF52832 ESB PRX. SPI Slave 9Mbps. BLE 시절 명칭 잔류
-- [[tx_ble_module]] — 03_TX_ble, nRF52832 ESB PTX. LED 인디케이터(P0.09/08/06, active-high)·DK↔회사 보드 분기(custom_board.h). TX 보드 SPI 미구현
+- [[tx_ble_module]] — 03_TX_ble, nRF52832 ESB PTX. LED(LED1 P0.09·LED2 P0.08=spi_comm_st mirror·LED3=ble_comm_st mirror, 기본 DK P0.19/회사 P0.06 매크로)·DK↔회사 보드 분기(custom_board.h). TX 보드 SPI 미구현
 
 ### Concepts
 
@@ -43,12 +43,12 @@
 - [[cubeide_newlib_nano_float]] — CubeIDE newlib-nano float 함정(`nanoprintffloat`/`nanoscanffloat`). scanf float 꺼지면 `buck 15.5` 소수 깨짐. 구성별 독립·Release 재확인
 - [[adc_channel_map]] — ADC1 6채널 핀맵(PA0~PA3, PC4/PC5) + TEMP1/TEMP2 라벨 swap 함정 + 평가보드 시험 가이드
 - [[spi_packet_format]] — STM32-nRF 내부 SPI wire 포맷 (11B 고정, HDR 0x10~0x12/0x50~0x52). ESB와 동일 패킷 구조
-- [[esb_packet_format]] — ESB wire 포맷 (11B, HDR round-robin 0x10-0x12/0x50-0x52, 10ms, ACK with payload)
-- [[esb_link_layer]] — ESB 링크 파라미터 (10ms, ACK with payload, NRF_ESB_MAX_PAYLOAD_LENGTH=64) + 미결 파라미터
+- [[esb_packet_format]] — ESB wire 포맷 (11B, HDR round-robin 0x10-0x12/0x50-0x52, `ESB_TX_INTERVAL_MS=1ms`, ACK with payload, CRC-valid only 콜백)
+- [[esb_link_layer]] — ESB 링크 파라미터 (`ESB_TX_INTERVAL_MS=1ms`, ACK with payload, NRF_ESB_MAX_PAYLOAD_LENGTH=64) + 미결 파라미터
 - [[tx_to_rx_packets]] — TX→RX: 0x10 시스템상태 / 0x11 입력 Analog / 0x12 출력 Analog+온도
 - [[rx_to_tx_packets]] — RX→TX (ESB ACK payload): 0x50 시스템상태 / 0x51 입력+Tx Vout Ref / 0x52 출력+온도 (코드 실측 레이아웃 + 불일치 추가)
 - [[esb_ptx_ack_assembly]] — PTX 모드 ACK payload 재조립: g_last_ack_by_hdr[3] 패턴 + ISR printf 금지
-- [[comm_state_monitoring]] — 0x10 Data[0] bit5/6은 tx_status 아닌 통신 링크 비트. SPI_Comm_St=200ms heartbeat(+CRC 통합 spi_status, ✓완료), BLE_Comm_St=ESB CRC 도착윈도우(미구현). 심볼 `COMM_ST_BIT_*`/`spi_comm_st_*` 컨벤션·라벨 문자열 구분
+- [[comm_state_monitoring]] — 0x10 Data[0] bit5/6은 tx_status 아닌 통신 링크 비트. SPI_Comm_St=200ms heartbeat(+CRC 통합 spi_status, ✓`e5e3efc`), BLE_Comm_St=ESB presence 리셋윈도우(02·03 각자 수신 delta, ✓`6cd7e6c`). 심볼 `COMM_ST_BIT_*`/`*_comm_st_*` 컨벤션·라벨 문자열 구분·**race-free stamp 교훈(상태비트는 송신복사본 spi_tx_pkt에)**
 - [[spi_link_reliability]] — SPI heartbeat 구현(200ms 독립 타이머, P0.17 검증)·오류율 모니터·spi_tx_busy 타임아웃 복구·10ms 폴링 ✓ 검증 완료·9MHz 상향 미달
 - [[gpio_verification_pinmap]] — 검증 핀맵: 기능 → 프로브 핀 → 기대값 (SPI CS PB12·PWM PC6~9·ESB P0.17/18·ADC). planner가 검증 경로에 인용. 미확인 핀은 "확인 필요"로 호명
 - [[st_link_nrf52_flash]] — 3-MCU 플래싱 정본 (듀얼 프로브: 01 ST-Link 네이티브 / 03 J-Link OB / 02 DK 온보드). SN 고정 함정·CLI 실측·pyOCD 폴백 강등 (2026-06-05)
@@ -100,7 +100,9 @@
 - [[flash_open_sequence]] — `Flash_norOspiOpen` 단계별 시퀀스 + 종료 시 OSPI 컨트롤러/chip 상태 표
 - [[sbl_app_flash_handoff]] — `skipHwInit` 게이트, SBL → 앱 핸드오프 시 정합성 깨지는 지점·flashFixUpOspiBoot 비대칭·진단 절차
 - [[am263p_mcspi_controller]] — AM263P MCSPI(13.1.3) 환원: CS 프레이밍·EDMA·클록. S6 `SPI not responsive` 디버그용 (TRM demand-ingest 예시)
+- [[am263p_adc_instance_placement]] — **AM263P ADC 인스턴스 배치 설계 규칙 정본**: 멀티 인스턴스는 표준(비안정 아님). 한 인스턴스 다중 SOC=직렬(스큐+변환시간합 예산), 다른 인스턴스=병렬(동시 샘플). 상관·고속(V·I 쌍·코일전류)은 인스턴스 분산+공통 트리거, 무상관·저속(온도)은 한 인스턴스에 몰아 ISR 절약. 인스턴스↑=+ISR/+int_xbar/+flag 비용. 유일한 실제 instability=변환시간합>트리거주기. PCB 라우팅이 고정하므로 설계 단계 배정이 핵심
 - [[am263p_adc_rti_trigger]] — **AM263P ADC 브링업 정본**: RTI 타이머→ADC SOC 트리거 결선 함정(SysConfig `enableIntr0` 미설정 시 INT0 export 게이트 차단) + JTAG/RAM 레지스터 검증 측정 시점 함정(reset 없이 read=전부 0 오진) + 검증된 설계 패턴(RTI 트리거+EOC ISR-flag, 1 kSPS). 레퍼런스 `adc_soc_rti`. 8kw 실측 환원 (2026-06-05)
+- [[am263p_iomux_force_io_enable]] — **AM263P IOMUX PADCONFIG force_io_enable 정본**: SysConfig 핀먹스만으론 alt-function 패드 입·출력 버퍼가 안 켜짐(OE/IE override `00` + `Pinmux_config` plain-write). KICK 언락 후 PADCONFIG RMW로 `PIN_FORCE_OUTPUT_ENABLE(0x40)`/`PIN_FORCE_INPUT_ENABLE(0x10)` OR-set 필수. ★OE/IE active-low 아님(set=enable). UART5(EPWM15_A/B) 사례 발견·전 alt-function 패드 일반화. 8kw UART5 미동작 = 펌웨어 원인 아님(RS-485 트랜시버 의심)
 - [[jtag_flash_harness]] — **JTAG flash 굽기 정본(flash-time 층위)**: ① runAsynch Node.js 하네스(DSS Rhino GEL_RunF는 R5 free-run+TCM read 0x400000으로 깨짐) ② 클린 호스트(IDE 종료) ③ 연속 시도 사이 파워 사이클(IDLE→never BUSY/300s timeout 해소) ④ standalone 부팅 banner 검증. flashwriter 내부(gCmd 0x70038000)·boot 프로파일·하네스 위치 (2026-06-05 8kw 실측)
 
 ### Sources
@@ -126,4 +128,4 @@
 
 ### Entities
 
-- [[adc_pinmap]] — eta 보드 J3 커넥터 → ADC 인스턴스/채널 → 신호 대응표 (6채널: 온도×2, 전압×1, 전류×2, 선형×1). 스케일링 스펙 미확인 항목 포함
+- [[adc_pinmap]] — eta 보드 J3 커넥터 → ADC 인스턴스/채널 → 신호 대응표 (6채널: 온도×2, 전압×1, 전류×3). 스케일링 스펙 미확인 항목 포함

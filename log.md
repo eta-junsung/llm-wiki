@@ -4,6 +4,39 @@
 
 ---
 
+## [2026-06-08] ingest | oled_tv_software — BLE(ESB)_Comm_St 구현 완료 환원 + 코드 어긋난 기록 정정
+
+- **출처**: 커밋 `6cd7e6c` (esb 브랜치), 실보드 양방향 검증 완료.
+- **새 사실 — BLE_Comm_St 구현됨**: `COMM_ST_BIT_BLE`(0x10 bit6). 판정 = **presence 리셋 윈도우** — 최근 `BLE_COMM_ST_WINDOW_MS=200` 내 수신 delta ≥ `BLE_COMM_ST_MIN_COUNT=3`이면 alive. 노드별: **02_RX_ble**(PRX) `esb_rx_cnt` delta→bit6 적재→STM32 전달; **03_TX_ble**(PTX) `esb_ack_cnt` delta→자기 LED3만; **01_RX_control** bit6→`ble_comm`→`esb \| LINK UP/DOWN` 콘솔. 각 nRF가 자기 수신으로 독립 판정(02→03 verdict 못 보내 03이 ACK로 우회). 심볼 `ble_comm_st_*` ↔ `spi_comm_st_*` 대칭. throughput 아닌 presence("오긴 오나")로 합의, N=3 헐거움.
+- **race-free 교훈(실보드 플래핑으로 발견)**: wire 상태비트(bit5/6)는 공유 RX 버퍼 `esb_pkt[0]`이 아니라 **송신 복사본 `spi_tx_pkt`에 `SPI_Loop` 송신 직전 stamp**. ESB RX ISR이 0x10 수신마다 `esb_pkt[0]`을 memcpy로 덮어 race→01 LINK 플래핑(49→30→0/30s). bit5는 5초 freshness로 가려졌고 즉시 읽히는 bit6만 표면화. 판정과 wire 적재 분리가 race-free 자리. → [[comm_state_monitoring]] "race-free stamp".
+- **코드와 어긋난 기록 정정**: ① `ble_link` 심볼은 코드에 없음(기존 "03 ble_link 항상 0" 폐기, 실제=`ble_comm_st_bit`/`ble_comm`). ② **ESB wire 주기 = `ESB_TX_INTERVAL_MS=1ms`**(기존 "10ms"는 SPI `PACKET_INTERVAL` 혼동 오기 — [[esb_packet_format]]·[[esb_link_layer]] 정정). ③ ESB CRC는 SDK가 콜백 전 검증·폐기(`CRCSTATUS==0`)→`NRF_ESB_EVENT_RX_RECEIVED`는 CRC-valid only. ④ free-run heartbeat 설계(구 `b84b31b`, 03이 bit6 더미 토글)는 완전 폐기(03 `g_hb` 제거, `pkt_build_tx` extra_d0=0). ⑤ bit5 적재 위치도 `ESB_Loop` 인라인→`spi_tx_pkt` stamp로 정정.
+- **LED**: LED3 = `ble_comm_st_bit` 미러, `LED3_PIN/ON/OFF` 매크로 수동 교체(보드별 빌드 config 폐기). 체크인 기본 DK P0.19(active-low), 회사보드 P0.06(active-high) 주석.
+- **갱신**: [[comm_state_monitoring]](판정식·노드표·설계근거·race-free 절·폐기기록), [[spi_link_reliability]](bit5 stamp·ESB 1ms), [[esb_packet_format]]·[[esb_link_layer]](1ms·CRC-valid), [[tx_ble_module]](LED3 매크로), [[status]](다음=N튜닝·LED3 전환, ESB 표 3행), [[roadmap]](환원후보 완료), index 4건.
+- **남은 일**: N=3 임계 실 RF 수신율 대비 튜닝(STM32 모니터 rx `LOG_EN` 게이트), 회사보드 LED3 P0.06 전환, Warning/Fault·PWM 차단 상태머신(별트랙).
+
+## [2026-06-08] ingest | lp-am263p — AM263P ADC 인스턴스 배치 설계 규칙 정본 (8kw ADC0 추가에서 도출)
+
+- **출처**: 사용자 제공 설계 규칙 (8kw ADC0 인스턴스 추가 작업 중 정리). 플랫폼 설계 지식이라 lp-am263p에 정본, 8kw `adc_pinmap` 백링크.
+- **생성**: [[am263p_adc_instance_placement]] (lp-am263p concept) — [[am263p_adc_rti_trigger]] 형제.
+  - **전제 교정**: 멀티 ADC 인스턴스는 **표준·정상** 사용법(ADC0~4 존재 이유=동시 다신호 캡처). 비안정 아님. 차이는 안정성 아닌 ①동시성 ②펌웨어 복잡도.
+  - **HW 사실**: 한 인스턴스 다중 SOC=**직렬**(SAR·S/H 1개 → 채널 스큐 + 변환시간 합이 트리거 주기 안에 들어와야). 다른 인스턴스=**병렬**(공통 트리거에 동시 샘플, 스큐 없음).
+  - **결정 규칙**(안정성 아닌 신호 특성 기준): 상관·고속(V·I 쌍·코일/입력 전류, 제어루프) → 인스턴스 분산+공통 트리거. 무상관·저속(온도) → 한 인스턴스에 몰고 마지막 EOC 인터럽트 1개.
+  - **복잡도 비용**: 인스턴스 +1 = +ISR 1·+int_xbar 라우팅 1·+ready flag 1 (8kw ADC0가 이 비용). "무상관 신호 한 인스턴스에 먼저 채우기"는 복잡도 tiebreaker(안정성 아님).
+  - **유일한 실제 instability**: SOC 변환시간 합 > 트리거 주기 → 결과 밀림/덮어씀. 멀티 인스턴스 분산으로 해소.
+  - **8kw 적용 메모**: PCB 라우팅이 배치 고정. 현 ADC1=Temp_Module2+GA_Iin_SEN 동거(입력 전류가 온도와 직렬) → 현 보드는 그대로 운용, 다음 보드는 입력 전류를 GA_Vin과 동시 샘플 가능하게 별도 인스턴스 검토.
+- **갱신**: [[adc_pinmap]] 헤더에 배치 근거 백링크 추가. index 1건.
+- **부가 정정**(직전 별건): 8kw ADC 핀맵 `GA_lin_SEN`→`GA_Iin_SEN`(입력 전류, GA_Vin의 짝) 오타 정정 — adc_pinmap·roadmaps/adc·status·index 라벨/설명 통일.
+
+## [2026-06-08] ingest | lp-am263p — AM263P IOMUX PADCONFIG force_io_enable 정본 (UART5 사례, 8kw 미동작 조사)
+
+- **출처**: 코드·헤더 교차검증 — `pinmux.h:93-100`(force 매크로), `pinmux.c:56-58,85-100`(KICK 매직값·plain-write), `cslr_soc_baseaddress.h:416`(IOMUX base 0x53100000), `cslr_iomux.h:395-396`(KICK offset), `pinmux.h:222-223`(EPWM15 offset), lp-am263p `evaluations/uart5/empty.c:52-88,107-113`(loopback force_io), 8kw `src/eta_bsp/eta_uart5.c:64-94,121-122`(TX 전용 force_io), 두 프로젝트 `ti_pinmux_config.c:42-51`(syscfg 생성 PADCONFIG).
+- **생성**: [[am263p_iomux_force_io_enable]] (lp-am263p concept) — 플랫폼 정본. AM263P ADC·flash 정본과 동일하게 **플랫폼 지식은 lp-am263p, 8kw는 백링크** 패턴.
+  - **확정**: ① PADCONFIG OE/IE override 2비트 필드(OUTPUT [7:6], INPUT [5:4]), `01`=force-enable/`11`=disable/`00`=IP default. ★OE/IE active-low 아님 — 켜려면 `|=0x40` OR-set(타 TI SoC 직관과 반대). ② SysConfig는 override를 `00`으로 남기고 `Pinmux_config()`는 plain write(`CSL_REG32_WR`, RMW 아님) → syscfg 단독으론 alt-function 패드 버퍼 절대 안 켜짐. KICK 언락 후 PADCONFIG RMW(force_io_enable) 필수. ③ 좌표: IOMUX base 0x53100000, UART5_TXD=EPWM15_A=P15=0x124(절대 0x53100124), RXD=EPWM15_B=R16=0x128.
+  - **일반화**: UART5는 발견 경로일 뿐, EPWM15를 alt-func로 빌려 쓰는 모든 패드(및 다른 alt-function 패드)에 동일 적용.
+  - **8kw 결론**: UART5 미동작은 펌웨어 IOMUX 원인 **아님** — 8kw TX force-output-enable이 검증된 lp-am263p 예제와 byte-identical. 다음 의심 = IOMUX 밖 THVD1400 RS-485 트랜시버(U13) DE/485_EN 핀.
+  - **미검증**: P15 PADCONFIG 런타임 전체 비트 분해(bit6 OE set만 확인, JTAG로 0x53100124 직접 read해 기대값 `0x541`=syscfg `0x501`|`0x40` 확정 필요). EPWM15 패드 IP default=buffer-disabled는 SDK 예제 주석 근거이며 TRM 리셋값 미확인.
+- **8kw 갱신**: [[status]] 미결에 "UART5 실보드 송신 미동작·펌웨어 원인 배제·RS-485 트랜시버 의심" 추가. index 1건.
+
 ## [2026-06-08] ingest | oled_tv_software — SPI_Comm_St 구현 완료 환원 (심볼 통일 + LED2 mirror, 실보드 검증)
 
 - **출처**: 커밋 `e5e3efc` (refactor(comm): SPI/BLE_Comm_St 심볼·네이밍 통일 + LED2 mirror), esb 브랜치, 실보드 검증 5/5 PASS (LED2 blink, spi LINK UP/DOWN 콘솔).

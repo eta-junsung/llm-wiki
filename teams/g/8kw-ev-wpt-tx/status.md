@@ -1,5 +1,5 @@
 ---
-date: 2026-06-05
+date: 2026-06-08
 ---
 
 # 8kw-ev-wpt-tx — 구현 현황
@@ -42,5 +42,6 @@ date: 2026-06-05
 
 ## 미결 사항
 
-- **A3 블로커**: 신호별 센서 스펙 미입수 — Temp_Module1/2 출력 특성(V/°C), GA_Vin 분압비, I_LCC_SEN·I_COIL_SEN 전류 센서 감도(mV/A), GA_lin_SEN 스펙.
+- **UART5 실보드 송신 미동작 — 펌웨어 IOMUX 원인 아님 (조사 완료 2026-06-08)**: `eta_uart5.c`의 TX force-output-enable이 검증된 lp-am263p loopback 예제와 byte-identical하고 OE 비트 극성도 확정됨 → 펌웨어 PADCONFIG 처리는 원인 배제. **다음 의심 대상은 IOMUX 밖 — THVD1400 RS-485 트랜시버(U13) DE/485_EN 핀**. force_io_enable 패턴 정본 [[am263p_iomux_force_io_enable]]. 미확인: P15 PADCONFIG(`0x53100124`) 런타임 값 JTAG 직접 read(기대 `0x541`).
+- **A3 블로커**: 신호별 센서 스펙 미입수 — Temp_Module1/2 출력 특성(V/°C), GA_Vin 분압비, I_LCC_SEN·I_COIL_SEN·GA_Iin_SEN 전류 센서 감도(mV/A)·오프셋.
 - **UART 출력 주기 파라미터화**: 현재 하드코딩(매 샘플 print) → 1초 기본·조절 가능 파라미터로 분리 필요.

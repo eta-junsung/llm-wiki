@@ -20,8 +20,9 @@ subsystem: 02_RX_ble, 03_TX_ble
 
 - **Byte order**: Motorola (big-endian)
 - **데이터 타입**: 기본 Uint16, 온도는 Int16
-- **전송 주기**: 10 ms cyclic (PTX 기준 — [[esb_link_layer]] 참조)
+- **전송 주기**: `ESB_TX_INTERVAL_MS = 1 ms` (PTX 기준 — [[esb_link_layer]] 참조). 구 wiki "10ms"는 SPI 폴링 `PACKET_INTERVAL`과 혼동된 오기 — 정정.
 - **ESB SDK 설정**: `NRF_ESB_MAX_PAYLOAD_LENGTH = 64` (기본 32에서 확장)
+- **CRC 검증은 HW/SDK가 콜백 전 수행**: PRX `on_radio_disabled_rx`에서 `CRCSTATUS==0`이면 패킷 폐기+RX 재시작(`nrf_esb.c`). 따라서 `NRF_ESB_EVENT_RX_RECEIVED`는 **CRC-valid only** — 수신 카운터(`esb_rx_cnt`)가 CRC-valid만 세는 게 공짜. [[comm_state_monitoring]] BLE_Comm_St presence 판정의 근거.
 
 ## 헤더 ID 매핑
 
@@ -34,7 +35,7 @@ subsystem: 02_RX_ble, 03_TX_ble
 | 0x51 | RX → TX (PRX ACK payload) | Rx 입력측 Analog + Tx Buck Vout Ref | [[rx_to_tx_packets]] |
 | 0x52 | RX → TX (PRX ACK payload) | Rx 출력측 Analog + 온도 #1·#2 | [[rx_to_tx_packets]] |
 
-- PTX(`03_TX_ble`)가 0x10→0x11→0x12 라운드로빈으로 10ms마다 한 패킷씩 송신.
+- PTX(`03_TX_ble`)가 0x10→0x11→0x12 라운드로빈으로 `ESB_TX_INTERVAL_MS=1ms`마다 한 패킷씩 송신 (헤더당 실효 ~3ms, 전 헤더 합산 ~1000/s).
 - PRX(`02_RX_ble`)는 ACK payload 슬롯에 0x50→0x51→0x52 라운드로빈을 미리 적재. PTX의 다음 송신에 piggyback되어 회수.
 - `0x10`대 ↔ `0x50`대가 같은 의미 카테고리에서 방향만 반대 (상태/입력/출력).
 

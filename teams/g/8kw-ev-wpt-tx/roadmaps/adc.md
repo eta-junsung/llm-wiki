@@ -80,7 +80,7 @@ LP-AM263P 5개 ADC 인스턴스(ADC0~ADC4)에 eta 보드 J3 커넥터 6채널(Te
 | GA_Vin | voltage → 실제 전압 | 분압비 |
 | I_LCC_SEN | voltage → 전류(A) | 센서 감도 mV/A, 오프셋 |
 | I_COIL_SEN | voltage → 전류(A) | 센서 감도 mV/A, 오프셋 |
-| GA_lin_SEN | voltage → 물리량 | 선형 센서 스펙 |
+| GA_Iin_SEN | voltage → 전류(A) | 센서 감도 mV/A, 오프셋 |
 
 ### A4 — 실보드 교차검증
 

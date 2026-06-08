@@ -14,7 +14,7 @@ subsystem: 02_RX_ble, 03_TX_ble
 | 항목 | 값 |
 |---|---|
 | 전송 개시 | PTX (`03_TX_ble`) |
-| 주기 | 10 ms |
+| 주기 | `ESB_TX_INTERVAL_MS = 1 ms` (구 "10ms"는 SPI `PACKET_INTERVAL` 혼동 오기 — 정정) |
 | 패킷 크기 | 11 B (HDR + LEN + DATA[8] + CRC) |
 | ACK 방식 | ACK with payload |
 | `NRF_ESB_MAX_PAYLOAD_LENGTH` | 64 (SDK 기본 32에서 확장) |
@@ -23,7 +23,7 @@ subsystem: 02_RX_ble, 03_TX_ble
 
 PTX가 ESB 패킷(0x10/0x11/0x12 라운드로빈)을 송신하면, PRX가 ACK 패킷에 RX측 데이터(0x50/0x51/0x52 라운드로빈)를 탑재해 응답한다. PRX는 ACK FIFO에 다음 패킷을 미리 적재해두고 PTX의 송신 타이밍에 piggyback되어 전달된다.
 
-RX→TX 방향 전송 주기는 PTX 송신 주기(10ms)에 종속된다.
+RX→TX 방향 전송 주기는 PTX 송신 주기(`ESB_TX_INTERVAL_MS=1ms`)에 종속된다.
 
 ## 미결 파라미터
 

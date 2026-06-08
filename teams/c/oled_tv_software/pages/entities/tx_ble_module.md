@@ -24,7 +24,7 @@ TX 보드 측 무선 모듈. nRF52832 기반, ESB PTX로 동작. TX 보드와 SP
 | ACK payload 수신 (0x50/0x51/0x52) | ✓ 구현됨 |
 | round-robin HDR 송신 | ✓ 구현됨 |
 | TX 보드 ↔ 03_TX_ble SPI (`SPI_Loop`) | ✗ 전체 주석 처리됨 |
-| LED 인디케이터 (LED1 점등 / LED2=spi_comm_st mirror / LED3=BLE_Comm_St mirror) | ✓ 구현+검증 (LED2 mirror 2026-06-08 실보드) |
+| LED 인디케이터 (LED1 점등 / LED2=spi_comm_st mirror / LED3=ble_comm_st mirror) | ✓ 구현+검증 (LED2 `e5e3efc`·LED3 `6cd7e6c`, 2026-06-08 실보드) |
 | 보드 분기 (BOARD_CUSTOM + custom_board.h) | ✓ 구현+검증 |
 | while(1) 구조 정리 | △ 구현됨·미검증 |
 | GPIO P0.17/P0.18 토글 (OSC 검증용) | △ 구현됨·미검증 |
@@ -58,15 +58,16 @@ ESB tx=0x000C3E fail=0/s | ACK rx=0x000C3D [0x50 0x51 0x52]
 
 `gpio_init()`이 직접 구동 (SDK BSP LED 경로 미사용 — `custom_board.h`에서 `LEDS_NUMBER 0`). 핀/극성 → [[schematic_ble_module_board_v01e00]], [[gpio_verification_pinmap]].
 
-| LED | 핀 | 동작 | 의미 |
+| LED | 핀 (check-in 기본) | 동작 | 의미 |
 |---|---|---|---|
-| LED1 | P0.09 | 상시 점등 (init write 1) | System Ready |
-| LED2 | P0.08 | `spi_comm_st_bit` mirror | SPI Comm Status |
-| LED3 | P0.06 | `BLE_Comm_St` mirror | BLE(=ESB) Comm Status |
+| LED1 | P0.09 (회사보드, active-high) | 상시 점등 (init write 1) | System Ready |
+| LED2 | P0.08 (회사보드, active-high) | `spi_comm_st_bit` mirror | SPI Comm Status |
+| LED3 | **DK P0.19 (active-low)** ↔ 회사보드 P0.06 (active-high) | `ble_comm_st_bit`(=ESB_Comm_St) mirror | BLE(=ESB) Comm Status |
 
-- 극성 **active-high** (1=ON) — 2026-06-04 실측 확정.
-- **LED2 = `spi_comm_st_bit` 미러로 확정** (커밋 `e5e3efc`, 2026-06-08 실보드 검증). 기존 200ms 단순 토글 → `nrf_gpio_pin_write(LED2, ON/OFF)`로 비트값을 정확히 따라감. blink 외형(200ms)은 동일하나 의미는 "핀 가시화"가 아니라 "heartbeat 비트 미러". LED3 = `BLE_Comm_St` 미러는 직전 작업에서 확정.
-- comm-status 비트 사양·심볼 → [[comm_state_monitoring]].
+- **LED2 = `spi_comm_st_bit` 미러** (커밋 `e5e3efc`). 기존 200ms 단순 토글 → `nrf_gpio_pin_write`로 비트값을 정확히 따라감. blink 외형(200ms)은 동일하나 의미는 "heartbeat 비트 미러".
+- **LED3 = `ble_comm_st_bit`(ESB_Comm_St) 미러** (커밋 `6cd7e6c`, 2026-06-08 실보드 검증). LED3는 `LED3_PIN`/`LED3_ON`/`LED3_OFF` **매크로로 수동 교체** — **체크인 기본 = DK 보드 P0.19 active-low**, 회사 보드 P0.06 active-high는 주석으로 병기. (보드별 빌드 configuration 분리는 "LED 하나 때문에 과함"으로 폐기, 수동 매크로 교체 채택. → 회사보드 실장 시 매크로를 P0.06으로 전환.)
+- 02_RX_ble도 LED3 = DK P0.19(active-low) 로컬 `ble_comm_st_bit` 미러. LED1/LED2 무변경.
+- comm-status 비트 사양·심볼·노드별 동작 → [[comm_state_monitoring]].
 - 코드는 `#if defined(BOARD_CUSTOM)` 가드 — DK(PCA10040) 빌드 시 미컴파일 (그 핀들이 DK에선 UART라 충돌 회피).
 
 ## 보드 분기 (DK ↔ 회사 보드)

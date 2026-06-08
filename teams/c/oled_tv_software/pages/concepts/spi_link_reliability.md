@@ -17,7 +17,7 @@ subsystem: 01_RX_control, 02_RX_ble
 |---|---|---|
 | 비트 정의 | `_shared/oled_tv_protocol.h` | `COMM_ST_BIT_SPI = 5` (0x10 Data[0] bit5). 구 `TX_STATUS_BIT_SPI_COMM_ST` |
 | 토글 생성 | `02_RX_ble` `SpiCommSt_Loop()` | millis 200ms 게이트로 `spi_comm_st_bit ^= 1u` (SPI 사이클과 독립) |
-| 패킷 적재 | `02_RX_ble` `ESB_Loop()` | 0x10 보관 **직후 인라인 clear+set** — `build_tx_pkt()` 아님 (낡은 단서 정정) |
+| 패킷 적재 | `02_RX_ble` `SPI_Loop` | **나가는 SPI 송신 복사본 `spi_tx_pkt`에 송신 직전 stamp** — 공유 RX 버퍼 `esb_pkt[0]` 아님(race). `build_tx_pkt()`도 아님. race-free 근거 → [[comm_state_monitoring]] "race-free stamp" |
 | 변화 감지 | `01_RX_control` `common.c` | bit5 변화 시 `spi_comm_st_last_change` 갱신 |
 | 단절 판정 | `01_RX_control` `common.c` | `SPI_COMM_ST_TIMEOUT_MS=5000` 초과 무변화 → `spi_status=SPI_FAIL` |
 | 경고 출력 | `01_RX_control` `common.c` `spi_proc()` | `spi_status` 전이 순간 UART 1회 — `spi \| LINK DOWN` / `spi \| LINK UP`. `static spi_status_prev`(초기값 SPI_OK)로 edge 감지. **CRC fail·heartbeat timeout 두 FAIL 경로 단일 `spi_status` 통합 포착.** |
@@ -49,7 +49,7 @@ subsystem: 01_RX_control, 02_RX_ble
 - 오실로: CS(STM32 PB12) active-low Δt=10ms, 1/Δt=100Hz, Vpp=3.79V (`assets/spi_cs_10ms_260601.png`)
 - DMA IRQ NVIC: `MX_DMA_Init()`(`app_dma.c:15-19`) 정상 존재 — `MspInit` 부재 가설 반증
 - 진단 경과: [[spi_10ms_diagnosis_report_260601]]
-- ⚠️ **주기 용어 구분**: 이 10ms는 **앱 SPI 폴링 주기(PACKET_INTERVAL)**. [[esb_packet_format]]·[[esb_link_layer]]의 10ms는 ESB RF wire 주기로 별개.
+- ⚠️ **주기 용어 구분**: 이 10ms는 **앱 SPI 폴링 주기(`PACKET_INTERVAL`)**. ESB RF wire 주기와 별개 — ESB는 `ESB_TX_INTERVAL_MS=1ms`(0x10 3종 round-robin이라 헤더당 실효 ~3ms, 전 헤더 합산 ~1000/s). [[esb_link_layer]]·[[esb_packet_format]] 참조. (구 wiki의 "ESB 10ms"는 이 SPI 폴링값과 혼동된 오기 — 정정됨)
 
 ## 미달 — STM32 SPI 9MHz 클럭 상향 (✗)
 
