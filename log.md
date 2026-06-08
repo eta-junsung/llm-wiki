@@ -4,6 +4,16 @@
 
 ---
 
+## [2026-06-08] ingest | oled_tv_software — SPI_Comm_St 구현 완료 환원 (심볼 통일 + LED2 mirror, 실보드 검증)
+
+- **출처**: 커밋 `e5e3efc` (refactor(comm): SPI/BLE_Comm_St 심볼·네이밍 통일 + LED2 mirror), esb 브랜치, 실보드 검증 5/5 PASS (LED2 blink, spi LINK UP/DOWN 콘솔).
+- **비트 의미론**: 0x10 `Data[0]` 한 바이트가 두 성격 혼재 — bit0~4=TX 보드 물리 상태(진짜 tx_status), **bit5/6=통신 링크 heartbeat 상태(TX 보드 상태 아님, 0x10에 함께 실릴 뿐)**. 이 구분이 매크로 prefix 분리 근거.
+- **심볼·네이밍**: `TX_STATUS_BIT_SPI_COMM_ST`→`COMM_ST_BIT_SPI`(BLE도 동일). `hb_*`→`spi_comm_st_*`(`Heartbeat_Loop`→`SpiCommSt_Loop`), `SPI_HB_TIMEOUT_MS`→`SPI_COMM_ST_TIMEOUT_MS`(값 5000 유지), 3종 펌웨어 통일. **모니터 라벨 문자열 `"SPI_Comm_St"`/`"BLE_Comm_St"`는 문서 표시명이라 유지 — 심볼명≠라벨**. bit5 적재 위치 정정: `build_tx_pkt()` 아니라 `02_RX_ble ESB_Loop()`의 0x10 보관 직후 인라인 clear+set.
+- **spi_status 통합**: heartbeat timeout(5000ms 무변화) + CRC fail 두 FAIL 경로를 단일 `spi_status`로 (LINK UP/DOWN).
+- **LED**: `tx_ble_module` LED2(P0.08)=`spi_comm_st_bit` mirror로 확정(200ms 외형 동일, 비트값 미러). LED3=`BLE_Comm_St` mirror(직전 확정).
+- **갱신**: [[comm_state_monitoring]](Data[0] 이중성격 표·심볼 컨벤션 표·구현현황 5/5), [[spi_link_reliability]](heartbeat 심볼 통일·적재위치 정정·LED2 row), [[tx_to_rx_packets]](0x10 bit5/6 의미 구분·심볼명), [[tx_ble_module]](LED2 mirror), [[status]](다음 시작점=ESB 차례·SPI 완료·미결 정정), index 1건.
+- **남은 일**: Warning/Fault 플래그·PWM 차단 상태 머신 미구현(범위 밖). BLE(ESB)_Comm_St CRC 도착윈도우 구현이 다음 차례.
+
 ## [2026-06-08] update | oled_tv_software — Comm_St 정리: SPI는 heartbeat 유지, ESB만 CRC 재정의
 
 - **계기·경과**: 사용자가 Comm_St 의미를 "칩 생사" → "통신 생사(CRC)"로 재고. 1차로 SPI/ESB 둘 다 CRC 재정의했으나, 사용자가 **공식 프로토콜 문서 260513이 SPI_Comm_St를 200ms 교번 heartbeat로 명시**함을 지적 → **SPI는 heartbeat 유지로 철회**, ESB만 재정의로 정정.

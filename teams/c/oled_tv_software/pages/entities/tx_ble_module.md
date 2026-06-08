@@ -24,7 +24,7 @@ TX 보드 측 무선 모듈. nRF52832 기반, ESB PTX로 동작. TX 보드와 SP
 | ACK payload 수신 (0x50/0x51/0x52) | ✓ 구현됨 |
 | round-robin HDR 송신 | ✓ 구현됨 |
 | TX 보드 ↔ 03_TX_ble SPI (`SPI_Loop`) | ✗ 전체 주석 처리됨 |
-| LED 인디케이터 (LED1 점등 / LED2·3 토글) | ✓ 구현+검증 (2026-06-04 실보드) |
+| LED 인디케이터 (LED1 점등 / LED2=spi_comm_st mirror / LED3=BLE_Comm_St mirror) | ✓ 구현+검증 (LED2 mirror 2026-06-08 실보드) |
 | 보드 분기 (BOARD_CUSTOM + custom_board.h) | ✓ 구현+검증 |
 | while(1) 구조 정리 | △ 구현됨·미검증 |
 | GPIO P0.17/P0.18 토글 (OSC 검증용) | △ 구현됨·미검증 |
@@ -61,11 +61,12 @@ ESB tx=0x000C3E fail=0/s | ACK rx=0x000C3D [0x50 0x51 0x52]
 | LED | 핀 | 동작 | 의미 |
 |---|---|---|---|
 | LED1 | P0.09 | 상시 점등 (init write 1) | System Ready |
-| LED2 | P0.08 | 200 ms 토글 | SPI Comm Status |
-| LED3 | P0.06 | 200 ms 토글 | BLE(=ESB) Comm Status |
+| LED2 | P0.08 | `spi_comm_st_bit` mirror | SPI Comm Status |
+| LED3 | P0.06 | `BLE_Comm_St` mirror | BLE(=ESB) Comm Status |
 
 - 극성 **active-high** (1=ON) — 2026-06-04 실측 확정.
-- LED2/LED3는 현재 핀 가시화 전용(토글). ESB 패킷 comm-status 비트 연계는 후속 → [[comm_state_monitoring]].
+- **LED2 = `spi_comm_st_bit` 미러로 확정** (커밋 `e5e3efc`, 2026-06-08 실보드 검증). 기존 200ms 단순 토글 → `nrf_gpio_pin_write(LED2, ON/OFF)`로 비트값을 정확히 따라감. blink 외형(200ms)은 동일하나 의미는 "핀 가시화"가 아니라 "heartbeat 비트 미러". LED3 = `BLE_Comm_St` 미러는 직전 작업에서 확정.
+- comm-status 비트 사양·심볼 → [[comm_state_monitoring]].
 - 코드는 `#if defined(BOARD_CUSTOM)` 가드 — DK(PCA10040) 빌드 시 미컴파일 (그 핀들이 DK에선 UART라 충돌 회피).
 
 ## 보드 분기 (DK ↔ 회사 보드)

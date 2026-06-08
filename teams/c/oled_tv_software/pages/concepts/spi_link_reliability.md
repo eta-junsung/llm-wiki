@@ -11,16 +11,17 @@ subsystem: 01_RX_control, 02_RX_ble
 
 ## heartbeat (SPI 단절 감지)
 
-매뉴얼 260513 사양인 SPI_Comm_St 200ms 교번을 코드로 실현한 것. ESB 전환 후에도 SPI 구간은 동일.
+매뉴얼 260513 사양인 SPI_Comm_St 200ms 교번을 코드로 실현한 것. ESB 전환 후에도 SPI 구간은 동일. 심볼명은 커밋 `e5e3efc`(2026-06-08)에서 `hb_*`→`spi_comm_st_*`로 3종 펌웨어 통일 — 매핑 표 [[comm_state_monitoring]] "심볼·네이밍 컨벤션".
 
 | 단계 | 위치 | 내용 |
 |---|---|---|
-| 비트 정의 | `_shared/oled_tv_protocol.h:255` | `TX_STATUS_BIT_SPI_COMM_ST = 5` (0x10 STATUS bit5) |
-| 토글 생성 | `02_RX_ble/Application/main.c:494` `Heartbeat_Loop()` | millis 200ms 게이트로 `hb_bit ^= 1u` (SPI 사이클과 독립) |
-| 패킷 적재 | `02_RX_ble/Application/main.c:154` `build_tx_pkt()` case 0 | `hb_bit`를 0x10 STATUS bit5에 실어 STM32로 |
-| 변화 감지 | `01_RX_control/Application/Src/common.c:117~127` | hb 비트 변화 시 `hb_last_change` 갱신 |
-| 단절 판정 | `01_RX_control/Application/Src/common.c:181~184` | `SPI_HB_TIMEOUT_MS=5000` 초과 무변화 → `spi_status=SPI_FAIL` |
-| 경고 출력 | `01_RX_control/Application/Src/common.c` `spi_proc()` (커밋 `fe5bf14`) | `spi_status` 전이 순간 UART 1회 — `spi \| LINK DOWN` / `spi \| LINK UP`. `static spi_status_prev`(초기값 SPI_OK)로 edge 감지. CRC fail·heartbeat timeout 두 FAIL 경로 단일 포착. |
+| 비트 정의 | `_shared/oled_tv_protocol.h` | `COMM_ST_BIT_SPI = 5` (0x10 Data[0] bit5). 구 `TX_STATUS_BIT_SPI_COMM_ST` |
+| 토글 생성 | `02_RX_ble` `SpiCommSt_Loop()` | millis 200ms 게이트로 `spi_comm_st_bit ^= 1u` (SPI 사이클과 독립) |
+| 패킷 적재 | `02_RX_ble` `ESB_Loop()` | 0x10 보관 **직후 인라인 clear+set** — `build_tx_pkt()` 아님 (낡은 단서 정정) |
+| 변화 감지 | `01_RX_control` `common.c` | bit5 변화 시 `spi_comm_st_last_change` 갱신 |
+| 단절 판정 | `01_RX_control` `common.c` | `SPI_COMM_ST_TIMEOUT_MS=5000` 초과 무변화 → `spi_status=SPI_FAIL` |
+| 경고 출력 | `01_RX_control` `common.c` `spi_proc()` | `spi_status` 전이 순간 UART 1회 — `spi \| LINK DOWN` / `spi \| LINK UP`. `static spi_status_prev`(초기값 SPI_OK)로 edge 감지. **CRC fail·heartbeat timeout 두 FAIL 경로 단일 `spi_status` 통합 포착.** |
+| LED2 mirror | `03_TX_ble` (custom board) | LED2(P0.08)가 `spi_comm_st_bit` 값을 미러 — [[tx_ble_module]] |
 
 - **200ms 독립화의 의미**: 토글이 SPI 사이클에 종속되지 않으므로, SPI 폴링 주기(PACKET_INTERVAL)를 바꿔도 heartbeat 거동은 불변. STM32는 "토글 주기"가 아니라 "마지막 변화 시각"으로 판정하므로 토글 주기에 무관하게 동작.
 - **heartbeat 검증**: RX_ble `P0.17`(`PIN_DBG_HB`) GPIO 토글 오실로 측정 — Δt≈190ms (≈200ms), `P3NOFO01.PNG`. 실보드 검증 완료.

@@ -6,15 +6,16 @@ date: 2026-06-08
 
 ## 다음 시작점
 
-**LED2/LED3를 Comm_St 상태와 연계 — SPI는 heartbeat 유지, ESB만 CRC 재정의 (2026-06-08)**
+**BLE(ESB)_Comm_St를 CRC-valid 도착 윈도우로 구현 — SPI_Comm_St는 완료(`e5e3efc`)**
 
-두 비트는 대상 링크가 달라 방식이 갈린다. 상세 [[comm_state_monitoring]].
+SPI_Comm_St는 검증 5/5 PASS + 심볼·네이밍 통일 + LED2 mirror까지 실보드 완료(아래 SPI 표). 남은 건 ESB쪽.
 
-1. **SPI_Comm_St → 기존 heartbeat 방식 유지** (공식 문서 260513 명시, 재확인). LED2(P0.08)는 STM32 로컬 `spi_status`(`01_RX_control common.c`, heartbeat timeout + CRC fail 통합 LINK DOWN/UP)에 연계. CRC는 보조 fault 경로로 이미 존재 — SPI_Comm_St 비트 자체는 재정의 안 함.
-2. **BLE(ESB)_Comm_St → CRC-valid 도착 윈도우로 재정의**: `링크 ALIVE ⟺ 최근 T 내 CRC-valid 패킷 ≥ N개`. 수신측 `02_RX_esb`가 로컬 판정 → 0x10 bit6 적재 → STM32 도달 → LED3(P0.06) 구동. (판정 주체는 송신 03 아니라 수신 02 — 구 메모의 `esb_rx_cnt`/`ble_link` 위치 재확인 필요)
+1. **BLE(ESB)_Comm_St → CRC-valid 도착 윈도우로 재정의·구현**: `링크 ALIVE ⟺ 최근 T 내 CRC-valid 패킷 ≥ N개`. 수신측 `02_RX_ble`가 로컬 판정 → 0x10 bit6(`COMM_ST_BIT_BLE`) 적재 → STM32 도달 → LED3(P0.06, 이미 `BLE_Comm_St` mirror) 구동. (판정 주체는 송신 03 아니라 수신 02 — 구 `esb_rx_cnt`/`ble_link` 위치 재확인 필요)
+2. 윈도우 파라미터(T·N) 결정 — ESB 10ms wire 기준.
 3. 가드 주의: LED 코드는 `#if defined(BOARD_CUSTOM)` 안. 극성 active-high(1=ON). 빌드(emBuild) → J-Link 플래싱(J-OB v2, [[st_link_nrf52_flash]]) → 오실로/육안 확인
+4. (별트랙) SPI_FAIL 응답 — Warning/Fault 플래그·PWM 차단 상태 머신은 여전히 미구현.
 
-참고: [[comm_state_monitoring]] — 두 비트 링크·판정 방식 구분. [[spi_link_reliability]] — `spi_status`·CRC 카운터 구현 측. [[tx_ble_module]] — LED 핀맵·동작. [[st_link_nrf52_flash]] — 플래싱 절차.
+참고: [[comm_state_monitoring]] — 두 비트 링크·판정 방식·심볼 컨벤션. [[spi_link_reliability]] — `spi_status`·CRC 통합 구현 측. [[tx_ble_module]] — LED mirror. [[st_link_nrf52_flash]] — 플래싱 절차.
 
 ---
 
@@ -28,8 +29,11 @@ date: 2026-06-08
 
 | 기능 | 상태 | 메모 |
 |------|------|------|
-| heartbeat 메커니즘 (3-MCU) | ✓ | RX_ble가 0x10 STATUS bit5(`TX_STATUS_BIT_SPI_COMM_ST`) 토글 → STM32 5s 타임아웃(`SPI_HB_TIMEOUT_MS`)으로 SPI 단절 감지. 오실로 200ms 토글 확인(`P3NOFO01.PNG`, Δt≈190ms) |
-| heartbeat 200ms 독립 타이머 | ✓ | `Heartbeat_Loop()` millis 게이트로 분리, SPI 사이클 종속 제거. 오실로 검증 완료 |
+| SPI_Comm_St heartbeat (3-MCU) | ✓ | RX_ble가 0x10 Data[0] bit5(`COMM_ST_BIT_SPI`) 토글 → STM32 5s 타임아웃(`SPI_COMM_ST_TIMEOUT_MS`)으로 SPI 단절 감지. 오실로 200ms 토글 확인(Δt≈190ms). 검증 5/5 PASS (`e5e3efc`) |
+| heartbeat + CRC fail → 단일 `spi_status` 통합 | ✓ | 무변화 timeout · CRC fail 두 FAIL 경로를 하나의 `spi_status`로. LINK UP/DOWN 콘솔 확인 |
+| heartbeat 200ms 독립 타이머 | ✓ | `SpiCommSt_Loop()` millis 게이트로 분리, SPI 사이클 종속 제거. bit5 적재는 `ESB_Loop()` 인라인(build_tx_pkt 아님). 오실로 검증 완료 |
+| LED2(P0.08) = spi_comm_st_bit mirror | ✓ | 200ms blink 외형 동일, 비트값 정확히 미러. 실보드 검증 (`e5e3efc`). [[tx_ble_module]] |
+| 심볼·네이밍 통일 (`COMM_ST_BIT_*`, `spi_comm_st_*`) | ✓ | 3종 펌웨어. bit5/6은 tx_status 아니므로 prefix 분리. 라벨 문자열은 문서 표시명 유지 ([[comm_state_monitoring]]) |
 | SPI 오류율 모니터 (ok/fail/err%) | △ | `spi_ok_cnt/spi_crc_fail_cnt` 누적+delta UART 출력(`spi | ok=… | /s ok=100 crcfail=0 failrate=0%`). 49s 검증, 장시간 안정성 미확인 |
 | STM32 spi_tx_busy 타임아웃 복구 | △ | DMA 콜백 미수신 시 50ms 타임아웃 후 `HAL_SPI_Abort()`로 CS 복구. 실보드 장시간 미검증 |
 | TX_ble stack_temp 실데이터화 | △ | 더미 1234 → `tx_module.tx_data.stack_temp` 구조체 참조. 실측 값 확인 필요 |
@@ -75,7 +79,7 @@ date: 2026-06-08
 - 0x51 Zin·Tx Buck Vout Ref: 코드 Type 재확인 (매뉴얼 Uint16 vs 코드 i16 잔여 차이)
 - nRF52832 SPIS 최대 SCK 클럭 datasheet 미ingest — 9MHz 상향 재시도 전 선결
 - SPI_FAIL 응답 — Warning/Fault 플래그·PWM 차단·상태 머신 미구현 ([[comm_state_monitoring]])
-- LED2/LED3 Comm_St 연계 미구현 — SPI는 heartbeat 기반 `spi_status`→LED2, ESB는 CRC-valid 도착 윈도우 판정(02_RX_esb→bit6)→LED3 ([[comm_state_monitoring]])
+- BLE(ESB)_Comm_St 미구현 — `02_RX_ble`가 ESB 수신 CRC-valid 도착 윈도우 판정→0x10 bit6 적재→LED3 (SPI_Comm_St/LED2는 `e5e3efc`로 완료) ([[comm_state_monitoring]])
 - ESB_Comm_St 판정 윈도우 파라미터(T, N) 미정 — ESB 10ms wire 기준 적정값 결정 필요 (SPI는 heartbeat라 해당 없음)
 - SPI 오류율 모니터 / spi_tx_busy 타임아웃 복구 실보드 장시간 안정성 검증
 - TX_ble stack_temp 실측 값 정상 여부 확인
