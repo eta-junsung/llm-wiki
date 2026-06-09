@@ -4,6 +4,27 @@
 
 ---
 
+## [2026-06-09] update | 8kw-ev-wpt-tx — A2 완료: 6채널 ADC 실보드 검증 + AIN hard assign + eta_adc.c 테이블 리팩토링 (c512e3b)
+
+- **출처**: branch `adc` commit `c512e3b`(origin/adc) — 6채널 ADC 완성·실보드 검증. 같은 날 앞선 4채널 update에 이어 6/6 달성.
+- **A2 완료(6/6, 실보드 검증)**: 신규 2채널 추가 = Temp_Module1(ADC2 SOC0 AIN0 J3.25, int_xbar OUT_3/IRQ149), GA_Vin(ADC3 SOC0 AIN0 J3.26, OUT_4/IRQ150). 물리 인스턴스 **5개(ADC0~ADC4)** 사용. ADC1만 SOC0+SOC1 라운드로빈(SOC1 EOC 단일 ISR 2채널 수확), 나머지 SOC0 단독. RTI1 1 kSPS 공유. 6채널 raw→mV 변환 경로 실보드 검증.
+- **AIN 핀 hard `$assign` 승격 (soft 재셔플 리스크 해소)**: 직전(b8b0ad8)까지 물리 인스턴스만 hard, AIN 핀은 soft `$suggestSolution`이었음. 신규 채널 추가 시 솔버 재셔플 방지 위해 **AIN 핀까지 전부 `$assign` hard 승격** → 재생성 후 물리 배정 ADC0~4 유지(재셔플 없음) 확인. [[am263p_syscfg_soft_vs_hard_assign]] 규칙의 실증 사례.
+- **리팩토링 — eta_adc.c 테이블 주도화**: 인스턴스별 ISR 5개·init 5블록·loop 5블록(차이=베이스/결과주소·IRQ·ready플래그·SOC→채널)을 → 인스턴스 테이블 `g_eta_adc_inst[]` + 공용 `eta_adc_eoc_isr()` + 인덱스 루프로 통합. **332→232줄**, 동작·핀맵·IRQ 불변. 채널 추가 = enum 1행 + 테이블 1행(`ETA_ADC_CH_COUNT` 일원화). 단 `eta_uart5.c` 출력은 채널별 `DebugP_log` 하드코딩이라 출력 라인은 수동 추가 필요.
+- **미해결 유지**: ① A3 센서 스케일링 — mV→물리량 변환 스펙 미입수(블로커). ② UART5 차동 송신 — 6채널 출력은 UART0 콘솔로만, UART5 `UART_write` 주석 + RS-485 DE/485_EN(THVD1400) 미구현.
+- **다음 시작점**: A3 스케일링(스펙 대기) / UART5 차동 복구 / A4 교차검증.
+- **갱신**: [[status]](전면, A2 ✓), [[adc]](A2 ✓·6채널 표·리팩토링), [[adc_pinmap]](6채널·int_xbar 열·AIN hard), [[roadmap]](A2 완료), [[am263p_syscfg_soft_vs_hard_assign]](AIN hard 승격=리스크 닫음), [[am263p_adc_instance_allocation]](8kw 5인스턴스), [[am263p_adc_rti_trigger]](6채널 확장 경과), index 3건.
+
+## [2026-06-09] update | 8kw-ev-wpt-tx — 코드 진척 반영 (단채널→4채널, UART 주기화 완료, eta_bsp 레이어, UART5 차동 여전히 미동작)
+
+- **출처**: branch `adc` 커밋된 상태(워킹트리 clean) 코드/git/사용자 확인 delta. wiki가 2026-06-05에 머물러 있어 역산 갱신.
+- **소스 레이아웃 정정**: `src/bsp/` → **`src/eta_bsp/`**(eta_ 접두 디렉토리까지). 파일 `eta_adc.{c,h}`·`eta_uart5.{c,h}`, eta_ 접두 + _loop 접미 컨벤션. eta_bsp 레이어 도입(a655de4, edddc31).
+- **ADC 단채널→4채널(목표 6, 4/6)**: TEMP_MODULE2(ADC1 SOC0 AIN0 J3.24 IRQ146), I_LCC_SEN(ADC4 SOC0 AIN0 J3.27 IRQ148), I_COIL_SEN(ADC0 SOC0 AIN1 J3.28 IRQ147), GA_IIN_SEN(ADC1 SOC1 AIN1 J3.29 IRQ146 SOC1 EOC). ADC1 SOC0+SOC1 라운드로빈→SOC1 EOC 단일 ISR 2채널 수확. 트리거 RTI1(syscfg `CONFIG_RTI0`) 1 kSPS 3인스턴스 공유. ISR raw 저장, `eta_adc_loop` `(raw*3300)/4095` 정수 mV(out-param, 88d9deb). 인스턴스 hard `$assign`(b8b0ad8)이나 **AIN 핀은 아직 soft** = 잔존 리스크.
+- **UART 1초 주기화 완료**: RTI2 독립 타이머(syscfg `CONFIG_RTI1`) compare0 ISR→flag→`eta_uart5_loop`(8b85bda). 주기=SysConfig `nsecPerTick0=1e9` 단일 진실원천(#define 아님). 현재 출력은 UART0 콘솔(`DebugP_log`) 4채널 ASCII.
+- **UART5 차동 송신 여전히 미동작**: `snprintf`+`UART_write` 블록 통째 주석(`eta_uart5.c:159-170`) → 시도조차 안 함. RS-485 DE/485_EN(THVD1400 U13) 미구현(src `485`/`DE`/`THVD` 0건). TX force-enable(IOMUX)은 살아있음(TXD=EPWM15_A=J1.4). PADCONFIG `0x53100124` 런타임 read 미수행. → soft 재배치 점검(2026-06-09 예정분) 결론: UART5는 soft 아님 확정, 원인=UART_write+RS-485.
+- **A3 블로커 유지**: 센서 스펙 미입수, mV→물리량 변환 코드 전무.
+- **다음 시작점**: ① 남은 2채널(Temp_Module1 J3.25 ADC2, GA_Vin J3.26 ADC3) → 6채널 ② AIN 핀 hard `$assign` 검토 ③ UART5 차동 복구(UART_write 주석 해제+RS-485 DE 구현) ④ A3(스펙 대기).
+- **갱신**: [[status]](전면), [[adc]](A0~A2 상태·src 경로·4채널 표), [[adc_pinmap]](SOC/IRQ/구현 열), [[roadmap]](현재 위치), [[am263p_iomux_force_io_enable]](UART_write 주석·RS-485 결론), [[am263p_syscfg_soft_vs_hard_assign]](UART5 해소·AIN soft 잔존), [[am263p_adc_rti_trigger]](4채널 확장 경과), index 4건. **주의**: 4채널 실보드 전압 재검증 미문서화 → 보드 검증 완료로 단정 안 함(△).
+
 ## [2026-06-08] ingest | lp-am263p — ADC 인스턴스 배치 보강 + SysConfig soft/hard 물리배정 정본 (8kw J3.27/J3.28 작업·실보드 검증)
 
 - **출처**: 8kw-ev-wpt-tx adc 브랜치 commit `b8b0ad8` — J3.28/J3.27 ADC 핀 추가 작업 + 실보드 검증. AM263P 플랫폼 공통 지식이라 lp-am263p concept으로, [[am263p_adc_rti_trigger]] 자매.

@@ -1,47 +1,67 @@
 ---
-date: 2026-06-08
+date: 2026-06-09
 ---
 
 # 8kw-ev-wpt-tx — 구현 현황
 
 > 전략 spine은 [[roadmap]], 작업 단위 호는 [[adc]].
+> ⚠️ 아래 상태는 **branch `adc`의 커밋된 상태에서 코드로 역산**한 것 (최신 = commit c512e3b, origin/adc). 프로젝트 트리에 status.md는 없음 — status는 wiki 측에만 존재한다.
 
-## 직전 완료 (2026-06-05) — A1: 단채널 ADC 실보드 검증 (RTI 트리거 + EOC ISR)
+## 소스 레이아웃
 
-- **단일 핀 AIN0** 으로 ADC 변환 경로 **실보드 검증 완료** — **1 kSPS(RTI 1 ms 주기 트리거) + EOC 인터럽트에서 결과 read+flag, main 루프 consuming**(ISR-flag 패턴). raw count → voltage → UART 출력 확인.
-- **설계 변경**: A1 원안 "polling"에서 **RTI 타이머 트리거 + EOC ISR**로 전환(타이밍 결정성·가벼운 ISR). 검증된 패턴·트리거 결선 함정은 [[am263p_adc_rti_trigger]] 정본으로 환원.
-- **핵심 함정 해소**: RTI→ADC SOC 트리거가 안 걸리던 원인은 SysConfig `enableIntr0`(Enable Compare Interrupt) 미설정 → INT0 이벤트 export 게이트 차단. SW force로 변환 경로 생존을 먼저 확인해 "트리거 결선 문제"로 좁힘. 상세 [[am263p_adc_rti_trigger]] §1·§2.
+- BSP 디렉토리는 **`src/eta_bsp/`** (eta_ 접두가 디렉토리명까지 적용). eta_bsp 레이어 도입 (commit a655de4, edddc31).
+- 파일: `src/main.c`, `src/eta_bsp/eta_adc.{c,h}`, `src/eta_bsp/eta_uart5.{c,h}`.
+- 컨벤션: **eta_ 접두 + _loop 접미** (`eta_adc_loop`, `eta_uart5_loop` — ISR이 flag만 세우고 main 루프 함수가 소비).
 
-### 그 전 (2026-06-04) — A0 전제: CCS 프로젝트 스캐폴드
+## 직전 완료 — A2: 6채널 ADC 완성 (실보드 검증 완료, commit c512e3b)
 
-- LP-AM263P(AM263P4/ZCZ_C, r5fss0-0, nortos, ti-arm-clang) **hello_world 기반 CCS 프로젝트**를 repo 루트(`g/8kw-ev-wpt-tx`)에 in-place 생성. 프로젝트명 `8kw-ev-wpt-tx`. Release 빌드 통과·커밋·푸시 완료(`origin/master`).
-- 작업환경 메모: CCS workspace는 git 저장소 밖 전용 폴더로 두고, 프로젝트는 git 트리에 둔 채 "Copy into workspace 해제"로 참조 import.
+ADC 목표 **6채널 전부 달성**. 물리 인스턴스 **5개(ADC0~ADC4)** 사용:
 
-## 다음 작업: UART 모니터링 주기화 → ADC 코드 리팩토링 → 남은 핀 추가
+| enum | 신호 | 물리 ADC/SOC/AIN | J3 핀 | int_xbar / EOC IRQ |
+|------|------|------------------|-------|--------------------|
+| ETA_ADC_CH_TEMP_MODULE2 | Temp_Module2 | ADC1 SOC0 AIN0 | J3.24 | OUT_0 / IRQ146 |
+| ETA_ADC_CH_I_LCC_SEN | I_LCC_SEN | ADC4 SOC0 AIN0 | J3.27 | OUT_2 / IRQ148 |
+| ETA_ADC_CH_I_COIL_SEN | I_COIL_SEN | ADC0 SOC0 AIN1 | J3.28 | OUT_1 / IRQ147 |
+| ETA_ADC_CH_GA_IIN_SEN | GA_Iin_SEN | ADC1 SOC1 AIN1 | J3.29 | OUT_0 / IRQ146 |
+| ETA_ADC_CH_TEMP_MODULE1 | Temp_Module1 | ADC2 SOC0 AIN0 | J3.25 | OUT_3 / IRQ149 |
+| ETA_ADC_CH_GA_VIN | GA_Vin | ADC3 SOC0 AIN0 | J3.26 | OUT_4 / IRQ150 |
 
-순서대로 진행한다 (상세 [[adc]] §향후 작업):
+- **ADC1만 SOC0+SOC1 라운드로빈**(단일 SOC1 EOC ISR로 2채널 수확), 나머지(ADC0/2/3/4)는 SOC0 단독. 트리거 = **RTI1**(SysConfig 논리명 `CONFIG_RTI0`) 1 ms 공유 → **1 kSPS**. 인스턴스/채널 배치 근거 [[am263p_adc_instance_allocation]].
+- **ISR은 raw count만 저장**, main의 `eta_adc_loop`이 `(raw*3300)/4095` 정수 mV 변환(out-param 방식, commit 88d9deb).
+- **실보드에서 6채널 raw→mV 변환 경로 검증 완료.**
+- ✅ **AIN 핀 hard `$assign` 승격 (soft 재셔플 리스크 해소)**: 직전까지 물리 인스턴스만 hard `$assign`이고 AIN 핀은 `$suggestSolution`(soft)이었음. 신규 2채널 추가 시 솔버 재셔플([[am263p_syscfg_soft_vs_hard_assign]])을 막기 위해 **AIN 핀까지 전부 `$assign`으로 hard 승격**. 재생성 후 물리 배정 ADC0~4 유지(재셔플 없음) 확인.
 
-1. **UART 모니터링 주기화** — 현재 매 샘플마다 무제한 print. **1초 주기 출력**으로 변경하되, **주기를 나중에 조절 가능한 파라미터**로 둘 것.
-2. **ADC 코드 리팩토링** — 단일 핀으로 설계 검증이 끝났으므로 `src/bsp/adc.{c,h}`를 **다핀 확장에 맞게** 정리(채널별 결과 버퍼 + main 루프 소비 유지).
-3. **남은 ADC 핀 추가 (A2)** — 리팩토링 이후, [[adc_pinmap]] 회로도상 나머지 채널 활성화: ADC0(AIN1), ADC1(AIN1), ADC2(AIN0), ADC3(AIN0), ADC4(AIN0).
+## 직전 완료 — 리팩토링: eta_adc.c 테이블 주도화 (commit c512e3b)
+
+- 인스턴스별로 펼쳐져 있던 **ISR 5개 · init 5블록 · loop 5블록**(차이는 베이스주소·결과주소·IRQ·ready플래그·SOC→채널 매핑뿐)을 → **인스턴스 기술 테이블 `g_eta_adc_inst[]` + 공용 `eta_adc_eoc_isr()` + 인덱스 루프**로 통합.
+- `eta_adc.c` 약 **100줄 감소(332→232)**, 동작·핀맵·IRQ 매핑 **불변**.
+- 향후 채널 추가 = **enum 1행 + 테이블 1행**. 채널 수는 `ETA_ADC_CH_COUNT`(enum)로 일원화, `eta_adc.c`는 테이블 루프라 자동 추종.
+- ⚠️ 단 **UART 출력(`eta_uart5.c`)은 여전히 채널별 `DebugP_log` 라인 하드코딩** → 채널 추가 시 출력 라인도 함께 추가해야 함.
+
+## 다음 작업: A3 센서 스케일링(블로커) / UART5 차동 복구 / A4 교차검증
+
+1. **A3 신호별 스케일링 (블로커 유지)** — 현재 변환은 raw→mV(3.3V/4095)까지만. 물리량(°C/V/A) 변환은 센서 스펙 입수 후 진행. 필요 스펙: Temp_Module1/2 출력 특성(V/°C), GA_Vin 분압비, I_LCC_SEN·I_COIL_SEN·GA_Iin_SEN 감도(mV/A)·오프셋.
+2. **UART5 차동 송신 복구 (미해결 유지)** — 현재 6채널 출력은 UART0 콘솔(`DebugP_log`)로만 나감. UART5 차동라인 `UART_write`는 주석 처리, RS-485 DE/485_EN(THVD1400 U13) 제어 미구현. 복구 = `UART_write` 주석 해제 + DE/485_EN 제어 구현·검증. 정본 [[am263p_iomux_force_io_enable]].
+3. **A4 실보드 교차검증** — 멀티미터 기준값으로 6채널 ADC 출력 오차 정량화 (A3 스케일링 후).
 
 ## 구현 현황
 
 | 기능 | 상태 | 메모 |
 |------|------|------|
-| CCS 프로젝트 스캐폴드 (A0 전제) | ✓ | hello_world 기반, Release 빌드 통과, 커밋됨 |
-| 단채널 ADC SysConfig+트리거 (A0 일부) | ✓ | AIN0 단일 채널 + RTI1 트리거, `enableIntr0` 결선 확정. 나머지 채널 미추가 |
-| 단채널 실보드 검증 (A1) | ✓ | AIN0, RTI 1 kSPS + EOC ISR, raw→voltage→UART 검증. 설계 polling→RTI 트리거 전환 |
-| UART 모니터링 주기화 | ✗ | 1초 주기(조절 가능 파라미터). 다음 첫 작업 |
-| ADC 코드 리팩토링 (다핀 확장) | ✗ | `src/bsp/adc.{c,h}` 정리 |
-| 전채널 추가·순차 읽기 (A2) | ✗ | 리팩토링 후 나머지 5채널, 6채널 UART 출력 |
-| 신호별 스케일링 (A3) | ? | 센서 스펙 추가 입수 필요 |
-| 실보드 교차검증 (A4) | ✗ | 멀티미터 기준값 교차 |
+| CCS 프로젝트 스캐폴드 (A0 전제) | ✓ | hello_world 기반, Release 빌드 통과 |
+| eta_bsp 레이어 도입 | ✓ | `src/eta_bsp/`, eta_ 접두·_loop 접미 (a655de4, edddc31) |
+| 단채널 실보드 검증 (A1) | ✓ | AIN0, RTI 1 kSPS + EOC ISR (2026-06-05) |
+| UART 출력 1초 주기화 (A1.5) | ✓ | RTI2 독립 타이머 → flag → eta_uart5_loop. 주기=SysConfig nsecPerTick0(단일 진실원천) (8b85bda) |
+| ADC 6채널 완성 (A2) | ✓ | 5 인스턴스(ADC0~4), 6채널 raw→mV 실보드 검증. AIN 핀 hard `$assign` 승격 (c512e3b) |
+| eta_adc.c 테이블 주도 리팩토링 | ✓ | ISR/init/loop 통합, 332→232줄, 동작 불변 (c512e3b) |
+| 신호별 스케일링 (A3) | ? | 센서 스펙 미입수 — 블로커 |
+| UART5 차동 송신 | ✗ | UART_write 주석 + RS-485 DE/485_EN 미구현. 현재 UART0 콘솔로만 출력 |
+| 실보드 교차검증 (A4) | ✗ | 멀티미터 기준값 교차 (A3 후) |
 
 상태 기호: `✓` 구현+검증 / `△` 구현됨·미검증 / `?` 추가 정보 필요 / `✗` 미구현
 
 ## 미결 사항
 
-- **UART5 실보드 송신 미동작 — 펌웨어 IOMUX 원인 아님 (조사 완료 2026-06-08)**: `eta_uart5.c`의 TX force-output-enable이 검증된 lp-am263p loopback 예제와 byte-identical하고 OE 비트 극성도 확정됨 → 펌웨어 PADCONFIG 처리는 원인 배제. **다음 의심 대상은 IOMUX 밖 — THVD1400 RS-485 트랜시버(U13) DE/485_EN 핀**. force_io_enable 패턴 정본 [[am263p_iomux_force_io_enable]]. 미확인: P15 PADCONFIG(`0x53100124`) 런타임 값 JTAG 직접 read(기대 `0x541`).
-- **A3 블로커**: 신호별 센서 스펙 미입수 — Temp_Module1/2 출력 특성(V/°C), GA_Vin 분압비, I_LCC_SEN·I_COIL_SEN·GA_Iin_SEN 전류 센서 감도(mV/A)·오프셋.
-- **UART 출력 주기 파라미터화**: 현재 하드코딩(매 샘플 print) → 1초 기본·조절 가능 파라미터로 분리 필요.
+- **A3 센서 스펙 미입수 (블로커 유지)**: mV→물리량(°C/V/A) 변환 코드 전무. `eta_adc_loop`은 raw·mV까지만. Temp_Module1/2 출력 특성(V/°C), GA_Vin 분압비, I_LCC_SEN·I_COIL_SEN·GA_Iin_SEN 감도(mV/A)·오프셋 모두 미입수.
+- **UART5 차동 송신 미동작 (미해결 유지)**: `UART_write` 블록 주석 처리 + RS-485 DE/485_EN(THVD1400 U13) 미구현. TX force-enable(IOMUX)은 살아있고 펌웨어 PADCONFIG 처리는 원인 배제됨([[am263p_iomux_force_io_enable]]). 미확인: P15 PADCONFIG(`0x53100124`) 런타임 값 JTAG read(기대 `0x541`).
+- **UART 출력 채널 하드코딩**: `eta_uart5.c`가 채널별 `DebugP_log` 라인 하드코딩 → ADC 채널 추가 시 출력 라인 수동 추가 필요(eta_adc.c 테이블 루프와 달리 자동 추종 안 함).

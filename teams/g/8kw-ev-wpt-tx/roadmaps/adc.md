@@ -1,6 +1,6 @@
 ---
 tags: [roadmap, adc, 8kw-ev-wpt-tx, living-doc]
-date: 2026-06-05
+date: 2026-06-09
 ---
 
 # adc — 8kW WPT TX 보드 ADC 브링업 작업 호 (A0~A4)
@@ -23,17 +23,17 @@ LP-AM263P 5개 ADC 인스턴스(ADC0~ADC4)에 eta 보드 J3 커넥터 6채널(Te
 
 | 단계 | 범위 | 완료 기준 | 상태 |
 |------|------|---------|------|
-| **A0** | SysConfig ADC 설정 | ADC0~4 인스턴스 + 채널 핀 할당 완료, 빌드 성공 | △ |
+| **A0** | SysConfig ADC 설정 | ADC 인스턴스 + 채널 핀 할당 완료, 빌드 성공 | ✓ |
 | **A1** | 단채널 검증 | 단일 핀(AIN0) raw count → voltage, UART 출력 확인 | ✓ |
-| **A1.5** | UART 주기화 + ADC 리팩토링 | 1초 주기 출력(조절 가능 파라미터) + `src/bsp/adc.{c,h}` 다핀 확장 정리 | ✗ |
-| **A2** | 전채널 순차 읽기 | 6채널 전부 신호 레이블 붙여 UART 출력 | ✗ |
+| **A1.5** | UART 주기화 + ADC 리팩토링 | 1초 주기 출력 + `src/eta_bsp/eta_adc.{c,h}` 다핀 확장 정리 | ✓ |
+| **A2** | 전채널 순차 읽기 | 6채널 전부 신호 레이블 붙여 UART 출력 | ✓ (6/6, 실보드 검증) |
 | **A3** | 신호별 스케일링 적용 | 변환식 구현 (센서 스펙 입수 후 진행) | ? |
 | **A4** | 실보드 교차검증 | 멀티미터/소스 기준값으로 ADC 출력 오차 정량화 | ✗ |
 
 상태 기호: `✓` 구현+검증 / `△` 구현됨·미검증 / `?` 추가 정보 필요 / `✗` 미구현
 
 > **설계 변경(2026-06-05)**: A1 원안 "polling 검증"을 **RTI 타이머 주기 트리거 + EOC 인터럽트(ISR-flag 패턴)** 로 전환. 단일 핀(AIN0) 1 kSPS로 실보드 검증 완료. 검증된 패턴·SysConfig 결선 함정(`enableIntr0`)·측정 시점 함정은 AM263P 플랫폼 정본 [[am263p_adc_rti_trigger]]로 환원.
-> A0는 단일 채널(AIN0)+RTI1 트리거만 설정·검증됨 → 나머지 5채널은 A1.5 리팩토링 후 A2에서 추가하므로 △.
+> **A2 완료(2026-06-09, commit c512e3b)**: **6채널 전부 달성·실보드 검증** — 물리 인스턴스 **5개(ADC0~ADC4)**, RTI1 공통 트리거 1 kSPS. AIN 핀까지 hard `$assign` 승격으로 재셔플 리스크 해소. `eta_adc.c` 테이블 주도 리팩토링(332→232줄, 동작 불변) 동반. 남은 것은 A3(스펙 대기)·UART5 차동 복구·A4.
 
 ---
 
@@ -48,7 +48,7 @@ LP-AM263P 5개 ADC 인스턴스(ADC0~ADC4)에 eta 보드 J3 커넥터 6채널(Te
   - ADC2: AIN0 (J3.25)
   - ADC3: AIN0 (J3.26)
   - ADC4: AIN0 (J3.27)
-- 샘플링 모드: 단발(Single) polling — 트리거 없이 SW 기동
+- 샘플링: RTI1 타이머 주기 트리거 + EOC ISR (A1에서 polling 원안 전환). 물리 인스턴스는 hard `$assign`([[am263p_syscfg_soft_vs_hard_assign]]).
 - 완료 기준: `ti_drivers_config.c` 생성, 빌드 에러 없음
 
 ### A1 — 단채널 검증 ✓ (2026-06-05)
@@ -58,17 +58,29 @@ LP-AM263P 5개 ADC 인스턴스(ADC0~ADC4)에 eta 보드 J3 커넥터 6채널(Te
 - UART(115200) 출력으로 수치 확인 — **검증 완료**.
 - **트리거 결선 함정**: SysConfig `enableIntr0`(Enable Compare Interrupt) 미설정 시 RTI INT0 이벤트 export가 막혀 ADC SOC 트리거 무동작. SW force로 변환 경로 생존 먼저 확인 후 트리거 결선 문제로 좁힘. 정본 [[am263p_adc_rti_trigger]].
 
-### A1.5 — UART 주기화 + ADC 코드 리팩토링 (다음 작업)
+### A1.5 — UART 주기화 + ADC 코드 리팩토링 ✓ (2026-06-09)
 
-1. **UART 모니터링 주기화** — 현재 매 샘플마다 무제한 print. 1초 주기 출력으로 변경하되 **주기를 조절 가능한 파라미터**로 둘 것.
-2. **ADC 코드 리팩토링** — `src/bsp/adc.{c,h}`를 다핀 확장에 맞게 정리(채널별 결과 버퍼 + main 루프 소비 유지).
-- 완료 기준: 1초 주기 UART 출력 동작, adc.{c,h}가 N채널 일반화 구조로 정리됨.
+1. **UART 모니터링 주기화 ✓** — **RTI2 독립 타이머**(SysConfig 논리명 `CONFIG_RTI1`) compare0 ISR → flag → `eta_uart5_loop`이 **1초 주기 소비**(commit 8b85bda). ADC 트리거(RTI1)와 분리된 독립 타이머. 주기 값은 `#define`이 아니라 **SysConfig `nsecPerTick0=1e9`가 단일 진실원천**(헤더 주석이 desync 위험 #define 금지 명시).
+2. **ADC 코드 리팩토링 ✓** — **eta_bsp 레이어 도입**(commit a655de4, edddc31), 디렉토리 `src/eta_bsp/`, 파일 `eta_adc.{c,h}`. **eta_ 접두 + _loop 접미** 컨벤션. ISR은 raw만 저장, `eta_adc_loop`이 `(raw*3300)/4095` 정수 mV 변환(out-param 방식, commit 88d9deb). 다핀 일반화 구조.
 
-### A2 — 전채널 순차 읽기
+### A2 — 전채널 순차 읽기 ✓ (6/6, 실보드 검증, 2026-06-09 commit c512e3b)
 
-- 6채널 루프로 순차 폴링
-- 출력 형식: `[ADC1_AIN0 Temp_Module2] raw=XXXX voltage=X.XXXv`
-- 완료 기준: 6채널 전부 출력 확인, floating 핀은 노이즈 range 내
+**6채널 전부 달성**, 물리 인스턴스 **5개(ADC0~ADC4)** 사용. 핀맵·int_xbar·IRQ는 [[adc_pinmap]] 정본.
+
+| enum | 신호 | ADC/SOC/AIN | J3 핀 | int_xbar / EOC IRQ |
+|------|------|-------------|-------|--------------------|
+| ETA_ADC_CH_TEMP_MODULE2 | Temp_Module2 | ADC1 SOC0 AIN0 | J3.24 | OUT_0 / IRQ146 |
+| ETA_ADC_CH_I_LCC_SEN | I_LCC_SEN | ADC4 SOC0 AIN0 | J3.27 | OUT_2 / IRQ148 |
+| ETA_ADC_CH_I_COIL_SEN | I_COIL_SEN | ADC0 SOC0 AIN1 | J3.28 | OUT_1 / IRQ147 |
+| ETA_ADC_CH_GA_IIN_SEN | GA_Iin_SEN | ADC1 SOC1 AIN1 | J3.29 | OUT_0 / IRQ146 |
+| ETA_ADC_CH_TEMP_MODULE1 | Temp_Module1 | ADC2 SOC0 AIN0 | J3.25 | OUT_3 / IRQ149 |
+| ETA_ADC_CH_GA_VIN | GA_Vin | ADC3 SOC0 AIN0 | J3.26 | OUT_4 / IRQ150 |
+
+- **ADC1만 SOC0+SOC1 라운드로빈**(단일 SOC1 EOC ISR로 2채널 수확), 나머지(ADC0/2/3/4)는 SOC0 단독. 트리거 = RTI1(syscfg `CONFIG_RTI0`) 1 kSPS 공유. 배치 근거 [[am263p_adc_instance_allocation]].
+- ✅ **AIN 핀 hard `$assign` 승격**: 신규 2채널 추가 시 솔버 재셔플([[am263p_syscfg_soft_vs_hard_assign]])을 막기 위해 물리 인스턴스 hard `$assign`에 더해 **AIN 핀까지 전부 `$suggestSolution`→`$assign`** 으로 승격. 재생성 후 물리 배정 ADC0~4 유지(재셔플 없음) 확인 → soft 잔존 리스크 해소.
+- **실보드에서 6채널 raw→mV 변환 경로 검증 완료.**
+- **리팩토링 동반**: `eta_adc.c`를 인스턴스 테이블(`g_eta_adc_inst[]`) + 공용 `eta_adc_eoc_isr()` + 인덱스 루프로 통합(332→232줄, 동작 불변). 채널 추가 = enum 1행 + 테이블 1행. 단 `eta_uart5.c` 출력은 채널별 `DebugP_log` 하드코딩이라 출력 라인은 수동 추가 필요.
+- 출력 형식(현재): UART0 콘솔(`DebugP_log`)로 6채널 ASCII. UART5 차동 송신은 미동작([[status]] 미결).
 
 ### A3 — 신호별 스케일링 적용
 
@@ -94,7 +106,7 @@ LP-AM263P 5개 ADC 인스턴스(ADC0~ADC4)에 eta 보드 J3 커넥터 6채널(Te
 
 → [[status]] 단일 소스.
 
-A1 단채널(AIN0) 실보드 검증 완료 (2026-06-05). 다음: A1.5 UART 주기화 + adc.{c,h} 리팩토링.
+A2 완료 — 6채널 ADC 실보드 검증, AIN hard `$assign` 승격, eta_adc.c 테이블 리팩토링(2026-06-09, c512e3b). 다음: A3 스케일링(센서 스펙 대기·블로커) / UART5 차동 송신 복구(미해결) / A4 교차검증.
 
 ---
 

@@ -1,7 +1,7 @@
 ---
 tags: [entity, adc, 8kw-ev-wpt-tx, pinmap]
-source: 사용자 제공 (2026-06-04) — 회로도 전체 미ingest, 해당 신호 핀만 발췌
-date: 2026-06-04
+source: 사용자 제공 (2026-06-04) — 회로도 전체 미ingest, 해당 신호 핀만 발췌. 6채널 완성·int_xbar/IRQ 코드 역산 갱신 (2026-06-09, commit c512e3b)
+date: 2026-06-09
 ---
 
 # adc_pinmap — 8kW WPT TX 보드 ADC 핀맵
@@ -15,16 +15,20 @@ date: 2026-06-04
 
 ## 핀맵
 
-| J3 핀 | ADC 인스턴스 | 채널 | 신호 | 비고 |
-|-------|------------|------|------|------|
-| J3.24 | ADC1 | AIN0 | Temp_Module2 | 온도 센서 모듈 2번 |
-| J3.25 | ADC2 | AIN0 | Temp_Module1 | 온도 센서 모듈 1번 |
-| J3.26 | ADC3 | AIN0 | GA_Vin | 입력 전압 감지 |
-| J3.27 | ADC4 | AIN0 | I_LCC_SEN | LCC 전류 센서 |
-| J3.28 | ADC0 | AIN1 | I_COIL_SEN | 코일 전류 센서 |
-| J3.29 | ADC1 | AIN1 | GA_Iin_SEN | 입력 전류 감지 |
+| J3 핀 | ADC 인스턴스 | SOC | 채널 | 신호 | enum | int_xbar / EOC IRQ |
+|-------|------------|-----|------|------|------|--------------------|
+| J3.24 | ADC1 | SOC0 | AIN0 | Temp_Module2 | ETA_ADC_CH_TEMP_MODULE2 | OUT_0 / IRQ146 |
+| J3.25 | ADC2 | SOC0 | AIN0 | Temp_Module1 | ETA_ADC_CH_TEMP_MODULE1 | OUT_3 / IRQ149 |
+| J3.26 | ADC3 | SOC0 | AIN0 | GA_Vin | ETA_ADC_CH_GA_VIN | OUT_4 / IRQ150 |
+| J3.27 | ADC4 | SOC0 | AIN0 | I_LCC_SEN | ETA_ADC_CH_I_LCC_SEN | OUT_2 / IRQ148 |
+| J3.28 | ADC0 | SOC0 | AIN1 | I_COIL_SEN | ETA_ADC_CH_I_COIL_SEN | OUT_1 / IRQ147 |
+| J3.29 | ADC1 | SOC1 | AIN1 | GA_Iin_SEN | ETA_ADC_CH_GA_IIN_SEN | OUT_0 / IRQ146 |
 
-ADC1은 AIN0(Temp_Module2)·AIN1(GA_Iin_SEN) 두 채널 사용 — SysConfig에서 동일 인스턴스 내 멀티채널로 설정.
+- **6채널 전부 구현·실보드 raw→mV 검증 완료**(branch adc, commit c512e3b). 물리 인스턴스 **5개(ADC0~ADC4)** 사용.
+- **ADC1만 SOC0(Temp_Module2)+SOC1(GA_Iin_SEN) 라운드로빈** — 인터럽트는 **SOC1 EOC 단일 ISR**로 2채널 동시 수확. 나머지(ADC0/2/3/4)는 SOC0 단독.
+- 트리거 = RTI1(SysConfig 논리명 `CONFIG_RTI0`) 1 kSPS, 5개 인스턴스 전부 공유.
+- ✅ **물리 인스턴스 + AIN 핀 모두 hard `$assign`** — 신규 채널 추가 시 솔버 재셔플([[am263p_syscfg_soft_vs_hard_assign]]) 방지. 재생성 후 물리 배정 ADC0~4 유지 확인(soft 잔존 리스크 해소).
+- 채널 enum은 `eta_adc.c` 테이블(`g_eta_adc_inst[]`)이 단일 소스, `ETA_ADC_CH_COUNT`로 일원화.
 
 ---
 

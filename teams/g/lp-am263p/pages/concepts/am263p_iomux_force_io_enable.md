@@ -7,7 +7,7 @@ source:
   - C:\ti\mcu_plus_sdk_am263px_26_00_00_01\source\drivers\hw_include\am263px\cslr_soc_baseaddress.h
   - C:\Users\echog\eta\projects\g\lp-am263p\evaluations\uart5\empty.c
   - C:\Users\echog\eta\projects\g\8kw-ev-wpt-tx\src\eta_bsp\eta_uart5.c
-date: 2026-06-08
+date: 2026-06-09
 ---
 
 # AM263P IOMUX PADCONFIG force_io_enable 패턴
@@ -78,11 +78,15 @@ UART5는 LaunchPad에서 **전용 핀이 없어 EPWM15 패드를 alt-function(`P
 
 - SysConfig 생성 PADCONFIG 값 = `PIN_MODE(1) | PIN_PULL_DISABLE | PIN_SLEW_RATE_LOW` = **`0x501`** (OE/IE override 없음). 두 프로젝트 `ti_pinmux_config.c:42-51` 동일.
 - **lp-am263p 레퍼런스** (loopback, RX+TX 둘 다 force): `evaluations/uart5/empty.c:52-88` (force_io 함수), `:107-113` (call site). 외부 loopback 배선 J1.4(TX) ↔ J1.3(RX). RX input buffer가 안 켜지면 `UART_read`가 영원히 블록된다 — 이게 발견 계기 (`empty.c:52-57` 주석).
-- **8kw-ev-wpt-tx** (TX 전용 디버그 송신): `src/eta_bsp/eta_uart5.c:64-94` — TX(EPWM15_A)만 `PIN_FORCE_OUTPUT_ENABLE`, RX force는 의도적으로 주석 처리(TX 전용). call site `eta_uart5.c:121-122` (`eta_uart5_init` 진입 직후). **lp-am263p TX 경로와 byte-identical.**
+- **8kw-ev-wpt-tx** (TX 전용 디버그 송신): `src/eta_bsp/eta_uart5.c:64-94` — TX(EPWM15_A)만 `PIN_FORCE_OUTPUT_ENABLE`, RX force는 의도적으로 주석 처리(TX 전용). call site `eta_uart5.c:121-122` (`eta_uart5_init` 진입 직후). **lp-am263p TX 경로와 byte-identical.** TXD=EPWM15_A=J1.4.
 
-### 이번 8kw UART5 미동작 건 결론
+### 이번 8kw UART5 미동작 건 결론 (갱신 2026-06-09)
 
-펌웨어 IOMUX/PADCONFIG 처리는 **원인이 아니다.** 8kw의 TX force-output-enable이 검증된 lp-am263p 예제와 동일하고, OE 비트 극성(set=enable)도 확정됐다. **다음 의심 대상은 IOMUX 밖** — THVD1400 RS-485 트랜시버(U13)의 DE/485_EN 핀 (UART5가 RS-485 트랜시버를 경유하는 경로). → 8kw [[status]] 미결 참조.
+펌웨어 IOMUX/PADCONFIG 처리는 **원인이 아니다.** 8kw의 TX force-output-enable이 검증된 lp-am263p 예제와 동일하고, OE 비트 극성(set=enable)도 확정됐다.
+
+★ **현재 상태(branch adc)**: TX force-enable 코드(`:64-94`, `:121-122`)는 **살아있으나**, UART5 차동라인으로 실제 바이트를 내보내는 `snprintf`+`UART_write` 블록은 **통째로 주석 처리**됨(`eta_uart5.c:159-170`) → **현재 UART5 차동 송신은 시도조차 안 함.** 1초 주기 출력은 UART0 콘솔(`DebugP_log`)로만 나간다. 또한 **RS-485 DE/485_EN(THVD1400 U13) 제어 코드 미구현**(src 전체 `485`/`DE`/`THVD` 토큰 0건).
+
+따라서 미동작은 ① `UART_write` 비활성 + ② RS-485 DE 제어 부재 두 층 모두에서 기인. **다음 의심 대상은 IOMUX 밖** — THVD1400 RS-485 트랜시버(U13)의 DE/485_EN 핀. → 복구 작업: `UART_write` 주석 해제 + DE/485_EN 제어 구현·검증. 8kw [[status]] 미결 참조.
 
 ---
 

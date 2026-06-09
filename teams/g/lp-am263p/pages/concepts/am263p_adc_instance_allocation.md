@@ -1,7 +1,7 @@
 ---
 tags: [concept, am263p, adc, sysconfig, design-rule, platform]
-source: 사용자 제공 설계 규칙 (2026-06-08) — 8kw-ev-wpt-tx(adc 브랜치, commit b8b0ad8) J3.28/J3.27 ADC 핀 추가 + 실보드 검증에서 도출
-date: 2026-06-08
+source: 사용자 제공 설계 규칙 (2026-06-08) — 8kw-ev-wpt-tx(adc 브랜치) J3.28/J3.27 ADC 핀 추가 + 실보드 검증에서 도출. 6채널 완성(commit c512e3b) 반영 (2026-06-09)
+date: 2026-06-09
 ---
 
 # AM263P ADC 인스턴스 vs SOC(채널) 배치 결정 가이드라인
@@ -35,10 +35,11 @@ date: 2026-06-08
 
 ## 8kw 현황 (예시)
 
-현재 [[adc_pinmap]] 배치(commit b8b0ad8 기준):
+현재 [[adc_pinmap]] 배치 — **6채널 완성, 물리 인스턴스 5개**(commit c512e3b 기준):
 
 - **ADC1 = Temp_Module2(SOC0) + GA_Iin_SEN(SOC1)** — 동일 인스턴스 2 SOC, **1 ISR(IRQ146)**. 직렬 변환·스큐 발생.
-- **ADC0 = I_COIL_SEN**, **ADC4 = I_LCC_SEN** — 각각 별도 인스턴스(전류 = 상관 신호).
+- **ADC0 = I_COIL_SEN**, **ADC4 = I_LCC_SEN** — 각각 별도 인스턴스(전류 = 상관 신호), SOC0 단독.
+- **ADC2 = Temp_Module1**, **ADC3 = GA_Vin** — 각각 별도 인스턴스, SOC0 단독(신규 2채널).
 - ⚠️ ADC1이 입력 전류(GA_Iin_SEN, 상관 신호)를 온도(저속)와 동거시켜 직렬 변환됨. **현 보드는 PCB 라우팅 고정이라 그대로 운용**하되, 다음 보드 설계 시 입력 전류는 입력 전압(GA_Vin)과 동시 샘플 가능하도록 별도 인스턴스 배정 검토.
 
 ## 한 줄 요약 (다음 보드 설계 시)

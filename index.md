@@ -101,7 +101,7 @@
 - [[sbl_app_flash_handoff]] — `skipHwInit` 게이트, SBL → 앱 핸드오프 시 정합성 깨지는 지점·flashFixUpOspiBoot 비대칭·진단 절차
 - [[am263p_mcspi_controller]] — AM263P MCSPI(13.1.3) 환원: CS 프레이밍·EDMA·클록. S6 `SPI not responsive` 디버그용 (TRM demand-ingest 예시)
 - [[am263p_adc_instance_allocation]] — **AM263P ADC 인스턴스/채널 배치 설계 규칙 정본**: 멀티 인스턴스는 표준(비안정 아님). 각 인스턴스=독립 SAR(자체 S/H·시퀀서·결과레지스터·ADCINT). 한 인스턴스 다중 SOC=직렬(스큐+변환시간합 예산, 마지막 EOC coherent read), 다른 인스턴스=병렬(동시 샘플). 상관·고속(V·I 쌍·전류)은 인스턴스 분산+공통 트리거, 무상관·저속(온도)은 한 인스턴스에 몰아 ISR 절약. 인스턴스↑=+ISR/+int_xbar/+flag 비용. 유일한 실제 instability=변환시간합>트리거주기(overflow). △미검증: 변환시간 예산 수치·동시성 실측
-- [[am263p_syscfg_soft_vs_hard_assign]] — **AM263P SysConfig 논리명≠물리 페리페럴 함정 정본**: 물리 배정이 soft(`$suggestSolution`)면 새 인스턴스 addInstance 시 솔버가 기존 배정까지 reshuffle → ADC AIN은 물리 1:1 고정이라 **엉뚱한 핀을 읽음**(ISR·변환 정상인데 인가전압 미추종 = 가장 헷갈리는 함정). 수정=hard `ADC.$assign="ADCn"`(✓실보드 검증). int_xbar·base·AIN은 물리 기준. 모든 보드배선 고정 페리페럴 일반화. △UART5 점검 후보(2026-06-09)
+- [[am263p_syscfg_soft_vs_hard_assign]] — **AM263P SysConfig 논리명≠물리 페리페럴 함정 정본**: 물리 배정이 soft(`$suggestSolution`)면 새 인스턴스 addInstance 시 솔버가 기존 배정까지 reshuffle → ADC AIN은 물리 1:1 고정이라 **엉뚱한 핀을 읽음**(ISR·변환 정상인데 인가전압 미추종 = 가장 헷갈리는 함정). 수정=hard `ADC.$assign="ADCn"`(✓실보드 검증). int_xbar·base·AIN은 물리 기준. 모든 보드배선 고정 페리페럴 일반화. UART5는 soft 재배치 아님 확정(원인=UART_write 주석+RS-485). AIN 핀까지 hard 승격으로 리스크 닫음(✓ 6채널 c512e3b)
 - [[am263p_adc_rti_trigger]] — **AM263P ADC 브링업 정본**: RTI 타이머→ADC SOC 트리거 결선 함정(SysConfig `enableIntr0` 미설정 시 INT0 export 게이트 차단) + JTAG/RAM 레지스터 검증 측정 시점 함정(reset 없이 read=전부 0 오진) + 검증된 설계 패턴(RTI 트리거+EOC ISR-flag, 1 kSPS). 레퍼런스 `adc_soc_rti`. 8kw 실측 환원 (2026-06-05)
 - [[am263p_iomux_force_io_enable]] — **AM263P IOMUX PADCONFIG force_io_enable 정본**: SysConfig 핀먹스만으론 alt-function 패드 입·출력 버퍼가 안 켜짐(OE/IE override `00` + `Pinmux_config` plain-write). KICK 언락 후 PADCONFIG RMW로 `PIN_FORCE_OUTPUT_ENABLE(0x40)`/`PIN_FORCE_INPUT_ENABLE(0x10)` OR-set 필수. ★OE/IE active-low 아님(set=enable). UART5(EPWM15_A/B) 사례 발견·전 alt-function 패드 일반화. 8kw UART5 미동작 = 펌웨어 원인 아님(RS-485 트랜시버 의심)
 - [[jtag_flash_harness]] — **JTAG flash 굽기 정본(flash-time 층위)**: ① runAsynch Node.js 하네스(DSS Rhino GEL_RunF는 R5 free-run+TCM read 0x400000으로 깨짐) ② 클린 호스트(IDE 종료) ③ 연속 시도 사이 파워 사이클(IDLE→never BUSY/300s timeout 해소) ④ standalone 부팅 banner 검증. flashwriter 내부(gCmd 0x70038000)·boot 프로파일·하네스 위치 (2026-06-05 8kw 실측)
@@ -120,7 +120,7 @@
 ### Living docs
 
 - [roadmap.md](teams/g/8kw-ev-wpt-tx/roadmap.md) — 프로젝트 로드맵(목표·작업 호 인덱스·현재 위치)
-- [roadmaps/adc.md](teams/g/8kw-ev-wpt-tx/roadmaps/adc.md) — `adc` 작업 호(A0~A4). eta 보드 J3 6채널 ADC 브링업, 신호별 스케일링 포함
+- [roadmaps/adc.md](teams/g/8kw-ev-wpt-tx/roadmaps/adc.md) — `adc` 작업 호(A0~A4). eta 보드 J3 6채널 ADC 브링업, 신호별 스케일링 포함. A2 ✓ 6채널 실보드 검증(2026-06-09 c512e3b). 다음 A3 스케일링(스펙 대기)
 - [status.md](teams/g/8kw-ev-wpt-tx/status.md) — 기능별 구현 현황표·다음 시작점 (파이프라인이 커밋마다 갱신)
 
 ### Concepts
@@ -129,4 +129,4 @@
 
 ### Entities
 
-- [[adc_pinmap]] — eta 보드 J3 커넥터 → ADC 인스턴스/채널 → 신호 대응표 (6채널: 온도×2, 전압×1, 전류×3). 스케일링 스펙 미확인 항목 포함
+- [[adc_pinmap]] — eta 보드 J3 커넥터 → ADC 인스턴스/SOC/채널/int_xbar/IRQ → 신호 대응표 (6채널: 온도×2, 전압×1, 전류×3, 6/6 구현·실보드 검증, 5 인스턴스, AIN hard assign). 스케일링 스펙 미확인 항목 포함

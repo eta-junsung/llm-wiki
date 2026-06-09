@@ -1,7 +1,7 @@
 ---
 tags: [concept, am263p, adc, rti, sysconfig, 정본]
-source: 2026-06-05 8kw-ev-wpt-tx ADC 브링업 실보드 실측 + TI MCU+SDK `examples/drivers/adc/adc_soc_rti`
-date: 2026-06-05
+source: 2026-06-05 8kw-ev-wpt-tx ADC 브링업 실보드 실측 + TI MCU+SDK `examples/drivers/adc/adc_soc_rti`. 6채널(5 인스턴스) 확장 경과 추가 (2026-06-09 c512e3b)
+date: 2026-06-09
 ---
 
 # am263p_adc_rti_trigger — AM263P ADC 브링업 노하우 (RTI 타이머 트리거)
@@ -50,6 +50,8 @@ date: 2026-06-05
 - 샘플레이트는 **SPS(= RTI compare 주기) 기준**으로 설정.
 
 이 패턴이 polling 방식보다 타이밍이 결정적이고 ISR이 가벼워 권장. 다핀 확장 시에는 채널별 결과 버퍼 + main 루프 소비를 유지한 채 ADC 인스턴스/채널을 늘린다.
+
+> **확장 경과(2026-06-09, commit c512e3b)**: 8kw가 이 패턴 그대로 **6채널(5 인스턴스 ADC0~ADC4)**으로 확장·실보드 검증 완료 — 단일 **RTI1**(SysConfig 논리명 `CONFIG_RTI0`) 트리거를 5개 인스턴스가 공유, ADC1만 SOC0+SOC1 라운드로빈으로 **SOC1 EOC 단일 ISR**에서 2채널 coherent read(나머지는 SOC0 단독). ISR은 raw만 저장, main `eta_adc_loop`이 `(raw*3300)/4095` 정수 mV 변환(out-param). 인스턴스별 ISR/init/loop는 인스턴스 테이블 + 공용 ISR로 통합 리팩토링됨. UART 출력 주기화는 별도 **RTI2**(syscfg `CONFIG_RTI1`)로 분리. 적용 현황 [[adc]] §A2.
 
 - **어느 인스턴스/채널에 무엇을 배정하는가** → [[am263p_adc_instance_allocation]] (동시성 요구·변환시간 예산 기준, 안정성 아님).
 - **논리 인스턴스명을 물리에 고정하는 법** → [[am263p_syscfg_soft_vs_hard_assign]] (soft `$suggestSolution`은 인스턴스 추가 시 reshuffle돼 엉뚱한 핀을 읽음 — hard `$assign` 필수).
