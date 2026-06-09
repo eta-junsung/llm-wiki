@@ -4,6 +4,16 @@
 
 ---
 
+## [2026-06-09] ingest | 8kw-ev-wpt-tx — PWM P1 Pin1(HS1) 구현·실보드 검증 + EPWM primary 패드 force_io 불요 정본
+
+- **출처**: PWM P1 Pin1 = EPWM2_A → J4.39 (PWM_HS1) 실보드 검증.
+- **검증 실측(Saleae Logic2)**: **99.997 kHz / duty 49.998%**(n=10223 cycles), 깨끗한 토글·글리치 없음. 100 kHz는 **브링업 임시값**(확정 주파수 pending — 추정 금지).
+- **핀맵 정본↔실측 불일치 없음** — EPWM2_A@J4.39(UG Mode0) 그대로 동작. [[pwm_pinmap]] HS1 행에 "검증됨" 마킹.
+- **신규 정본 [[am263p_epwm_primary_pad_no_force_io]]** (lp-am263p): EPWM 출력이 핀 **primary function**이면 SysConfig 핀먹스만으로 출력 버퍼 켜짐 → **force_io_enable 불필요**. force는 alt-function 패드(UART5=EPWM15)만 — [[am263p_iomux_force_io_enable]]와 **대조 짝**. 근거=Pin1 force 없이 출력. 판별=UG 핀먹스 Mode0(primary)인지 alt인지. + **검증법 환원**: OCRAM 이미지라 flash 없이 ccs-debug `loadProgram→run` + Saleae로 핀 측정(디버그 끊겨도 RAM 이미지 계속 실행) — dead-time build-per-change 튜닝에 유리.
+- **P1 진행 1/4**: Pin1 ✓. 남음 = Pin2 LS1(EPWM2_B@J4.40, 레그1 dead-band 상보) → Pin3 HS2(EPWM4_A@J6.52) → Pin4 LS2(EPWM7_B@J6.51, 레그2 SYNC+위상오프셋).
+- **확인 필요(미확정)**: ① 실제 스위칭 주파수 ② 레그2 두-모듈(EPWM4+EPWM7) SYNC+위상오프셋 상보·dead-time 구체 설계 — SDK 1:1 예제 없음, Pin4 착수 시 설계.
+- **갱신**: [[pwm]](P1 △1/4·핀별 표·검증법·환원 후보), [[pwm_pinmap]](HS1 검증됨), [[status]](PWM 트랙·현황표 △), [[am263p_epwm_primary_pad_no_force_io]](신규), index 2건(concept 신규·pwm 진행).
+
 ## [2026-06-09] ingest | oled_tv_software — comm-state 판정 (T,N) 상수 통일·spi_status LINK/CRC 분리·COMM 라인 환원 (esb d2232fe)
 
 - **근거 커밋**: `d2232fe`(esb, 2026-06-09) "feat(comm): 통신상태 판정 T/N 상수 통일 + 3칩 공통 COMM 라인". 코드 직접 확인 후 환원.
@@ -14,6 +24,48 @@
 - **보류·미구현 표기**: 02/03 COMM 라인 미와이어링(unused), ESB CRC는 HW CRC 보증으로 SW 검증 안 하기로 결정(자리는 `-`).
 - **재확인(불변)**: race-free stamp 설계(02가 `spi_tx_pkt`에 `SPI_Loop` 송신 직전 stamp, `pkt_build_tx` extra_d0 아님) — d2232fe가 02 미수정, 기존 기록 정확.
 - **갱신**: [[comm_state_monitoring]](frontmatter date·심볼표·판정식·(T,N)모델 신설·LINK/CRC분리 신설·COMM라인 신설·보류절), [[status]](다음 시작점·구현현황 2행·BLE행·미결 2항), [[roadmap]](§3·§5 후속 N=20 반영), [[spi_link_reliability]](단절판정·경고출력 LINK/CRC 분리), index.
+
+## [2026-06-09] decision | 8kw-ev-wpt-tx — PWM 레그2 suffix UG 기준 확정 + 레그2 한 모듈 묶기 향후 요청 기억
+
+- **사용자 결정 1 — A/B suffix는 UG 기준**: 레그2 구현 채널 = EPWM4_A@J6.52, EPWM7_B@J6.51로 확정(schematic net 라벨 _B/_A와 반대지만 핀이 강제). [[pwm_pinmap]] "확인 권장" 헤징 제거 → 확정.
+- **사용자 결정 2 — 레그2 두 모듈은 의도된 현 설계, 단 향후 수정**: 현 회사 회로도가 레그2(HS2/LS2)를 EPWM4+EPWM7 두 모듈에 라우팅한 것은 의도적. **사용자가 회로도 수정 요청 기회가 생기면 한 EPWM 모듈로 묶도록 요청할 계획** → 그때 상기시킬 것.
+- **기억 저장**: 영구 메모리 `project_8kw_pwm_leg2_revision.md`(project type) 신규 + MEMORY.md 포인터. wiki [[pwm_pinmap]] §향후 보드 개선 + [[pwm]] §6 환원/개선 후보에도 기록.
+- **갱신**: [[pwm_pinmap]](§핵심·§향후 보드 개선·§미확인), [[pwm]](§5·§6), [[status]](미결 reframe), [[team_briefing_8kw]]. PWM 상태 = 핀맵 확정·P1 착수 대기(불변).
+
+## [2026-06-09] resolve | 8kw-ev-wpt-tx — PWM 핀맵 확정 (J4.38→J4.39 정정 + UG 교차확인) → P1 착수 가능
+
+- **사용자 정정**: J4.38은 오기, 실제 **J4.39**(EPWM2_A=PWM_HS1). → 레그1이 UG와 완전 일치(EPWM2_A@J4.39, EPWM2_B@J4.40)하며 **UG 표 신뢰성 검증**.
+- **확정 핀맵([[pwm_pinmap]])**:
+  - 레그1 = **EPWM2 단일 모듈**: EPWM2_A=HS1@J4.39, EPWM2_B=LS1@J4.40.
+  - 레그2 = **EPWM4+EPWM7 두 모듈**: EPWM4_A=HS2@J6.52, EPWM7_B=LS2@J6.51.
+- **A/B suffix 정리**: 레그2에서 사용자 net 라벨(_B/_A)과 silicon 노출 채널(_A/_B)이 반대. 물리 핀이 노출하는 채널은 J6.52=EPWM4_A뿐·J6.51=EPWM7_B(Mode0)뿐이라, **구현 기준은 UG 채널**(EPWM4_A@J6.52, EPWM7_B@J6.51). net 이름에 끌려가지 말 것.
+- ★ **레그2 두 모듈 함의**: J6.51이 EPWM4_B를 노출 안 해 한 모듈로 못 묶음 → 레그2 상보·dead-time은 모듈 내 dead-band 불가, **EPWM 동기(SYNC)+위상 오프셋**으로 생성(레그1 단일모듈 dead-band와 비대칭). dead-time 튜닝 경로도 레그1=레지스터/레그2=오프셋으로 다름. 비표준이라 설계 의도 재확인 권장(보드 라우팅은 고정).
+- **인스턴스 3개**: EPWM2/4/7. UART5(EPWM15) 무충돌.
+- **상태 변화**: 직전 correction(핀맵 UG 불일치·P1 차단) → **해소**. 핀맵·토폴로지·dead-time(150ns build-per-change) 확정 → **P0 대부분 해소, 다음 착수 = P1**. 잔여 = 주파수 확정값·보호신호.
+- **갱신**: [[pwm_pinmap]](확정 표·레그2 두모듈 함의), [[pwm]](§0·§1·§2·§3·§5 P1 착수), [[status]](PWM 트랙 P1·현황표·미결), [[team_briefing_8kw]](다이어그램·다음주 보고=P1), index 2건.
+
+## [2026-06-09] correction | 8kw-ev-wpt-tx — PWM 핀맵, UG 교차확인서 불일치 발견 → "확정" 철회·확인 필요
+
+- **정정 대상**: 직전 PWM 핀맵 "확정" entry. **UG 핀먹스 표([[lp_am263p_ug]] Table 2-28 J4 / 2-30 J6) 교차확인 결과, 사용자 제공 4핀 중 3핀 불일치** → 정본 [[pwm_pinmap]]을 "확인 필요"로 다운그레이드.
+- **사용자 정정 입력**: J6.51 = **EPWM7_A** (직전 EPWM&_A 오타 → 내가 EPWM4_A로 잠정기입한 것 정정).
+- **UG 교차확인 결과**:
+  - J4.38: 사용자=EPWM2_A인데 **UG는 EPWM1_B(Mode0)/EPWM4_B(Mode10)** — EPWM2_A는 UG상 **J4.39**(off-by-one 의심).
+  - J4.40: 사용자=EPWM2_B, **UG=EPWM2_B ✅ 유일 일치.**
+  - J6.52: 사용자=EPWM4_B인데 **UG=EPWM4_A**(J6.52엔 _B 없음).
+  - J6.51: 사용자=EPWM7_A인데 **UG=EPWM7_B(Mode0)/EPWM5_B(Mode10)**(J6.51엔 _A 없음).
+- **UG-consistent 가설 reading(미확정)**: HS1=EPWM2_A@J4.39, LS1=EPWM2_B@J4.40, HS2=EPWM4_A@J6.52, LS2=EPWM7_B@J6.51. → 이 경우 **레그2가 EPWM4(HS)+EPWM7(LS) 서로 다른 모듈**에 걸쳐 모듈 내 dead-band 불가, 동기체인+위상으로 dead-time 생성 필요(레그1 EPWM2 단일모듈과 비대칭). 인스턴스 2개(EPWM2/4)→**3개(EPWM2/4/7)** 가능성.
+- **조치**: [[pwm_pinmap]]에 reconcile 표(사용자 vs UG Mode0/Mode10) + 확인 필요 명시. [[pwm]]·[[status]]·[[team_briefing_8kw]]·index에서 "핀맵 확정→P1 착수"를 "핀맵 reconcile 선결→그 후 P1"로 정정. 게이트 구동 핀이라 확정 전 SysConfig 배정 금지.
+- **확정 스펙(불변)**: 풀브리지 4채널·주파수 고정형(값 미정)·dead-time만 가변(build-per-change, 시작 150ns)·UART5(EPWM15) 무충돌·P4서 ADC 트리거 RTI→EPWM 전환.
+- **사용자 호명 필요**: 핀번호 off-by-one(J4.38↔39)인지 / A·B suffix 표기 혼동인지 / 다른 핀 넘버링 기준인지 reconcile.
+
+## [2026-06-09] ingest | 8kw-ev-wpt-tx — PWM 핀맵·스펙 확정 (사용자 제공) → P0 대부분 해소, P1 착수 대기
+
+- **출처**: 사용자 제공 PWM 핀맵·스펙 (2026-06-09).
+- **신규 [[pwm_pinmap]]**: 풀브리지 인버터 4채널 — J4.38 EPWM2_A=PWM_HS1, J4.40 EPWM2_B=PWM_LS1, J6.51 EPWM4_A=PWM_LS2, J6.52 EPWM4_B=PWM_HS2. **EPWM2=레그1, EPWM4=레그2.** ⚠️ **A/B↔HS/LS 매핑이 인스턴스별 반전**(EPWM2 A=HS, EPWM4 A=LS) → 레그별 상보 극성·dead-time 다르게 설정. ✅ **UART5(EPWM15) 무충돌**(이전 P0 선결 충돌 점검 해소).
+- **스펙**: 스위칭 주파수 **고정형**(값 미정·런타임 가변 아님). **dead-time만 가변** — 리얼타임 변경 불필요, **값 바꿀 때마다 새 빌드(build-per-change)**, **시작 ≈150ns**. duty 등 기타 미정.
+- **ADC 트리거 향후 계획**: 현재 ADC=RTI1 트리거 유지. **PWM 완료 후 ADC SOC 트리거를 RTI→EPWM으로 전환 예정**(P4). 전력제어 표준(PWM 주기 특정 시점 샘플). 지금은 RTI 그대로.
+- **사실/가설/모름 갱신**: 토폴로지·채널·핀·dead-time 방식·UART5 무충돌 = **사실 승격**. LCC 탱크 = 가설 유지. 주파수 확정값·보호신호 소스·게이트 극성 = 모름(P0 잔여, 단 주파수 고정형이라 P1은 임시값 진행 가능).
+- **갱신**: [[pwm]](§1 사실/가설/모름·§2 마일스톤 P0 △/P1 다음착수·§3 단계·§5 블로커), [[status]](PWM 트랙 P1 착수·현황표·미결), [[team_briefing_8kw]](PWM 다이어그램·확정 스펙·다음주 보고 포인트=P1), index 2건(pwm.md 갱신·pwm_pinmap 신규). **다음 착수 = P1**(EPWM2/4 4채널 기본 출력, dead-time 150ns, 오실로 검증).
 
 ## [2026-06-09] plan | 8kw-ev-wpt-tx — PWM 전력제어 작업 호(P0~P4) 신규 등록 (미착수)
 
