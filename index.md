@@ -92,7 +92,7 @@
 
 ### Concepts
 
-- [[team_briefing]] — **팀 업무보고 참고 자료**: 전체 로드맵·현재 위치·S3 블로커(비유 포함)·남은 사항. 보고 직전 열어서 참고
+- [[team_briefing]] — **팀 업무보고 참고 자료(lp-am263p)**: 주차별 보고 스냅샷 이력(6/2·6/9 diff)·로드맵·S6 현재 위치(R35~R38 원인 좁힘, R39 예정)·비유표. 보고 직전 열어서 참고
 - [[flash_open_facts]] — **S3 블로커 사실 원장**: 확정 사실 + 폐기 가설(재시도 금지) + 현재 최유력 가설. 라운드마다 제자리 수정 (맥락유실 방지 핵심)
 - [[flash_open_diagnostic_log]] — **S3 블로커 진단 라운드 로그** (append-only): R7~R27 가설→변경→관찰→결론 + R28 계획
 - [[xspi_dummy_cycles]] — IS25LX256 Octal DDR(8D-8D-8D) dummy cycle vs 클럭 주파수 표 + 자주 쓰는 값 (16.67/33.33/50/100/133 MHz)
@@ -121,10 +121,12 @@
 
 - [roadmap.md](teams/g/8kw-ev-wpt-tx/roadmap.md) — 프로젝트 로드맵(목표·작업 호 인덱스·현재 위치)
 - [roadmaps/adc.md](teams/g/8kw-ev-wpt-tx/roadmaps/adc.md) — `adc` 작업 호(A0~A4). eta 보드 J3 6채널 ADC 브링업, 신호별 스케일링 포함. A2 ✓ 6채널 실보드 검증(2026-06-09 c512e3b). 다음 A3 스케일링(스펙 대기)
+- [roadmaps/pwm.md](teams/g/8kw-ev-wpt-tx/roadmaps/pwm.md) — `pwm` 작업 호(P0~P4). EPWM 전력제어(인버터 게이트 구동·보호·제어루프). **미착수** — ADC 다음 활성 트랙. P0(토폴로지·채널·주파수·dead-time 스펙 확정+EPWM15↔UART5 충돌 점검) 선결. 사실/가설/모름 가름 포함
 - [status.md](teams/g/8kw-ev-wpt-tx/status.md) — 기능별 구현 현황표·다음 시작점 (파이프라인이 커밋마다 갱신)
 
 ### Concepts
 
+- [[team_briefing_8kw]] — **팀 업무보고 참고 자료(8kw)**: 주차별 보고 스냅샷 이력·작업 호(A0~A4)·ADC 6채널 완료 현재 위치·만난 문제표(트리거 결선·soft 재셔플)·다음(A3 스펙 대기/UART5 복구). 보고 직전 참고
 - [[jtag_flash_clean_host]] — **운영 함정**: AM263P OSPI JTAG 굽기는 CCS IDE를 완전히 내린 클린 호스트에서. host-driven 스크립팅(run.bat/flash_node.js, DSS Rhino) ↔ IDE 상주 cloudagent+DSLite 디버그 백엔드 경합 → 비일관 실패(펌웨어/보드 오인 위험). `getDebugSessions=[]`라도 프로세스 레벨 확인 (2026-06-05 실측)
 
 ### Entities
