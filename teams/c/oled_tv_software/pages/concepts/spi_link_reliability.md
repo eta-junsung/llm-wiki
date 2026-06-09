@@ -19,8 +19,8 @@ subsystem: 01_RX_control, 02_RX_ble
 | 토글 생성 | `02_RX_ble` `SpiCommSt_Loop()` | millis 200ms 게이트로 `spi_comm_st_bit ^= 1u` (SPI 사이클과 독립) |
 | 패킷 적재 | `02_RX_ble` `SPI_Loop` | **나가는 SPI 송신 복사본 `spi_tx_pkt`에 송신 직전 stamp** — 공유 RX 버퍼 `esb_pkt[0]` 아님(race). `build_tx_pkt()`도 아님. race-free 근거 → [[comm_state_monitoring]] "race-free stamp" |
 | 변화 감지 | `01_RX_control` `common.c` | bit5 변화 시 `spi_comm_st_last_change` 갱신 |
-| 단절 판정 | `01_RX_control` `common.c` | `SPI_COMM_ST_TIMEOUT_MS=5000` 초과 무변화 → `spi_status=SPI_FAIL` |
-| 경고 출력 | `01_RX_control` `common.c` `spi_proc()` | `spi_status` 전이 순간 UART 1회 — `spi \| LINK DOWN` / `spi \| LINK UP`. `static spi_status_prev`(초기값 SPI_OK)로 edge 감지. **CRC fail·heartbeat timeout 두 FAIL 경로 단일 `spi_status` 통합 포착.** |
+| 단절 판정 | `01_RX_control` `common.c` | `d2232fe`부터 `SPI_COMM_ST_WINDOW_MS=1000`(구 `..._TIMEOUT_MS=5000`) 초과 무변화 → `spi_status=SPI_FAIL`. **이제 `spi_status`는 LINK(토글 타임아웃) 전용** |
+| 경고 출력 | `01_RX_control` `common.c` `spi_proc()` | `spi_status` 전이 순간 UART 1회 — `spi \| LINK DOWN` / `spi \| LINK UP`. `static spi_status_prev`(초기값 SPI_OK)로 edge 감지. **`d2232fe`부터 LINK/CRC 분리** — `spi_status`는 토글 타임아웃만 포착, CRC fail은 별도(1초 윈도우, COMM 라인). 이전 `e5e3efc` 단일 통합을 환원 → [[comm_state_monitoring]] "spi_status LINK/CRC 분리" |
 | LED2 mirror | `03_TX_ble` (custom board) | LED2(P0.08)가 `spi_comm_st_bit` 값을 미러 — [[tx_ble_module]] |
 
 - **200ms 독립화의 의미**: 토글이 SPI 사이클에 종속되지 않으므로, SPI 폴링 주기(PACKET_INTERVAL)를 바꿔도 heartbeat 거동은 불변. STM32는 "토글 주기"가 아니라 "마지막 변화 시각"으로 판정하므로 토글 주기에 무관하게 동작.

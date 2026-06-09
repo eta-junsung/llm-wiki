@@ -4,6 +4,17 @@
 
 ---
 
+## [2026-06-09] ingest | oled_tv_software — comm-state 판정 (T,N) 상수 통일·spi_status LINK/CRC 분리·COMM 라인 환원 (esb d2232fe)
+
+- **근거 커밋**: `d2232fe`(esb, 2026-06-09) "feat(comm): 통신상태 판정 T/N 상수 통일 + 3칩 공통 COMM 라인". 코드 직접 확인 후 환원.
+- **낡은 값 정정**: `BLE_COMM_ST_MIN_COUNT` 3→**20**(200ms 윈도우 기대 ~200개의 ~10%; `ESB_TX_INTERVAL_MS=1ms`). SPI는 `SPI_COMM_ST_TIMEOUT_MS=5000`→`SPI_COMM_ST_WINDOW_MS=1000`(개명·단축). 02/03 판정 코드 `delta >= MIN_COUNT` 확인.
+- **새 모델**: comm-st 임계 = percent 자동계산 폐기, **각 링크 (T,N) 직접 상수**(헤더 한 블록). SPI=rolling-timeout(01만 소비, `MIN_COUNT=1`은 직접 미참조 문서값, 02/03 unused #define), BLE=윈도우 카운트(02·03 소비).
+- **spi_status LINK/CRC 분리**: 01의 `spi_status`가 LINK 전용(토글 타임아웃)으로 분리, CRC는 1초 윈도우 fail로 별도(이전 `e5e3efc` 통합을 환원). diff: `spi_proc()`에서 ok/CRC-fail 시 `spi_status` 적던 두 줄 제거.
+- **3칩 공통 COMM 라인**: `pkt_print_comm_line(spi_link,spi_crc,esb_link,esb_crc)` in `_shared/oled_tv_protocol.c`. 출력 `COMM | SPI:{L}{C} ESB:{L}{C}`(1=up/ok,0=down/err,-=N/A). 함수는 칩 무지. **현재 01만 호출**(common.c:200), SPI down이면 ESB 전부 stale `--`.
+- **보류·미구현 표기**: 02/03 COMM 라인 미와이어링(unused), ESB CRC는 HW CRC 보증으로 SW 검증 안 하기로 결정(자리는 `-`).
+- **재확인(불변)**: race-free stamp 설계(02가 `spi_tx_pkt`에 `SPI_Loop` 송신 직전 stamp, `pkt_build_tx` extra_d0 아님) — d2232fe가 02 미수정, 기존 기록 정확.
+- **갱신**: [[comm_state_monitoring]](frontmatter date·심볼표·판정식·(T,N)모델 신설·LINK/CRC분리 신설·COMM라인 신설·보류절), [[status]](다음 시작점·구현현황 2행·BLE행·미결 2항), [[roadmap]](§3·§5 후속 N=20 반영), [[spi_link_reliability]](단절판정·경고출력 LINK/CRC 분리), index.
+
 ## [2026-06-09] plan | 8kw-ev-wpt-tx — PWM 전력제어 작업 호(P0~P4) 신규 등록 (미착수)
 
 - **계기**: ADC 계측(A2) 완료 후 다음 작업으로 PWM 구현 추가 지시. roadmap.md가 예고한 후속 작업(PWM)을 정식 작업 호로 승격.
