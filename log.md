@@ -4,6 +4,17 @@
 
 ---
 
+## [2026-06-10] ingest | 8kw-ev-wpt-tx — PWM 주파수 85kHz 고정 + dead-time config 분리 구현·실보드 검증 (commit d01fc0a)
+
+- **근거 커밋**: `d01fc0a` (branch pwm). 직전 `8046744`(dead-time 단일소스)·`6e6b342`(P1 4핀) 위에 **주파수 확정값(85 kHz) 반영 + 튜닝 knob 파일 분리**를 얹어 4채널 실측 PASS. P2 △→✓.
+- **주파수 85 kHz 고정·실측**(전엔 "확정 스펙"일 뿐 미구현): `TBPRD 1000→1176`, `cmpA 500→588`, `EPWM7 CMPB 470→558`(@150 ns). Saleae **85.032 kHz**(+0.002%, 주기 11.7603 µs, 지터 σ≈0.74 ns) — 계산 1176과 일치. **TBCLK=200 MHz는 이제 전제 아닌 확정 사실**(1 count=5 ns).
+- **dead-time 단일소스 위치 이전**: ~~`eta_pwm.h ETA_DEADTIME_NS`~~ → **`src/eta_bsp/eta_tuning.h`**(신설, HW 엔지니어용 컴파일타임 knob 전용). **유효범위 100~400 ns, 이탈 시 `#error` 빌드 차단**. 한 줄만 바꿔 재빌드→파생값(COUNTS·EPWM7 CMPB) 자동 추종.
+- **런타임 override → SysConfig 면역**: 주파수(TBPRD/cmpA)·dead-time 모두 `eta_pwm_init()`이 런타임 override → `example.syscfg` 재생성으로 기본값 덮여도 면역. `example.syscfg`는 안 건드림. ⚠️ **빌드 환경**: CCS makefile이 절대경로 박음 → 다른 노트북 clone 후엔 CCS import로 재생성해 빌드. `eta_tuning.h`는 순수 C 컴파일이라 syscfg 재생성 불요(override 방식 이점).
+- **검증(Saleae 4ch: HS1 J4.39/LS1 J4.40/HS2 J6.52/LS2 J6.51, dead-time 100/150/400 ns 스윕, 전 주기)**: duty(HS) 49.15/48.73/46.60% — `50%−dt/T` 정확 추종(AHC 정상, 결함 아님); dead-time 100/150/400 ns 완벽 선형(20/30/80 counts, 레그1 σ<1 ns); **shoot-through 양 레그 전 주기 0건**(최소 DT 89 ns 양수 마진). **PASS.**
+- **새 사실 — 레그2 dead-time 비대칭(향후 P3/P4 마진)**: 두 모듈 동기라 모듈간 **~11 ns(≈2.2 counts) 고정 위상 스큐** → dead-time HS→LS +11/LS→HS −11 ns 비대칭(합=2×설정). 레그1(단일 모듈 dead-band)은 없음. 현 스펙(100~400 ns) 무해(89 ns 마진), **50 ns 이하 시 마진 재확인**, 대칭 필요 시 EPWM7 CMPB +2 counts 트림. → 플랫폼 일반 사실로 [[am263p_epwm_module_sync_deadtime]] §함정에 승격.
+- **dead-time 최종값은 미결 유지**: 현재 150 ns 베이스라인 커밋, 전력단 브링업 때 100~400 ns 중 확정. (인프라·config 분리는 완료.)
+- **갱신**: [[status]](소스레이아웃 eta_pwm/eta_tuning.h·§85kHz 검증절·현황표·미결[비대칭·빌드환경·최종값]·다음), [[pwm]](§1 사실·§2 P0/P2 표·§3 dead-time 단일소스 위치·§85kHz 검증절·§레그2 비대칭절·§빌드 환경절·§4/5/6·date), [[pwm_pinmap]](스펙 85.032kHz·단일소스 위치·비대칭), [[am263p_epwm_module_sync_deadtime]](§함정 위상스큐 비대칭·§검증 85kHz·§8kw 인스턴스 CMPB558/eta_tuning.h), [[roadmap]](pwm 행 P2✓·현재위치), log·index.
+
 ## [2026-06-10] ingest | 8kw-ev-wpt-tx — 레그2 SYNC dead-time concept 승격 + 주파수 85kHz 고정 확정·dead-time 100~400ns
 
 - **concept 승격(신규)**: [[am263p_epwm_module_sync_deadtime]] (lp-am263p 플랫폼 concept — 선례 [[am263p_epwm_primary_pad_no_force_io]]와 동일 배치). 풀브리지 레그 HS/LS가 다른 EPWM 모듈에 걸칠 때: master `syncout=ON_CNTR_ZERO`→slave `syncin`·phaseShift=0 위상정렬 + slave AQ 반전 + CMPB 오프셋(`TBPRD/2−DT`, `<TBPRD/2` 엄수). SYNC-in 기본 disable(자유구동) 주의·dead-band 레그와 ns 소스 공유. 8kw 레그2(EPWM4_A→EPWM7_B) 실측 출처. [[pwm]] §3 환원 후보 해소(승격 완료).

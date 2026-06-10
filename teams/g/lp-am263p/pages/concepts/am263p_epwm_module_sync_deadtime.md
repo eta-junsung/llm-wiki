@@ -36,6 +36,7 @@ date: 2026-06-10
 
 - **CMPB 부호 (shoot-through 직결)**: `CMPB`는 **반드시 `< TBPRD/2`**. `TBPRD/2 + DT`(부호 오류)로 두면 LS ON 구간이 HS OFF 구간을 **넘어 겹쳐 shoot-through**가 난다. 8kw 구현 중 1회 부호 오류로 발생→정정. 부호는 `−`.
 - **SYNC-in 기본 disable**: SysConfig 기본 EPWM 인스턴스는 **SYNC-in disable + phaseShift=0**이라 단독 **자유구동(free-run)** 한다. 즉 **단일 모듈 핀은 위상기준 없이 독립 검증 가능**(이 점은 브링업에 유리)하지만, 이 패턴의 모듈간 위상정렬은 **SYNC를 명시 활성화**해야 성립한다 — 기본값으로는 두 모듈이 정렬되지 않는다. ([[pwm_pinmap]] §EPWM 인스턴스·자유구동)
+- ⚠️ **모듈간 위상 스큐 → dead-time 비대칭 (플랫폼 일반 사실)**: SYNC로 정렬해도 두 모듈 사이엔 **수 count 수준의 고정 잔류 위상 스큐**가 남는다(8kw 실측 **~11 ns ≈ 2.2 counts @200 MHz TBCLK**). 결과로 dead-time이 **HS→LS / LS→HS 방향에 따라 ±스큐만큼 비대칭**(두 갭의 **합은 항상 정확히 2×설정값**으로 보존). **같은 모듈 dead-band 레그(RED/FED)는 비대칭 없음.** 함의: dead-time이 충분히 크면 무해하지만, **설정값이 스큐에 근접할 만큼 작아지면**(예: 8kw 스큐 11 ns에 대해 ≲50 ns) 짧은 쪽 갭이 `설정−스큐`까지 줄어 **shoot-through 마진을 직접 깎는다** → 저 dead-time 설계 시 마진 재확인 필수. 대칭이 필요하면 **slave CMPB에 스큐 보정 트림(8kw 기준 약 +2 counts)** 검토. (근본 해소는 보드 단계에서 레그를 한 모듈로 묶는 것.)
 
 ---
 
@@ -53,7 +54,8 @@ date: 2026-06-10
 ## 검증 (8kw 실측)
 
 - **자유구동 단독검증 → SYNC 결선**: master(EPWM4_A=HS2)는 free-run으로 단독 100 kHz/50% 확인 후, slave(EPWM7_B=LS2)를 SYNC 결선해 상보·dead-time 측정.
-- **dead-time = 상보쌍 both-LOW 갭 / shoot-through = both-HIGH 겹침** (Saleae 4ch, transition CSV). 150/300 ns 두 빌드 4채널: 두 레그 dead-time이 명목 추종, **shoot-through 0**(양 빌드). 결과표 [[pwm]] §검증 방법·결과.
+- **dead-time = 상보쌍 both-LOW 갭 / shoot-through = both-HIGH 겹침** (Saleae 4ch, transition CSV). 150/300 ns(100 kHz, `8046744`) + 100/150/400 ns(85 kHz, `d01fc0a`) 빌드 4채널: 두 레그 dead-time이 명목 **선형 추종**, **shoot-through 0**(전 빌드, 최소 마진 89 ns). 결과표 [[pwm]] §검증 방법·결과·§85 kHz 검증.
+- **레그2 비대칭 실측**: 모듈간 ~11 ns 위상 스큐로 HS→LS/LS→HS dead-time이 ±11 ns 비대칭(합 보존). 현 8kw 스펙(100~400 ns)에선 무해(89 ns 마진). 위 §함정 "모듈간 위상 스큐" 참조.
 
 ---
 
@@ -72,8 +74,9 @@ date: 2026-06-10
 ## 8kw 구체 인스턴스 (출처)
 
 - **레그2**: HS2 = **EPWM4_A @ J6.52** (master), LS2 = **EPWM7_B @ J6.51** (slave). EPWM4 `syncout=ON_CNTR_ZERO` → EPWM7 `syncin`, EPWM7 `phaseShift=0`, EPWM7_B AQ 반전 + `ETA_EPWM7_CMPB_INIT = TBPRD/2 − ETA_DEADTIME_COUNTS`. 핀맵 정본 [[pwm_pinmap]].
-- **주파수**: 8kw는 **85 kHz 고정**(사용자 확정 2026-06-10). dead-time 조정범위 **100~400 ns**(실험 후 고정 예정). dead-time 카운트는 **TBCLK 기준이라 주파수와 무관**(CMPB의 `TBPRD/2`만 주파수 따라 바뀜). 브링업 검증은 임시 100 kHz(TBPRD=1000)에서 수행됨.
-- 근거 커밋: `6e6b342`(SYNC 상보), `8046744`(dead-time 단일소스·스윕). branch pwm.
+- **주파수**: 8kw는 **85 kHz 고정 — 구현·실측 확정**(`d01fc0a`, Saleae **85.032 kHz**). `TBPRD=1176`/`cmpA=588`/`EPWM7 CMPB=558`(@150 ns). dead-time 조정범위 **100~400 ns**(실험 후 고정 예정, 현재 150 ns 베이스라인). dead-time 카운트는 **TBCLK(200 MHz, 실측 확정 — 1 count=5 ns) 기준이라 주파수와 무관**(CMPB의 `TBPRD/2`만 주파수 따라 바뀜: 브링업 100 kHz 때 CMPB=470, 85 kHz에서 558).
+- **단일소스 위치**: `ETA_DEADTIME_NS`는 8kw에서 `src/eta_bsp/eta_tuning.h`(컴파일타임 튜닝 knob 전용, 100~400 ns `#error` 가드)에 둔다. 주파수·dead-time 모두 `eta_pwm_init()`이 런타임 override → SysConfig 재생성 면역.
+- 근거 커밋: `6e6b342`(SYNC 상보), `8046744`(dead-time 단일소스·스윕), `d01fc0a`(85 kHz 고정·config 분리·비대칭 실측). branch pwm.
 
 ---
 
