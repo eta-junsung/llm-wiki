@@ -86,7 +86,9 @@ UART5는 LaunchPad에서 **전용 핀이 없어 EPWM15 패드를 alt-function(`P
 
 ★ **현재 상태(branch adc)**: TX force-enable 코드(`:64-94`, `:121-122`)는 **살아있으나**, UART5 차동라인으로 실제 바이트를 내보내는 `snprintf`+`UART_write` 블록은 **통째로 주석 처리**됨(`eta_uart5.c:159-170`) → **현재 UART5 차동 송신은 시도조차 안 함.** 1초 주기 출력은 UART0 콘솔(`DebugP_log`)로만 나간다. 또한 **RS-485 DE/485_EN(THVD1400 U13) 제어 코드 미구현**(src 전체 `485`/`DE`/`THVD` 토큰 0건).
 
-따라서 미동작은 ① `UART_write` 비활성 + ② RS-485 DE 제어 부재 두 층 모두에서 기인. **다음 의심 대상은 IOMUX 밖** — THVD1400 RS-485 트랜시버(U13)의 DE/485_EN 핀. → 복구 작업: `UART_write` 주석 해제 + DE/485_EN 제어 구현·검증. 8kw [[status]] 미결 참조.
+따라서 미동작은 ① `UART_write` 비활성 + ② RS-485 DE 제어 부재 두 층 모두에서 기인. → 복구 작업: `UART_write` 주석 해제 + EN_485 GPIO 제어 구현·검증. 8kw [[status]] 미결 참조.
+
+**DE 핀 확정 (2026-06-10)**: THVD1400 U13 DE·485_EN 공통 연결 → **LP-AM263P J5.48 = GPIO91** (UG Table 2-30 Mode6/7). 코드 식별자 = **`EN_485`** (`485_EN`은 C 식별자 선두 숫자 금지로 변경). SysConfig GPIO 인스턴스를 `EN_485`로 추가, `GPIO91` hard assign 필요.
 
 ---
 

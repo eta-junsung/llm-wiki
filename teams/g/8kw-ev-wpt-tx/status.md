@@ -99,7 +99,7 @@ P1·P2(150/300ns 단일소스) 위에 **주파수 확정값(85 kHz) 반영 + 튜
 | ADC 6채널 완성 (A2) | ✓ | 5 인스턴스(ADC0~4), 6채널 raw→mV 실보드 검증. AIN 핀 hard `$assign` 승격 (c512e3b) |
 | eta_adc.c 테이블 주도 리팩토링 | ✓ | ISR/init/loop 통합, 332→232줄, 동작 불변 (c512e3b) |
 | 신호별 스케일링 (A3) | ? | 센서 스펙 미입수 — 블로커 |
-| UART5 차동 송신 | ✗ | UART_write 주석 + RS-485 DE/485_EN 미구현. 현재 UART0 콘솔로만 출력 |
+| UART5 차동 송신 | ✗ | UART_write 주석 + EN_485(DE) GPIO 제어 미구현. 현재 UART0 콘솔로만 출력 |
 | 실보드 교차검증 (A4) | ✗ | 멀티미터 기준값 교차 (A3 후) |
 | **PWM 전력제어 (P0~P4)** | ✓ (P1 4/4·P2 dt단일소스·**85kHz/config분리**) | [[pwm]]. **4핀 HS1/LS1/HS2/LS2 ✓실보드 검증**. 레그2 EPWM4↔EPWM7 SYNC+CMPB 상보. P2: 두 레그 `ETA_DEADTIME_NS` 단일소스(`8046744`). **`d01fc0a`: 85kHz 고정(85.032kHz 실측)·dead-time `eta_tuning.h` knob 분리(100~400ns `#error` 가드)·100/150/400ns 스윕 PASS(shoot-through 0).** 다음 P3 보호. 핀맵 [[pwm_pinmap]] |
 
@@ -108,7 +108,7 @@ P1·P2(150/300ns 단일소스) 위에 **주파수 확정값(85 kHz) 반영 + 튜
 ## 미결 사항
 
 - **A3 센서 스펙 미입수 (블로커 유지)**: mV→물리량(°C/V/A) 변환 코드 전무. `eta_adc_loop`은 raw·mV까지만. Temp_Module1/2 출력 특성(V/°C), GA_Vin 분압비, I_LCC_SEN·I_COIL_SEN·GA_Iin_SEN 감도(mV/A)·오프셋 모두 미입수.
-- **UART5 차동 송신 미동작 (미해결 유지)**: `UART_write` 블록 주석 처리 + RS-485 DE/485_EN(THVD1400 U13) 미구현. TX force-enable(IOMUX)은 살아있고 펌웨어 PADCONFIG 처리는 원인 배제됨([[am263p_iomux_force_io_enable]]). 미확인: P15 PADCONFIG(`0x53100124`) 런타임 값 JTAG read(기대 `0x541`).
+- **UART5 차동 송신 미동작 (미해결 유지)**: `UART_write` 블록 주석 처리 + EN_485(DE) GPIO 제어 미구현. TX force-enable(IOMUX)은 살아있고 펌웨어 PADCONFIG 처리는 원인 배제됨([[am263p_iomux_force_io_enable]]). **DE 핀 확정(2026-06-10)**: THVD1400 U13 DE·485_EN 공통 → **LP-AM263P J5.48 = GPIO91** (UG Table 2-30). 코드 식별자 = **`EN_485`**. 미확인: P15 PADCONFIG(`0x53100124`) 런타임 값 JTAG read(기대 `0x541`).
 - **UART 출력 채널 하드코딩**: `eta_uart5.c`가 채널별 `DebugP_log` 라인 하드코딩 → ADC 채널 추가 시 출력 라인 수동 추가 필요(eta_adc.c 테이블 루프와 달리 자동 추종 안 함).
 - ~~PWM 레그1 dead-time 단일소스 통일~~ — ✅ **해결(`8046744`)**: 두 레그 모두 `ETA_DEADTIME_NS` 하나로 수렴. 레그1=`eta_pwm_init()`이 `EPWM_setRisingEdgeDelayCount`/`setFallingEdgeDelayCount`로 RED/FED(=ETA_DEADTIME_COUNTS, SysConfig 기본 override), 레그2=CMPB 오프셋. 150/300ns 4ch 실측(레그1 150.3→300.4·레그2 150.0→300.0ns, shoot-through 0). 상세 [[pwm]] §dead-time 단일소스. (`d01fc0a`에서 단일소스 위치를 `eta_tuning.h`로 이전.)
 - ~~PWM 주파수 85 kHz 고정 / dead-time config 분리~~ — ✅ **완료(`d01fc0a`)**: 85.032 kHz 실측, dead-time 100/150/400 ns 스윕 PASS(shoot-through 0). 단일소스 `eta_tuning.h ETA_DEADTIME_NS`(100~400 ns `#error` 가드), 주파수·dead-time 모두 `eta_pwm_init()` 런타임 override로 SysConfig 면역.
