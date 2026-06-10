@@ -4,6 +4,16 @@
 
 ---
 
+## [2026-06-10] ingest | oled_tv_software — 02_RX_ble 모듈 분리 리팩토링 설계 결정 환원
+
+- **작업**: `02_RX_ble` 단일 `Application/main.c`(618줄) → 관심사별 모듈 분리. 01_RX_control `app_*.c/.h` layering을 기준 삼아 순수 코드 이동(동작 불변 목표). 빌드: `emBuild` 에러 0·경고 0, `RX_BLE.hex` 산출. 실보드 검증 미수행(내일 예정).
+- **디렉토리**: `Application/Inc/app_*.h` + `Application/Src/app_*.c`, `main.c`는 루트 잔류.
+- **모듈 분할**: `app_gpio`/`app_clock`/`app_uart`/`app_spi`/`app_esb`(저수준 드라이버) + `app_protocol`(두꺼운 응용 계층: SPI exchange·ESB ACK forwarding·comm_st 판정·monitor, `protocol_loop()` 단일 진입점). 계층 방향 단방향 정리(esb_pkt[] = app_esb 소유, SPI 버퍼·comm_st = app_protocol 소유).
+- **`_shared` 변경**: `pkt_checksum` static → 공개 함수로 승격. 02 자체 `calc_checksum` 제거. 01 미접촉.
+- **미해결 2항목 (내일 결정)**: ① `app_uart_drv.h` 헤더명 최종 결정(nRF5 SDK `app_uart.h` shadow 회피책), ② `ADD_SPI` 매크로 전역 전파(`.emProject` `c_preprocessor_definitions` 이동) 적절성 확인.
+- **신규 페이지**: [[ses_build_conventions]] (SES 빌드 함정 3개 정리).
+- **갱신**: [[app_protocol_module]](3펌웨어 표준 패턴·모듈 분할·계층 방향·`_shared` 체크섬 API 절 추가), [[status]](다음 시작점·02 리팩토링 행·미결 2항목), [[roadmap]](§3 별트랙), [[roadmaps/spi-esb-refactor]](§3 현재 위치), index, log.
+
 ## [2026-06-10] ingest | lp-am263p — TI PROC171A 회로도 UART5 먹스 블록 (Tier 2) + THVD1400 오귀속 정정
 
 - **소스**: TI LP-AM263P 회로도 SPRR503A(`PROC171A`, Rev A). [[schematic_ingest_strategy]] **Tier 2**(PDF 텍스트레이어) — Altium `.SchDoc`이 바이너리 OLE라 Tier 1 네트리스트 export 불가(라이선스). 동봉 SCH PDF는 `pdftotext -layout` 추출 양호. raw `teams/g/lp-am263p/raw/proc171_schematic/`(PDF 전체 + 시트 11/13/21/23 텍스트). 새 소스 [[schematic_lp_am263p]].

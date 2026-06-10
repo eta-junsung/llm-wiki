@@ -6,9 +6,11 @@ date: 2026-06-10
 
 ## 다음 시작점
 
-**UART monitor 바이너리 전환 + PC GUI 완료(`35b94d0`, 실보드 검증) — 다음은 SPI-down→bit5 확인·N=20 실측·02/03 ESB merge·`_shared` 매크로 점검**
+**UART monitor 바이너리 전환 + PC GUI 완료(`35b94d0`, 실보드 검증) · 02_RX_ble 리팩토링 빌드 ✓(2026-06-10, 에러 0·경고 0) — 다음은 ①미해결 2항목 결정 ②실보드 검증 ③SPI-down→bit5 확인·N=20 실측·`_shared` 매크로 점검**
 
 `35b94d0`(2026-06-10, 실보드 검증): 01_RX_control UART5 모니터 출력을 **텍스트 printf → 11B 바이너리 패킷 송출**로 전환(`print_packets`가 6헤더를 `pkt_build_*`→`uart_send`). COMM 텍스트 라인(`print_comm_line_on_change`) 삭제 — 링크 health는 0x10 status d0 **bit5(SPI)/bit6(ESB)**로 운반. host 도구 [[pc_uart_gui]](`tools/pc_uart_gui/uart_gui.py`, Python+Tkinter+pyserial): 단일 UART5로 11B HDR 동기+CRC 재동기 파싱, 2컬럼(TX 0x10~12/RX 0x50~52) 뷰, `Link: SPI/ESB [UP/DOWN]`, buck 입력칸→`buck <v>\r` 송신→0x51 `Tx_Buck_Vout_Ref` 확인. [[roadmaps/pc-gui]] G0~G3 완료. (직전 `2f2aa65`: COMM 라인 2인자·이벤트화 — `35b94d0`에서 그 텍스트 라인 자체가 폐기됨.)
+
+0. **(02 리팩토링) 미해결 항목 결정 → 실보드 검증**: ① `app_uart_drv.h` 헤더명 최종 결정(옵션: `_drv` 유지 / `app_console` 등 변경 / include 순서 조정) ② `ADD_SPI` 매크로 전역 전파 적절성 확인 → J-Link로 02 플래시 후 RX_control [[pc_uart_gui]]에서 ESB rx 카운트·SPI ok/fail·헤더 마스크(0x50/0x51/0x52)·comm_st 비트 토글이 리팩토링 전과 동일한지 확인. [[ses_build_conventions]].
 
 1. **(검증) SPI 끊김 → 0x10 d0 bit5 = 0 낙하**: GUI `Link: SPI`가 이 비트로 표시되므로, SPI 단절 시 bit5가 정확히 0으로 떨어져 `SPI DOWN`이 뜨는지 실보드 확인. [[pc_uart_gui]].
 2. **N=20 실측 검증**: `BLE_COMM_ST_MIN_COUNT=20`(=200ms 윈도우 기대 ~200개의 ~10%)가 실 RF 수신율 대비 적정한지 확인.
@@ -62,6 +64,7 @@ date: 2026-06-10
 
 | 기능 | 상태 | 메모 |
 |------|------|------|
+| 02_RX_ble 모듈 분리 리팩토링 | △ | `2026-06-10` `emBuild` 에러 0·경고 0, `Output/Debug/Exe/RX_BLE.hex` 산출. 실보드 동작 검증 미수행. 미해결: ①`app_uart_drv.h` 헤더명 최종 결정(nRF5 SDK `app_uart.h` shadow 회피), ②`ADD_SPI` 전역 전파 점검. 모듈 구조: app_gpio/app_clock/app_uart/app_spi/app_esb(저수준) + app_protocol(응용 계층). `_shared/pkt_checksum` 공개 승격. ([[app_protocol_module]], [[ses_build_conventions]]) |
 | BLE(ESB)_Comm_St presence 판정 | ✓ | `EsbCommSt_Loop()`가 수신 delta(02=`esb_rx_cnt`, 03=`esb_ack_cnt`)로 `ble_comm_st_bit` 판정. `BLE_COMM_ST_WINDOW_MS=200`/`MIN_COUNT=20`(`d2232fe`, 이전 3). 양방향 실보드 검증 (`6cd7e6c`) ([[comm_state_monitoring]]) |
 | BLE_Comm_St bit6 전달·소비 | ✓ | 02가 0x10 bit6(`COMM_ST_BIT_BLE`) 적재(송신 복사본 race-free)→01 `ble_comm` 추출→`esb \| LINK UP/DOWN` edge 콘솔. 03은 자기 LED3 미러만(STM32 전송 없음) |
 | LED3 = ble_comm_st_bit mirror | ✓ | 02·03 모두. 매크로 기본 DK P0.19(active-low), 회사보드 P0.06 주석 ([[tx_ble_module]]) |
@@ -86,6 +89,8 @@ date: 2026-06-10
 
 ## 미결 사항
 
+- (02 리팩토링) `app_uart` 헤더명 최종 결정 — nRF5 SDK `app_uart.h` shadow 회피를 `app_uart_drv.h` 임시 회피 중. 옵션: `_drv` 유지 / 모듈명 변경(`app_console` 등) / include 순서 조정. ([[ses_build_conventions]])
+- (02 리팩토링) `ADD_SPI` 전역 전파 점검 — 원래 `main.c` 로컬 `#define` → `.emProject` `c_preprocessor_definitions` 전역 이동. 의도치 않은 TU 전파 여부 확인 필요. ([[ses_build_conventions]])
 - 0x51 Zin·Tx Buck Vout Ref: 코드 Type 재확인 (매뉴얼 Uint16 vs 코드 i16 잔여 차이)
 - (보류 M4) nRF52832 SPIS 최대 SCK 클럭 datasheet 미ingest — 9MHz 상향 재개 시 선결 ([[roadmap]] §4)
 - SPI_FAIL/ESB_FAIL 응답 — Warning/Fault 플래그·PWM 차단·상태 머신 미구현 ([[comm_state_monitoring]])

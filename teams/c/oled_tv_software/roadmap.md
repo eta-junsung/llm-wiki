@@ -61,7 +61,7 @@ OLED TV 무선 전력 전송 시스템의 **3-MCU 제어신호 교환 펌웨어*
 - **(사실)** M3 통과(2026-06-01): SPI 10 ms 폴링 확정. 초당 100 트랜잭션, CRC fail 0건.
 - **(사실)** heartbeat 200 ms 독립 타이머 실보드 검증 완료(✓).
 - **(사실)** comm-state 비트 2개(SPI/BLE) 실보드 검증 완료(2026-06-08).
-- **남은 활성 작업은 M 호 밖의 별트랙뿐** — comm-state·monitor 정리 완료(`d2232fe`→`2f2aa65`→`35b94d0`: UART monitor 바이너리화 + PC GUI [[pc_uart_gui]], 실보드 검증), 다음 = SPI-down→bit5 확인·N=20 실측·02/03 ESB merge·`_shared` 매크로 점검. 단일 소스 [[status]] "다음 시작점".
+- **남은 활성 작업은 M 호 밖의 별트랙뿐** — comm-state·monitor 정리 완료(`d2232fe`→`2f2aa65`→`35b94d0`: UART monitor 바이너리화 + PC GUI [[pc_uart_gui]], 실보드 검증). **02_RX_ble 모듈 분리 리팩토링 빌드 ✓(2026-06-10, 에러 0) — 실보드 △(미해결 항목 결정 후 J-Link 검증 예정, [[ses_build_conventions]])**. 다음 = 02 미해결 항목 결정·실보드 검증·SPI-down→bit5 확인·N=20 실측·03 리팩토링·`_shared` 매크로 점검. 단일 소스 [[status]] "다음 시작점".
 
 ---
 

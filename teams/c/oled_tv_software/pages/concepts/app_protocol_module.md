@@ -68,6 +68,40 @@ _shared/oled_tv_protocol.h
 
 > ⚠️ **빌드 함정**: STM32CubeIDE는 CLI 빌드 불가(`stm32cubeidec.exe`가 GUI 서브시스템이라 콘솔 출력 없이 즉종료) — IDE에서 **Ctrl+B 직접 빌드**. CubeMX 재생성 금지 규칙 유지. → [[cubeide_cli_build_trap]]
 
+---
+
+## 3펌웨어 표준 패턴 (01이 원형, 02 적용 완료, 03 예정)
+
+**01_RX_control이 원형** — 이 패턴이 확정된 뒤 02_RX_ble에 동일하게 적용됐다 (2026-06-10). 03_TX_ble도 동형(단일 `main.c`) 예정이나 `build_tx_pkt`/`print_rx_pkt` 비대칭 있어 별도 작업.
+
+### 모듈 분할 기준
+
+| 모듈 | 역할 | 계층 |
+|------|------|------|
+| `app_gpio` | `gpio_init`, LED_Loop, `led_write` 헬퍼 | 저수준 드라이버 |
+| `app_clock` | lfclk/hfclk/timers/millis | 저수준 드라이버 |
+| `app_uart` (`app_uart_drv.h`) | `uart_init`/event | 저수준 드라이버 |
+| `app_spi` | 저수준 SPIS: `spi_drv_init`, `spi_set_buffers`, `spis_event_handler` ISR | 저수준 드라이버 |
+| `app_esb` | 저수준 ESB: `esb_init`, `esb_event_handler` ISR(헤더 demux 포함), `esb_send_ack` | 저수준 드라이버 |
+| `app_protocol` | 두꺼운 응용 계층: SPI exchange + ESB ACK forwarding + comm_st 판정 + monitor, `protocol_loop()` 단일 진입점 | 응용 계층 |
+| `main.c` | fault/assert/bsp/log/pwr/idle 보일러플레이트 + `main()` | 루트 |
+
+### 계층 방향 (단방향 호출)
+
+`app_protocol`이 `app_esb`의 `esb_pkt[]`를 읽고 `esb_send_ack()` 호출,
+`app_spi`의 `spi_set_buffers()` 호출 + `spis_xfer_done` 읽기.
+
+- **`esb_pkt[]`(ESB rx 데이터) 소유권 → `app_esb`**
+- **SPI 버퍼·`comm_st` 비트 소유권 → `app_protocol`**
+
+SPI↔ESB 양방향 교차 버퍼 참조를 단방향으로 정리 — `app_protocol`이 양쪽 드라이버를 호출하는 팬인 구조.
+
+### `_shared` 체크섬 API 변경 (02 적용 시)
+
+`_shared/oled_tv_protocol.c`의 `static pkt_checksum`을 **공개 함수로 승격**. 02의 자체 `calc_checksum` 제거. 01_RX_control은 미접촉.
+
+> ⚠️ SES 빌드 환경 함정(`.emProject` 파일 목록 하드코딩·nRF5 SDK 헤더 충돌·전처리기 매크로 스코프) → [[ses_build_conventions]]
+
 ## 관련
 
 - [[rx_control]] — 메인 루프(`adc_proc`+`protocol_loop`)·SPI 페리·UART5
