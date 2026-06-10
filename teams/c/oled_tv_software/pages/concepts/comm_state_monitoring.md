@@ -1,7 +1,7 @@
 ---
 tags: [concept, protocol, spi, comm_health]
 source: teams/c/oled_tv_software/raw/260513-oled_tv-protocol-manual__from-eta_tx-to_etx_rx.CSV
-date: 2026-06-09
+date: 2026-06-10
 subsystem: 01_RX_control, 02_RX_ble, 03_TX_ble
 ---
 
@@ -10,6 +10,8 @@ subsystem: 01_RX_control, 02_RX_ble, 03_TX_ble
 SPI 패킷의 시스템 상태 비트맵 (Header 0x10)에 포함된 통신 헬스체크 비트 두 개. 통신 단절 시 fault 처리하는 로직의 근거.
 
 > **갱신 이력**: 판정 임계·spi_status 구조·공통 출력이 커밋 `d2232fe`(esb, 2026-06-09)에서 바뀌었다. 값·심볼은 d2232fe 기준. 핵심 변경 — ① comm-st 임계를 percent 자동계산이 아닌 **각 링크 (T,N) 직접 상수**로 통일(BLE `MIN_COUNT` 3→**20**, SPI timeout 5000→**1000ms** + `TIMEOUT`→`WINDOW` 개명), ② 01의 `spi_status`를 **LINK 전용**으로 분리하고 CRC는 별도 판정(이전엔 한 필드에 OR), ③ 3칩 공통 한 줄 출력 `pkt_print_comm_line()` 추가(현재 01만 호출).
+>
+> **갱신 이력 2 (esb `2f2aa65`, 2026-06-10)**: COMM 라인이 **링크 전용·이벤트 기반**으로 단순화됐다. ① `pkt_print_comm_line()` 시그니처가 **2인자(`spi_link`, `esb_link`)**로 축소 — `spi_crc`/`esb_crc` 인자 삭제, 포맷 `"COMM | SPI:%c ESB:%c\r\n"`. ② COMM 라인 출력이 **1초 주기 → 링크 상태 변화 edge에만** 출력(신규 `print_comm_line_on_change()`, `protocol_loop()`에서 매 루프 평가). ③ CRC 헬스가 모니터에서 **완전히 사라짐** — `spi_crc_fail_cnt` 카운터·COMM 라인 CRC 표시 모두 제거. CRC는 이제 **깨진 패킷 드롭(무결성 가드)만** 하고 어디에도 표시 안 됨. 아래 절들 d2232fe→2f2aa65 정정 반영.
 
 ## 0x10 Data[0] 바이트는 두 성격이 섞여 있다 (2026-06-08 확정)
 
@@ -133,39 +135,38 @@ ESB 링크 ALIVE  ⟺  최근 BLE_COMM_ST_WINDOW_MS(=200ms) 내 수신 delta ≥
 
 | 축 | 판정 | 코드 |
 |----|------|------|
-| **LINK** | 02의 200ms 토글 edge가 `SPI_COMM_ST_WINDOW_MS(=1000ms)` 안에 안 보이면 down — **상대 생존/연결 여부** | `spi_status = (spi_comm_st_seen && (tick - last_change) < SPI_COMM_ST_WINDOW_MS) ? SPI_OK : SPI_FAIL` |
-| **CRC** | 수신 SPI 패킷 무결성 — 1초 윈도우 동안 `spi_crc_fail_cnt` delta==0이면 ok — **받은 바이트가 안 깨졌나** | COMM 라인 블록에서 `delta = spi_crc_fail_cnt - base; crc = (delta==0)?1:0` |
+| **LINK** | 02의 200ms 토글 edge가 `SPI_COMM_ST_WINDOW_MS(=1000ms)` 안에 안 보이면 down — **상대 생존/연결 여부**. comm_st 토글 비트 타임아웃(rolling)으로만 판정, **CRC와 독립** | `spi_status = (spi_comm_st_seen && (tick - last_change) < SPI_COMM_ST_WINDOW_MS) ? SPI_OK : SPI_FAIL` |
+| **CRC** | 수신 SPI 패킷 XOR 체크섬 무결성 — **받은 바이트가 안 깨졌나** | `exchange_packets()`의 `if (ok) apply_rx_pkt(...)` — 검증 실패 패킷은 **적용하지 않고 드롭만** |
 
 - **둘은 서로 다른 것을 잡는다**: LINK = 상대가 살아 보내나, CRC = 받은 바이트가 안 깨졌나.
-- **(사실)** 분리의 실제 diff: `spi_proc()`에서 ok 시 `spi_status=SPI_OK`·CRC fail 시 `spi_status=SPI_FAIL`로 적던 **두 줄이 제거**됐다 → `spi_status`는 이제 **토글 타임아웃만**으로 결정. CRC 결과는 `spi_status`에 더 이상 반영되지 않고 COMM 라인 출력에서만 별도 계산.
+- **(사실, `2f2aa65`) CRC는 제어/모니터 어디에도 물려 있지 않다**: 체크섬 불일치 시 코드가 하는 일은 **깨진 패킷을 적용하지 않고 드롭**하는 것뿐 — 재요청·fault·에러 플래그 없음. 과거 `spi_crc_fail_cnt`는 모니터 표시 전용이었고, `2f2aa65`에서 표시처(COMM 라인 CRC 자리)와 함께 **카운터까지 제거**됐다. 단, **체크섬 검증 + 깨진 패킷 드롭(데이터 무결성)은 유지**된다.
+- **(사실)** spi_status의 LINK/CRC 분리 자체는 `d2232fe`: 당시 `spi_proc()`에서 ok 시 `spi_status=SPI_OK`·CRC fail 시 `spi_status=SPI_FAIL`로 적던 **두 줄이 제거**돼 `spi_status`가 토글 타임아웃만으로 결정. (`9be1a7a`에서 `spi_proc`→`app_protocol.c` `exchange_packets()`로 적출 — [[app_protocol_module]].) `2f2aa65`에서 잔존하던 CRC 카운터·COMM 표시까지 마저 떼어내 **CRC는 이제 표면화되지 않는 순수 무결성 가드**가 됐다.
 
-## pkt_print_comm_line — 3칩 공통 한 줄 출력 (`d2232fe`)
+## pkt_print_comm_line — 3칩 공통 한 줄 출력 (`d2232fe` 신설 → `2f2aa65` 링크 전용 2인자)
 
-**(사실)** `_shared/oled_tv_protocol.c`에 공통 포매터 추가:
+**(사실)** `_shared/oled_tv_protocol.c`에 공통 포매터. `2f2aa65`에서 **링크 전용 2인자로 단순화**됐다 (구 4인자는 `spi_crc`/`esb_crc`를 포함했으나 CRC 표시 자체가 제거되며 삭제):
 
 ```c
-void pkt_print_comm_line(int8_t spi_link, int8_t spi_crc,
-                         int8_t esb_link, int8_t esb_crc);
-/* 출력: "COMM | SPI:{L}{C} ESB:{L}{C}"
- * 각 인자: 1 → '1'(up/ok), 0 → '0'(down/err), 그 외(-1) → '-'(stale/N/A) */
+void pkt_print_comm_line(int8_t spi_link, int8_t esb_link);
+/* 출력: "COMM | SPI:%c ESB:%c\r\n"
+ * 각 인자: 1 → '1'(up), 0 → '0'(down), 그 외(-1) → '-'(stale/N/A) */
 ```
 
 - **함수는 칩을 모른다** — 컴파일타임 칩 매크로 없음. 각 펌웨어가 **자기가 아는 값만 넘겨** 칩별 차이가 갈린다.
-- **(사실)** 현재 **01_RX_control만 호출**(`common.c:200`). 02/03에도 공유 함수가 컴파일되지만 **호출 안 함**(아래 보류 절).
+- **(사실)** 현재 **01_RX_control만 호출**(`2f2aa65` 기준 `app_protocol.c` `print_comm_line_on_change()`). 02/03에도 공유 함수가 컴파일되지만 **호출 안 함**(아래 보류 절). 향후 02/03에 COMM 라인을 붙이려면 이 **2인자 시그니처 기준**.
 
-**01의 COMM 라인 동작 (현재 01만 와이어링, 1초 주기)** — `common.c` `spi_proc()`:
+**01의 COMM 라인 동작 (현재 01만 와이어링, `2f2aa65`부터 이벤트 기반)** — `app_protocol.c`:
 
 | 인자 | 01이 넘기는 값 |
 |------|----------------|
 | `spi_link` | `spi_status==SPI_OK ? 1 : 0` |
-| `spi_crc` | link down이면 `-1`(stale), 아니면 1초 CRC fail delta==0 ? `1` : `0` |
-| `esb_link` | link down이면 `-1`(stale), 아니면 relay받은 `ble_comm`(0x10 bit6) ? `1` : `0` |
-| `esb_crc` | 항상 `-1` — **01엔 ESB CRC 개념 없음** (리터럴 `-1` 전달) |
+| `esb_link` | SPI link down이면 `-1`(stale), 아니면 relay받은 `ble_comm`(0x10 bit6) ? `1` : `0` |
+
+- **출력 시점 (이벤트 기반)**: `print_comm_line_on_change()`가 `protocol_loop()`에서 `exchange_packets()` 직후 **매 루프 평가**되지만, 링크 상태(SPI/ESB up·down) **변화 edge에만** 출력한다 (1초 주기 아님). 부팅 직후 초기 상태 1회는 찍힌다(`prev` 초기값 `-2`이라 첫 평가에서 무조건 edge). **패킷 덤프**(`[eta-tx>>eta-rx]` 등)는 여전히 `print_packets()`의 1초 게이트(`MONITOR_INTERVAL_MS`) — **두 출력의 주기가 분리됨**.
 
 출력 예 (사실):
-- SPI link up + 무결 → `COMM | SPI:11 ESB:1-`
-- 데이터 깨짐 → `COMM | SPI:10 ...`
-- **SPI link down** → `COMM | SPI:0- ESB:--` — SPI가 끊기면 ESB relay 경로도 끊긴 것이라 ESB는 link/crc **둘 다 stale('--')**.
+- SPI·ESB 모두 up → `COMM | SPI:1 ESB:1`
+- **SPI link down** → `COMM | SPI:0 ESB:-` — SPI가 끊기면 ESB relay 경로도 끊긴 것이라 ESB는 stale(`-`).
 
 ## race-free stamp — wire 상태비트는 송신 복사본에 stamp (실보드 플래핑으로 발견)
 
@@ -176,10 +177,10 @@ void pkt_print_comm_line(int8_t spi_link, int8_t spi_crc,
 - **bit5가 안 드러난 이유**: STM32가 bit5는 5초 freshness(무변화 timeout)로 봤기 때문에 race가 가려졌고, 즉시 0/1로 읽히는 **bit6만** 표면화했다.
 - **원칙**: **판정(`EsbCommSt_Loop`/`SpiCommSt_Loop`의 변수 set)과 wire 적재(`SPI_Loop` 송신 직전 stamp)를 분리**하는 게 단일·race-free 자리.
 
-## 보류·미구현 (d2232fe 시점 — "완료" 아님)
+## 보류·미구현 (2f2aa65 시점 — "완료" 아님)
 
-- **02_RX_ble / 03_TX_ble의 COMM 라인 출력** — 미구현. `pkt_print_comm_line()`은 02/03에도 컴파일되지만 **호출 안 함**(unused). 현재 COMM 라인은 01만 출력.
-- **ESB CRC SW 검증 — 구현 안 하기로 결정**. ESB 라디오 HW CRC가 이미 무결성을 보증해 SW XOR 검증은 중복. 따라서 02/03 COMM 라인을 나중에 붙이더라도 **ESB CRC 자리는 `-`(N/A)**가 된다. (01도 `esb_crc`에 항상 `-1` 전달)
+- **02_RX_ble / 03_TX_ble의 COMM 라인 출력** — 미구현. `pkt_print_comm_line()`은 02/03에도 컴파일되지만 **호출 안 함**(unused). 현재 COMM 라인은 01만 출력. 붙일 때는 **2인자(`spi_link`, `esb_link`) 시그니처** 기준.
+- **ESB CRC SW 검증 — 구현 안 하기로 결정**. ESB 라디오 HW CRC가 이미 무결성을 보증해 SW XOR 검증은 중복. `2f2aa65`에서 CRC 표시 자체가 제거돼 **COMM 라인엔 ESB CRC 자리가 아예 없다**(구 4인자 `esb_crc`=-1 삭제). SPI 측 CRC도 표시 안 함 — 무결성은 깨진 패킷 드롭으로만 처리(위 LINK/CRC 절).
 - (기존 미구현 유지) SPI_FAIL 후속 — Warning/Fault 플래그·PWM 차단 상태 머신. `rx_status.warning/.fault`는 여전히 죽은 필드.
 
 ## 관련

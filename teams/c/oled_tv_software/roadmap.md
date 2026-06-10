@@ -81,7 +81,7 @@ OLED TV 무선 전력 전송 시스템의 **3-MCU 제어신호 교환 펌웨어*
 
 ## 5. 환원 후보 (wiki ↔ 코드 어긋남)
 
-- 코드 정리 라운드 (tasks/monitor-formatting 이후, 미착수): ① 모니터 1-헤더-1-줄 압축, ② 공유 출력 함수(`oled_tv_protocol.c` 신설, 3 빌드 등록), ③ serialize/deserialize 통합, ④ `SPI_PKT_*` → 링크 중립 이름 개명. eta-explorer로 묶어 시작 권장. → 작업 로드맵 [[roadmaps/spi-esb-refactor|SPI·ESB 리팩토링]].
+- 코드 정리 라운드 (tasks/monitor-formatting 이후) — **코드 `9be1a7a`가 추월: 부분 구현**: ① 모니터 1-헤더-1-줄 압축 ✓(01), ② 공유 출력 함수(`_shared/oled_tv_protocol.{c,h}` 신설, `pkt_print_*`) ✓, ③ serialize/deserialize 통합(`pkt_build_*`/`pkt_apply_*`) ✓ 대체로, ④ ~~`SPI_PKT_*` 개명~~ 무효(이미 링크 중립 `PKT_HDR_*`). 추가 적출은 [[app_protocol_module]] 완료. 남은 일 = 02/03 ESB 측 검증·merge·`_shared` 매크로 소유권 점검. → 작업 로드맵 [[roadmaps/spi-esb-refactor|SPI·ESB 리팩토링]].
 - PC GUI (아이디어·미착수): UART 패킷 모니터링 + `buck` 설정 호스트 툴. 설정 포트(01 UART5)와 모니터 포트(03 Monitor/01 Monitor_Loop) 조합 결정 선행. → 작업 로드맵 [[roadmaps/pc-gui|PC GUI]].
 - ~~BLE_Comm_St ESB-health 연결~~ ✓ 완료(`6cd7e6c`, 2026-06-08): presence 리셋 윈도우(`esb_rx_cnt`/`esb_ack_cnt` delta) 판정→0x10 bit6. `ble_link` 심볼은 코드에 없었음(폐기). 상세 [[comm_state_monitoring]]. 후속(`d2232fe`, 2026-06-09): (T,N) 상수 통일(N 3→20)·spi_status LINK/CRC 분리·COMM 라인. 다음 = 02/03 COMM 라인·N=20 실측.
 - `spi_wr_u16`에 음수 ADC 패턴 교정: `03_TX_ble build_tx_pkt case1·2` → `spi_wr_i16` 신설 — 별도 task, 미착수.

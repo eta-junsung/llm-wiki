@@ -1,7 +1,7 @@
 ---
 tags: [concept, spi, heartbeat, comm_health, esb]
 source: teams/c/oled_tv_software/pages/sources/spi_heartbeat_report_260529.md
-date: 2026-05-29
+date: 2026-06-10
 subsystem: 01_RX_control, 02_RX_ble
 ---
 
@@ -18,22 +18,22 @@ subsystem: 01_RX_control, 02_RX_ble
 | 비트 정의 | `_shared/oled_tv_protocol.h` | `COMM_ST_BIT_SPI = 5` (0x10 Data[0] bit5). 구 `TX_STATUS_BIT_SPI_COMM_ST` |
 | 토글 생성 | `02_RX_ble` `SpiCommSt_Loop()` | millis 200ms 게이트로 `spi_comm_st_bit ^= 1u` (SPI 사이클과 독립) |
 | 패킷 적재 | `02_RX_ble` `SPI_Loop` | **나가는 SPI 송신 복사본 `spi_tx_pkt`에 송신 직전 stamp** — 공유 RX 버퍼 `esb_pkt[0]` 아님(race). `build_tx_pkt()`도 아님. race-free 근거 → [[comm_state_monitoring]] "race-free stamp" |
-| 변화 감지 | `01_RX_control` `common.c` | bit5 변화 시 `spi_comm_st_last_change` 갱신 |
-| 단절 판정 | `01_RX_control` `common.c` | `d2232fe`부터 `SPI_COMM_ST_WINDOW_MS=1000`(구 `..._TIMEOUT_MS=5000`) 초과 무변화 → `spi_status=SPI_FAIL`. **이제 `spi_status`는 LINK(토글 타임아웃) 전용** |
-| 경고 출력 | `01_RX_control` `common.c` `spi_proc()` | `spi_status` 전이 순간 UART 1회 — `spi \| LINK DOWN` / `spi \| LINK UP`. `static spi_status_prev`(초기값 SPI_OK)로 edge 감지. **`d2232fe`부터 LINK/CRC 분리** — `spi_status`는 토글 타임아웃만 포착, CRC fail은 별도(1초 윈도우, COMM 라인). 이전 `e5e3efc` 단일 통합을 환원 → [[comm_state_monitoring]] "spi_status LINK/CRC 분리" |
+| 변화 감지 | `01_RX_control` `app_protocol.c`(구 `common.c`) | bit5 변화 시 `spi_comm_st_last_change` 갱신 (`apply_rx_pkt`) |
+| 단절 판정 | `01_RX_control` `app_protocol.c` `exchange_packets()` | `d2232fe`부터 `SPI_COMM_ST_WINDOW_MS=1000`(구 `..._TIMEOUT_MS=5000`) 초과 무변화 → `spi_status=SPI_FAIL`. **이제 `spi_status`는 LINK(토글 타임아웃) 전용** |
+| 링크 상태 표시 | `01_RX_control` `app_protocol.c` `print_comm_line_on_change()` | **`9be1a7a`: 구 `spi\|LINK DOWN/UP` edge 출력 제거**(COMM 라인과 값 중복) → COMM 라인 `SPI:%c`로 표시. `2f2aa65`: COMM 라인이 **링크 전용 2인자·이벤트(edge) 출력**으로 단순화(CRC 표시 삭제). `spi_status`는 `d2232fe`부터 LINK 전용(토글 타임아웃) → [[comm_state_monitoring]] "spi_status LINK/CRC 분리". (적출 경위 [[app_protocol_module]]) |
 | LED2 mirror | `03_TX_ble` (custom board) | LED2(P0.08)가 `spi_comm_st_bit` 값을 미러 — [[tx_ble_module]] |
 
 - **200ms 독립화의 의미**: 토글이 SPI 사이클에 종속되지 않으므로, SPI 폴링 주기(PACKET_INTERVAL)를 바꿔도 heartbeat 거동은 불변. STM32는 "토글 주기"가 아니라 "마지막 변화 시각"으로 판정하므로 토글 주기에 무관하게 동작.
 - **heartbeat 검증**: RX_ble `P0.17`(`PIN_DBG_HB`) GPIO 토글 오실로 측정 — Δt≈190ms (≈200ms), `P3NOFO01.PNG`. 실보드 검증 완료.
-- **LINK DOWN/UP 검증**: 실보드, SPI 케이블 분리 시 `LINK DOWN` 1회, 재연결 시 `LINK UP` 1회 UART 확인 (2026-06-01). 반복 출력 없음(edge trigger).
-- **단절 후속 응답 구현 상태**: UART 경고(LINK DOWN/UP) ✓. Warning/Fault 플래그·PWM 차단·상태 머신은 ✗ 미구현. 상세 → [[comm_state_monitoring]].
+- **LINK DOWN/UP 검증 (historical)**: 실보드, SPI 케이블 분리 시 `LINK DOWN`/재연결 시 `LINK UP` 1회 UART 확인 (2026-06-01, `fe5bf14`). **단, 이 출력은 `9be1a7a`에서 제거** — 링크 상태는 이제 COMM 라인 `SPI:%c`(edge 출력)로 본다.
+- **단절 후속 응답 구현 상태**: 링크 상태 가시화는 COMM 라인으로 일원화(구 LINK DOWN/UP 제거, `2f2aa65` 이벤트 기반). Warning/Fault 플래그·PWM 차단·상태 머신은 ✗ 미구현. 상세 → [[comm_state_monitoring]].
 
-## SPI 오류율 모니터 (△ 49s 검증, 장시간 미확인)
+## SPI 오류율 모니터 / CRC 카운터 — 전부 제거됨 (`9be1a7a`→`2f2aa65`)
 
-`01_RX_control common.c:165-185`에 누적 카운터(`spi_ok_cnt` / `spi_crc_fail_cnt`, CRC 이벤트 기반, timeout fail 제외) 추가. `Monitor_Loop()` UART 출력: 누적 + 초당 delta + failrate%.
+구 구현: `01_RX_control common.c`에 누적 카운터(`spi_ok_cnt`/`spi_crc_fail_cnt`) + `Monitor_Loop()` UART 출력(`spi | ok=4799 crcfail=0 | /s ok=100 ... failrate=0%`). 49s 실보드 확인(ok=4799, crcfail=0).
 
-- 출력 형식: `spi | ok=4799 crcfail=0 | /s ok=100 crcfail=0 failrate=0%`
-- 49s 실보드 확인 (ok=4799, crcfail=0, /s ok=100). 장시간 안정성 미확인
+- **`9be1a7a`**: `spi_ok_cnt`·`monitor_spi_diag` 죽은 코드 삭제 → CRC 헬스는 COMM 라인 CRC 자리(1초 윈도우 `spi_crc_fail_cnt` delta)로 임시 잔존.
+- **`2f2aa65`**: COMM 라인이 링크 전용으로 단순화되며 **CRC 표시처와 `spi_crc_fail_cnt` 카운터까지 모두 제거**. CRC fail은 이제 어디에도 집계·표시되지 않고 **깨진 패킷 드롭(`if (ok) apply_rx_pkt`)만** 한다 — 재요청·fault·플래그 없음. 데이터 무결성(체크섬 검증+드롭)은 유지. ([[comm_state_monitoring]] "spi_status LINK/CRC 분리", [[app_protocol_module]])
 
 ## spi_tx_busy 타임아웃 복구 (코드, 장시간 미검증)
 

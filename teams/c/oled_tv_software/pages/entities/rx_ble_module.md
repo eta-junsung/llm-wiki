@@ -92,7 +92,7 @@ subsystem: 02_RX_esb
 ## 통신 페어
 
 - 상위(Master): [[rx_control]]
-- STM32-nRF 내부 SPI 프레임: [[spi_packet_format]] (56B/45B, HDR 0xC0)
+- STM32-nRF SPI wire: [[spi_packet_format]] — **11B 고정**(HDR 0x10–12/0x50–52). 내부 데이터 컨테이너 `rx_module_data_t` 54B / `tx_module_data_t` 43B는 wire 아님. (구 "56B/45B·HDR 0xC0" 표기는 드리프트·정정)
 - ESB wire 패킷: [[esb_packet_format]] (11B, HDR round-robin)
 - 방향별 페이로드: [[tx_to_rx_packets]], [[rx_to_tx_packets]]
 - 헬스체크 비트: [[comm_state_monitoring]]
