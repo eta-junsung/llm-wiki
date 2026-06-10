@@ -4,6 +4,13 @@
 
 ---
 
+## [2026-06-10] ingest | 8kw-ev-wpt-tx — 레그2 SYNC dead-time concept 승격 + 주파수 85kHz 고정 확정·dead-time 100~400ns
+
+- **concept 승격(신규)**: [[am263p_epwm_module_sync_deadtime]] (lp-am263p 플랫폼 concept — 선례 [[am263p_epwm_primary_pad_no_force_io]]와 동일 배치). 풀브리지 레그 HS/LS가 다른 EPWM 모듈에 걸칠 때: master `syncout=ON_CNTR_ZERO`→slave `syncin`·phaseShift=0 위상정렬 + slave AQ 반전 + CMPB 오프셋(`TBPRD/2−DT`, `<TBPRD/2` 엄수). SYNC-in 기본 disable(자유구동) 주의·dead-band 레그와 ns 소스 공유. 8kw 레그2(EPWM4_A→EPWM7_B) 실측 출처. [[pwm]] §3 환원 후보 해소(승격 완료).
+- **주파수 확정(사용자 2026-06-10)**: 브링업 임시 100 kHz → **85 kHz 고정**. UP_DOWN `TBPRD=TBCLK/(2·f)=200MHz/(2·85kHz)≈1176`[정수·실측은 코드 확인]. dead-time 카운트는 TBCLK 기준이라 주파수 무관, CMPB의 `TBPRD/2`만 재계산.
+- **dead-time 범위 확정**: **100~400 ns 조정 가능, 실험 후 고정 예정**(기존 "시작 150ns" → 범위 명시). 100ns→20·400ns→80 count(5ns 배수라 절삭손실 0). 검증 빌드(150/300ns)는 브링업 100kHz에서 수행 — 85kHz 재빌드 시 결론 동일.
+- **갱신**: [[am263p_epwm_module_sync_deadtime]](신규), [[pwm]](주파수·dead-time범위·concept 링크·검증 100kHz 맥락·P0/모름/블로커/환원후보·date), [[pwm_pinmap]](스펙 85kHz·dead-time범위·concept 링크·date), [[status]](스펙·미결·다음·date), [[team_briefing_8kw]](로드맵 P0/P2·스펙·§5·date), [[roadmap]](pwm 행·현재위치·date), index(concept 신규 + pwm·pwm_pinmap 줄).
+
 ## [2026-06-09] ingest | 8kw-ev-wpt-tx — PWM dead-time 단일소스 #define 통일(두 레그·두 메커니즘·하나의 ns 소스) + 스윕 검증 (commit 8046744)
 
 - **근거 커밋**: `8046744` (branch pwm). dead-time을 두 레그 모두 `eta_pwm.h` `#define ETA_DEADTIME_NS` 하나로 통일 + 150/300ns 스윕 4채널 실측. (직전 P1 4핀 = `6e6b342`.)

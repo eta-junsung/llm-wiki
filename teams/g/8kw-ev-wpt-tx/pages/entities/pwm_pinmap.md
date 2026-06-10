@@ -1,7 +1,7 @@
 ---
 tags: [entity, pwm, 8kw-ev-wpt-tx, pinmap]
 source: 사용자 제공 + [[lp_am263p_ug]] Table 2-30 교차확인 (2026-06-09) — PWM 핀맵·스펙. net/채널 분리 정정(J6.52=EPWM4_A, HS2 실측)
-date: 2026-06-09
+date: 2026-06-10
 ---
 
 # pwm_pinmap — 8kW WPT TX 보드 PWM 핀맵
@@ -25,7 +25,7 @@ date: 2026-06-09
 | PWM_HS2 | 레그2 HS | J6.52 | **EPWM4_A** | "EPWM4_B" (suffix 반대) | `ug:1641` (Mode0=EPWM4_A) | ✓ 100kHz/50%, dead-time 150ns; 펌웨어 hard `$assign`=EPWM4_A |
 | PWM_LS2 | 레그2 LS | J6.51 | **EPWM7_B** | "EPWM7_A" (suffix 반대) | `ug:1640` (Mode0=EPWM7_B) + pinmux.csv 핀 **F1=EPWM7_B** | ✓ 100kHz/47%, dead-time 150ns, shoot-through 0 |
 
-> ✅ **P1 4핀 전부 실보드 검증 완료(2026-06-09, 커밋 `6e6b342` branch pwm).** 레그2 상보·dead-time을 EPWM4↔EPWM7 모듈간 SYNC + CMPB 오프셋으로 해결 — 설계·함정은 [[pwm]] Pin4 절. 실측: 100kHz, HS2 50%/LS2 47%, dead-time 150ns 양 edge, shoot-through 0 (Saleae 125MS/s, 13,421주기 전수 스캔).
+> ✅ **P1 4핀 전부 실보드 검증 완료(2026-06-09, 커밋 `6e6b342` branch pwm).** 레그2 상보·dead-time을 EPWM4↔EPWM7 모듈간 SYNC + CMPB 오프셋으로 해결 — 설계·함정은 [[pwm]] Pin4 절. 실측: 100kHz, HS2 50%/LS2 47%, dead-time 150ns 양 edge, shoot-through 0 (Saleae 125MS/s, 13,421주기 전수 스캔). **표·실측의 100kHz는 브링업 임시값 — 주파수는 85kHz 고정 확정(2026-06-10), dead-time 카운트는 주파수 무관.**
 
 ### 핵심 — 레그 구조 (펌웨어 함의)
 
@@ -57,8 +57,8 @@ date: 2026-06-09
 ## 스펙 (사용자 제공, 2026-06-09)
 
 - **토폴로지**: 풀브리지 인버터 (4스위치, 2레그). WPT 공진 탱크 구동(LCC 탱크는 [[adc_pinmap]] `I_LCC_SEN` 단서 — 가설 유지).
-- **스위칭 주파수**: **고정형**. 단 **값 미정**(추후 확정). → 런타임 가변 아님.
-- **Dead-time**: **이것만 가변.** 다만 **리얼타임 변경 불필요** — dead-time 바꿀 때마다 **새로 빌드**하는 방식으로 테스트. **시작값 ≈ 150 ns.**
+- **스위칭 주파수**: **85 kHz 고정**(사용자 확정 2026-06-10). 런타임 가변 아님. (브링업 실측은 임시 100 kHz였음.)
+- **Dead-time**: **이것만 가변.** **리얼타임 변경 불필요** — 값 바꿔 **재빌드**(build-per-change). **조정 범위 100~400 ns, 실험 후 고정 예정.** 두 레그 단일소스 `ETA_DEADTIME_NS` — 패턴 정본 [[am263p_epwm_module_sync_deadtime]].
 - **제어**: (현재 범위 밖) 추후 ADC 피드백 제어루프.
 
 ---
@@ -74,6 +74,6 @@ date: 2026-06-09
 ## 미확인 / P0 잔여
 
 - ✅ **핀맵·채널 4핀 전부 확정·실측**(레그1 J4.39/40=EPWM2_A/B, 레그2 J6.52=EPWM4_A·J6.51=EPWM7_B). 레그2 두 모듈(EPWM4+EPWM7) SYNC dead-time 구현·검증 완료 — 의도된 현 설계, 향후 단일 모듈 개선 대상(§향후 보드 개선). SysConfig는 핀별 hard `$assign`.
-- 스위칭 주파수 확정값(실측 100kHz는 브링업 값).
+- ✅ 스위칭 주파수 **85 kHz 고정 확정**(2026-06-10). dead-time 100~400 ns 조정·실험 후 고정.
 - **게이트 드라이버 입력 극성**: **active-high 가정으로 4핀 검증 통과(상보·dead-time·shoot-through 0 정상) → 가정 실보드 실증.** 단 회로도 원본으로 극성 못 박은 상태 — "가정 실증, 회로도 미확인". shutdown 입력은 미확인 ([[am263p_iomux_force_io_enable]]).
 - 보호(trip) 신호 소스 — 과전류/과전압 시 PWM 차단 입력(ADC 비교/외부 trip 핀).
