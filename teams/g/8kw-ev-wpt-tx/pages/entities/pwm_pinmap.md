@@ -1,6 +1,6 @@
 ---
 tags: [entity, pwm, 8kw-ev-wpt-tx, pinmap]
-source: 사용자 제공 (2026-06-09) — PWM 핀맵·스펙
+source: 사용자 제공 + [[lp_am263p_ug]] Table 2-30 교차확인 (2026-06-09) — PWM 핀맵·스펙. net/채널 분리 정정(J6.52=EPWM4_A, HS2 실측)
 date: 2026-06-09
 ---
 
@@ -12,31 +12,45 @@ date: 2026-06-09
 
 ---
 
-## 핀맵 (2026-06-09 확정 — 사용자 핀번호 정정 + UG 교차확인)
+## 핀맵 (2026-06-09 확정 — 4핀 전부 UG·실보드 검증)
 
-> 사용자가 J4.38→**J4.39**로 정정(2026-06-09) → 레그1이 [[lp_am263p_ug]] 핀먹스 표(Table 2-28/2-30)와 완전 일치. **구현(SysConfig) 기준 = UG Mode0 채널.** 레그2 A/B suffix는 사용자 net 라벨과 다르나, 물리 핀이 노출하는 채널이 강제하므로 UG 기준 확정.
+> **3단 구분: 기능 net(게이트 역할) ↔ 커넥터 핀 ↔ SoC EPWM 채널.** 펌웨어 배정의 **정본 = 핀이 노출하는 SoC 채널**([[lp_am263p_ug]] Table 2-30 Mode0/primary, `teams/g/lp-am263p/raw/lp_am263p_ug/ug_lp-am263p.md`).
+> - ⚠️ **회로도 net 라벨 함정(레그2 공통 패턴)**: 회사 회로도는 레그2 게이트 net을 채널이름 스타일 **"EPWM4_B"(HS2)·"EPWM7_A"(LS2)** 로 라벨링했는데, 이 **suffix가 핀이 실제 노출하는 silicon 채널과 반대**다 — HS2 실제=**EPWM4_A**, LS2 실제=**EPWM7_B**. **회로도 라벨이 아니라 핀이 강제하는 UG 채널(silicon)로 배정**할 것. ([[adc_pinmap]] l/I 오기 전례와 동류 — 핀 신호명은 wiki/라벨보다 회로도·UG·실측 우선.)
+> - 근거: UG Table 2-30 raw (`ug:1600/1601/1641/1640`). **LS2는 wiki↔UG 일치(오기 없음)** + **pinmux.csv 핀 F1=EPWM7_B 교차확인**. (HS2는 이전 wiki가 회로도 라벨에 끌려 silicon 채널을 EPWM4_B로 오기했던 것을 2026-06-09 정정.)
 
-| 8kw 신호 | 역할 | LP-AM263P 핀 | EPWM 채널 (구현=UG Mode0) | 사용자 net 라벨 | 비고 |
-|----------|------|--------------|---------------------------|-----------------|------|
-| PWM_HS1 | 레그1 High | J4.39 | **EPWM2_A** | EPWM2_A | ✅ UG·사용자 일치. **실측 검증됨(2026-06-09, Saleae 100kHz/50%, 정본↔실측 불일치 없음)** |
-| PWM_LS1 | 레그1 Low | J4.40 | **EPWM2_B** | EPWM2_B | ✅ UG·사용자 일치 |
-| PWM_HS2 | 레그2 High | J6.52 | **EPWM4_A** | EPWM4_B | 모듈 EPWM4 일치, suffix는 J6.52가 _A만 노출 |
-| PWM_LS2 | 레그2 Low | J6.51 | **EPWM7_B** | EPWM7_A | 모듈 EPWM7 일치, suffix는 J6.51이 _B(Mode0)/EPWM5_B(Mode10)만 노출 |
+| 기능 net | 역할 | 커넥터 핀 | SoC 채널 (UG Mode0 = **펌웨어 정본**) | 회로도 net 라벨 | 근거 | 검증 |
+|----------|------|-----------|----------------------------------------|-----------------|------|------|
+| PWM_HS1 | 레그1 HS | J4.39 | **EPWM2_A** | EPWM2_A (일치) | `ug:1600` | ✓ 99.997kHz/50% (Saleae n=10223) |
+| PWM_LS1 | 레그1 LS | J4.40 | **EPWM2_B** | EPWM2_B (일치) | `ug:1601` | ✓ 레그1 EPWM2 dead-band 상보 완료 |
+| PWM_HS2 | 레그2 HS | J6.52 | **EPWM4_A** | "EPWM4_B" (suffix 반대) | `ug:1641` (Mode0=EPWM4_A) | ✓ 100kHz/50%, dead-time 150ns; 펌웨어 hard `$assign`=EPWM4_A |
+| PWM_LS2 | 레그2 LS | J6.51 | **EPWM7_B** | "EPWM7_A" (suffix 반대) | `ug:1640` (Mode0=EPWM7_B) + pinmux.csv 핀 **F1=EPWM7_B** | ✓ 100kHz/47%, dead-time 150ns, shoot-through 0 |
+
+> ✅ **P1 4핀 전부 실보드 검증 완료(2026-06-09, 커밋 `6e6b342` branch pwm).** 레그2 상보·dead-time을 EPWM4↔EPWM7 모듈간 SYNC + CMPB 오프셋으로 해결 — 설계·함정은 [[pwm]] Pin4 절. 실측: 100kHz, HS2 50%/LS2 47%, dead-time 150ns 양 edge, shoot-through 0 (Saleae 125MS/s, 13,421주기 전수 스캔).
 
 ### 핵심 — 레그 구조 (펌웨어 함의)
 
 - **레그1 = EPWM2 단일 모듈**(A=HS1, B=LS1) → 모듈 내 **dead-band 유닛**으로 상보 PWM + dead-time 깔끔히 생성.
-- ⚠️ **레그2 = EPWM4(HS2) + EPWM7(LS2) — 서로 다른 두 모듈에 걸침.** J6.51이 EPWM4_B를 노출하지 않아(EPWM7_B/EPWM5_B만) **한 모듈로 못 묶음.**
-  - → 레그2 상보 PWM·dead-time은 **모듈 내 dead-band 불가**. **EPWM 동기(SYNCO→SYNCI) + 위상/카운터 오프셋**으로 두 모듈 간 dead-time을 만들어야 함. 레그1과 **비대칭 구현**.
-  - dead-time 튜닝(build-per-change, 시작 150ns)도 레그1=dead-band 레지스터 / 레그2=모듈간 오프셋으로 **경로가 다름**.
+- ⚠️ **레그2 = EPWM4_A@J6.52(HS2) + EPWM7_B@J6.51(LS2) — 서로 다른 두 모듈에 걸침** (확정·4핀 실측 2026-06-09). J6.51은 EPWM4_B를 노출하지 않아(EPWM7_B/EPWM5_B만, `ug:1640`) **한 모듈로 못 묶음** → 두 모듈 SYNC 필요.
+  - → 레그2 상보 PWM·dead-time은 **모듈 내 dead-band 불가**. **EPWM 동기(EPWM4 syncout ON_CNTR_ZERO → EPWM7 syncin) + EPWM7_B AQ 반전 + CMPB 오프셋**으로 상보+dead-time 생성 — **✓ 구현·검증 완료**. 설계·함정 상세는 [[pwm]] Pin4 절. 레그1(dead-band)과 **비대칭 구현**.
+  - dead-time 튜닝(build-per-change, 150ns)도 레그1=dead-band RED/FED / 레그2=CMPB 오프셋으로 **메커니즘이 다름**. 단 **ns 소스는 `ETA_DEADTIME_NS` 하나로 수렴**(두 레그 공유, `8046744`) — 매크로·검증표는 [[pwm]] §dead-time 단일소스.
   - **의도된 설계 확인(2026-06-09)** — 현 회사 회로도가 이렇게 라우팅됨. 단 향후 개선 대상(아래 §향후 보드 개선).
-- **A/B suffix 확정(UG 기준, 2026-06-09)**: 사용자 schematic net 라벨(레그2 _B/_A)과 silicon 노출 채널(_A/_B)이 반대. **펌웨어 배정은 핀이 강제하는 UG 채널**(EPWM4_A@J6.52, EPWM7_B@J6.51) 기준 — net 이름에 끌려가지 말 것.
+- **채널 suffix는 핀이 강제, 회로도 라벨과 반대 (레그2 공통 패턴, 확정)**: 회로도 net 라벨이 "EPWM4_B"(HS2)/"EPWM7_A"(LS2)지만 핀이 노출하는 silicon 채널은 EPWM4_A(`ug:1641`)/EPWM7_B(`ug:1640`, pinmux.csv F1=EPWM7_B 교차확인). **펌웨어 배정·정본은 silicon 채널**(EPWM4_A/EPWM7_B) — 회로도 라벨 suffix에 끌려가지 말 것. 4핀 전부 이 기준으로 실측 통과.
 - ✅ **UART5(EPWM15)와 충돌 없음** — PWM은 EPWM2/4/7 사용. ([[am263p_iomux_force_io_enable]] EPWM15 점유 건과 무관)
 - **인스턴스 3개: EPWM2(레그1), EPWM4·EPWM7(레그2).**
 
 ### 향후 보드 개선 (기억할 것)
 
 ⭐ **레그2를 한 EPWM 모듈로 묶도록 회로도 수정 요청 예정.** 현재 레그2(HS2/LS2)가 EPWM4+EPWM7 두 모듈에 걸친 건 **현 회사 회로도 라우팅 결과로 의도된 설계**지만, 레그2 dead-time을 모듈간 동기로 만들어야 해 레그1보다 까다롭다. **사용자가 회로도 수정 요청 기회가 생기면 레그2 HS2/LS2를 한 EPWM 모듈의 A/B로 묶도록 요청할 계획**(예: 둘 다 EPWM4_A/EPWM4_B를 노출하는 핀 쌍으로). 그러면 레그2도 모듈 내 dead-band로 단순화. (사용자 지시 2026-06-09 — 영구 메모리에도 기록)
+
+---
+
+## EPWM 인스턴스·자유구동 사실 (검증 근거, 2026-06-09)
+
+> Pin별 독립 검증이 왜 가능했는지의 근거. 출처는 각 항에 명시(추정 금지).
+
+- **EPWM4는 EPWM2와 독립 인스턴스로 실재.** AM263Px에서 SysConfig가 수용하며, base = `CSL_CONTROLSS_G0_EPWM4_U_BASE`. → 레그2 HS2(EPWM4)가 레그1(EPWM2)과 별개 모듈인 펌웨어 근거. (출처: 사용자 제공 — SysConfig 수용·base 매크로 실측 2026-06-09)
+- **SysConfig 기본 EPWM 인스턴스는 SYNC-in disable + phaseShift=0 → 단독 자유구동(free-run).** 위상기준이 없어 **단일 모듈 핀은 다른 레그와 무관하게 독립 검증 가능.** 레그2 HS2(EPWM4_A@J6.52)가 레그1 EPWM2와 무관하게 100kHz(실측 99.998kHz)/50% 토글하는 것을 단독 실증. (출처: 사용자 제공 + Pin3 실측 2026-06-09)
+- **함의**: Pin1·Pin3처럼 단일 모듈 출력은 위상 동기 없이 순차 검증 가능. 단 **레그2 상보·dead-time(Pin4 단계)** 은 EPWM4↔EPWM7 모듈간 SYNC를 **명시 활성화**해야 성립 — 자유구동 기본값(SYNC-in disable·phaseShift=0)으로는 두 모듈이 위상정렬되지 않는다. [[pwm]] P2/Pin4 참조.
 
 ---
 
@@ -59,7 +73,7 @@ date: 2026-06-09
 
 ## 미확인 / P0 잔여
 
-- 핀맵·채널 확정(위 표, UG 기준). 레그2 두 모듈(EPWM4+EPWM7) 동기 dead-time은 의도된 현 설계 — 향후 개선 대상(§향후 보드 개선). SysConfig는 핀별 hard `$assign`.
-- 스위칭 주파수 확정값.
-- 게이트 드라이버 입력 극성(active-high/low)·shutdown 입력 — 출력 force-enable/극성 설정 시 필요 ([[am263p_iomux_force_io_enable]]).
+- ✅ **핀맵·채널 4핀 전부 확정·실측**(레그1 J4.39/40=EPWM2_A/B, 레그2 J6.52=EPWM4_A·J6.51=EPWM7_B). 레그2 두 모듈(EPWM4+EPWM7) SYNC dead-time 구현·검증 완료 — 의도된 현 설계, 향후 단일 모듈 개선 대상(§향후 보드 개선). SysConfig는 핀별 hard `$assign`.
+- 스위칭 주파수 확정값(실측 100kHz는 브링업 값).
+- **게이트 드라이버 입력 극성**: **active-high 가정으로 4핀 검증 통과(상보·dead-time·shoot-through 0 정상) → 가정 실보드 실증.** 단 회로도 원본으로 극성 못 박은 상태 — "가정 실증, 회로도 미확인". shutdown 입력은 미확인 ([[am263p_iomux_force_io_enable]]).
 - 보호(trip) 신호 소스 — 과전류/과전압 시 PWM 차단 입력(ADC 비교/외부 trip 핀).

@@ -20,9 +20,9 @@
 
 ### Living docs
 
-- [roadmap.md](teams/c/oled_tv_software/roadmap.md) — 전체 로드맵(M0~M6 마일스톤 호·M3 ✓·현재 M4 SPI 9MHz 막힘·PRD 지연 목표 게이트). 전략 spine, 현재 위치는 status 위임
+- [roadmap.md](teams/c/oled_tv_software/roadmap.md) — 전체 로드맵(M0~M3 현재 스코프 달성·M4~M6 보류 2026-06-09). 전략 spine, 현재 위치는 status 위임
 - [roadmaps/pc-gui.md](teams/c/oled_tv_software/roadmaps/pc-gui.md) — `pc-gui` 작업 호(G0~G3, 아이디어·미착수). UART 패킷 모니터링 + buck 설정 호스트 툴. G0 포트 조합 결정 선행
-- [roadmaps/spi-esb-refactor.md](teams/c/oled_tv_software/roadmaps/spi-esb-refactor.md) — `spi-esb-refactor` 작업 호(R1~R4, 코드 정리 4라운드). merge 목적 SPI·ESB 구조 정리
+- [roadmaps/spi-esb-refactor.md](teams/c/oled_tv_software/roadmaps/spi-esb-refactor.md) — `spi-esb-refactor` 작업 호(R1~R4) — **코드 `9be1a7a` 추월: R1~R3 부분 구현·R4 무효(이미 `PKT_HDR_*`)**. §6 `_shared` 매크로 점검. 적출은 [[app_protocol_module]]
 - [status.md](teams/c/oled_tv_software/status.md) — 기능별 구현 현황표·다음 시작점 (파이프라인이 커밋마다 갱신)
 
 ### Entities
@@ -50,6 +50,7 @@
 - [[esb_ptx_ack_assembly]] — PTX 모드 ACK payload 재조립: g_last_ack_by_hdr[3] 패턴 + ISR printf 금지
 - [[comm_state_monitoring]] — 0x10 Data[0] bit5/6은 tx_status 아닌 통신 링크 비트. SPI_Comm_St=200ms heartbeat(✓`e5e3efc`), BLE_Comm_St=ESB presence 리셋윈도우(02·03 각자 수신 delta, ✓`6cd7e6c`). `d2232fe`(2026-06-09): 각 링크 **(T,N) 직접 상수**(BLE N 3→20·SPI WINDOW 1000)·`spi_status` **LINK/CRC 분리**·3칩 공통 `pkt_print_comm_line()`(01만 호출). 심볼 컨벤션·라벨 구분·**race-free stamp(상태비트는 송신복사본 spi_tx_pkt에)**
 - [[spi_link_reliability]] — SPI heartbeat 구현(200ms 독립 타이머, P0.17 검증)·오류율 모니터·spi_tx_busy 타임아웃 복구·10ms 폴링 ✓ 검증 완료·9MHz 상향 미달
+- [[app_protocol_module]] — 01_RX_control SPI 프로토콜 계층 적출·핸드오프(`9be1a7a`). 공개 API `protocol_loop()` 하나 + 전역 3개(rx_module/tx_module/rx_cmd), 내부 `exchange_packets`/`print_packets`. 4파일 자립(common.h 역의존 끊음), W1 트랜스포트 직접호출·D1 전역 유지. 더미 토글·모니터 상시ON·죽은코드 삭제. STM32CubeIDE 빌드+실보드 동작확인 ✓
 - [[gpio_verification_pinmap]] — 검증 핀맵: 기능 → 프로브 핀 → 기대값 (SPI CS PB12·PWM PC6~9·ESB P0.17/18·ADC). planner가 검증 경로에 인용. 미확인 핀은 "확인 필요"로 호명
 - [[st_link_nrf52_flash]] — 3-MCU 플래싱 정본 (듀얼 프로브: 01 ST-Link 네이티브 / 03 J-Link OB / 02 DK 온보드). SN 고정 함정·CLI 실측·pyOCD 폴백 강등 (2026-06-05)
 
@@ -122,7 +123,7 @@
 
 - [roadmap.md](teams/g/8kw-ev-wpt-tx/roadmap.md) — 프로젝트 로드맵(목표·작업 호 인덱스·현재 위치)
 - [roadmaps/adc.md](teams/g/8kw-ev-wpt-tx/roadmaps/adc.md) — `adc` 작업 호(A0~A4). eta 보드 J3 6채널 ADC 브링업, 신호별 스케일링 포함. A2 ✓ 6채널 실보드 검증(2026-06-09 c512e3b). 다음 A3 스케일링(스펙 대기)
-- [roadmaps/pwm.md](teams/g/8kw-ev-wpt-tx/roadmaps/pwm.md) — `pwm` 작업 호(P0~P4). EPWM 전력제어. 풀브리지 4채널(레그1=EPWM2, 레그2=EPWM4+7 두 모듈), dead-time 150ns build-per-change, 주파수 고정(값 미정), P4서 ADC 트리거 RTI→PWM 전환. **P1 진행 중 1/4 — Pin1 HS1(EPWM2_A@J4.39) ✓실측 100kHz/50%**. Pin2/3/4 남음. 레그2 동기 dead-time 유의
+- [roadmaps/pwm.md](teams/g/8kw-ev-wpt-tx/roadmaps/pwm.md) — `pwm` 작업 호(P0~P4). EPWM 전력제어. 풀브리지 4채널(레그1=EPWM2, 레그2=EPWM4+7 두 모듈), dead-time 150ns build-per-change, 주파수 고정(값 미정), P4서 ADC 트리거 RTI→PWM 전환. **P1 완료 4/4**(HS1/LS1/HS2/LS2 실측·shoot-through 0, `6e6b342`) **+ P2 dead-time 단일소스 통일**(두 레그 `ETA_DEADTIME_NS` 하나·레그1 RED/FED·레그2 CMPB, 150/300ns 스윕 4ch 실측, `8046744`). 레그2 EPWM4↔EPWM7 SYNC+CMPB 상보. 다음 P3 보호
 - [status.md](teams/g/8kw-ev-wpt-tx/status.md) — 기능별 구현 현황표·다음 시작점 (파이프라인이 커밋마다 갱신)
 
 ### Concepts
@@ -132,5 +133,5 @@
 
 ### Entities
 
-- [[pwm_pinmap]] — LP-AM263P EPWM → 8kw 게이트 신호 핀맵 (풀브리지 4채널, 확정 2026-06-09). 레그1=EPWM2 단일모듈(HS1 J4.39/LS1 J4.40), 레그2=EPWM4(HS2 J6.52)+EPWM7(LS2 J6.51) **두 모듈 → 동기 dead-time**. net 라벨 vs UG 채널 suffix 반대 주의·UART5 무충돌·주파수 고정/dead-time 150ns·향후 ADC SOC 트리거 전환
+- [[pwm_pinmap]] — LP-AM263P EPWM → 8kw 게이트 신호 핀맵 (풀브리지 4채널, **4핀 확정·실측 2026-06-09**). 레그1=EPWM2(HS1 J4.39/LS1 J4.40), 레그2=EPWM4(HS2 J6.52)+EPWM7(LS2 **J6.51=EPWM7_B 확정**) **두 모듈 → SYNC dead-time**. ⚠️ **회로도 net 라벨("EPWM4_B"/"EPWM7_A")과 silicon 채널(EPWM4_A/EPWM7_B) suffix 반대** — 펌웨어 정본=silicon 채널(UG Mode0·pinmux.csv F1 교차확인). EPWM4 독립 인스턴스·SYNC-disable 자유구동 검증근거·UART5 무충돌·dead-time 150ns·향후 ADC SOC 트리거 전환
 - [[adc_pinmap]] — eta 보드 J3 커넥터 → ADC 인스턴스/SOC/채널/int_xbar/IRQ → 신호 대응표 (6채널: 온도×2, 전압×1, 전류×3, 6/6 구현·실보드 검증, 5 인스턴스, AIN hard assign). 스케일링 스펙 미확인 항목 포함

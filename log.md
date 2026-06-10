@@ -4,6 +4,49 @@
 
 ---
 
+## [2026-06-09] ingest | 8kw-ev-wpt-tx — PWM dead-time 단일소스 #define 통일(두 레그·두 메커니즘·하나의 ns 소스) + 스윕 검증 (commit 8046744)
+
+- **근거 커밋**: `8046744` (branch pwm). dead-time을 두 레그 모두 `eta_pwm.h` `#define ETA_DEADTIME_NS` 하나로 통일 + 150/300ns 스윕 4채널 실측. (직전 P1 4핀 = `6e6b342`.)
+- **사실관계 정정**: 직전 wiki는 "레그1 dead-time 단일소스 미적용 — 향후 통일 예정"으로 적었으나, `8046744`가 **레그1까지 통일 완료** → [[pwm]]·[[status]] 해당 후속 항목 해소.
+- **단일소스 패턴(핵심)**: `ETA_DEADTIME_NS`(=150U) → `ETA_NS_TO_COUNTS(ns)=(uint16_t)((uint32_t)ns*(TBCLK_HZ/1MHz)/1000)` 정수 floor. **TBCLK=200MHz → 1 count=5ns**, 150→30·300→60(절삭손실 0), TBPRD=1000(UP_DOWN 100kHz). `ETA_DEADTIME_COUNTS=30@150ns`.
+  - **레그1(EPWM2 dead-band)**: `eta_pwm_init()`이 `EPWM_setRisingEdgeDelayCount`/`setFallingEdgeDelayCount`로 RED/FED=ETA_DEADTIME_COUNTS 재적용(RED=FED 대칭, 주기당 갭 2개, SysConfig 기본 override).
+  - **레그2(EPWM7 CMPB 오프셋)**: `ETA_EPWM7_CMPB_INIT=TBPRD/2−ETA_DEADTIME_COUNTS`(=470@150ns) → `EPWM_setCounterCompareValue(...COMPARE_B...)`. **CMPB<TBPRD/2 엄수**(초과 시 shoot-through).
+  - 요지: **메커니즘 둘(dead-band RED/FED vs CMPB 오프셋)·ns 소스 하나**, build-per-change(숫자만 바꿔 재빌드).
+- **검증 방법(환원)**: flash 없이 RAM-load(OCRAM)→run + Saleae Logic2 4ch, **500MS/s(2ns 격자)**, **transition-based CSV export**(오프라인 수치분석 유리). dead-time=상보쌍 both-LOW 갭, shoot-through=both-HIGH 겹침. 샘플레이트=타임스탬프 격자 GCD 추정.
+- **검증 결과(150·300ns 두 빌드)**: 4ch 100kHz±0.1% 상보 유지; dead-time 레그1 150.3→300.4ns(1.998×)·레그2 150.0→300.0ns(2.000×); **shoot-through 0**(양 빌드·양 레그); 레그1 RED=FED 대칭 확인. ⚠️ **+0.3ns 초과는 2ns 격자 양자화 바이어스**(floor 절삭/타이밍 오차 아님 — 30·60 정수라 절삭손실 0).
+- **wiki 정합 메모**: 작업 지시는 "[[pwm]]/[[status]] dangling, 신설"이었으나 **디스크 확인 결과 둘 다 실존**(`roadmaps/pwm.md`·`status.md`, Obsidian이 파일명으로 해석) — 신설 아닌 기존 §dead-time 단일소스 절 확장으로 처리. P2도 △로 진척 반영.
+- **갱신**: [[pwm]](§dead-time 단일소스 절 매크로·양 레그·검증표 확장, §검증 방법·결과 신설, P2 △·마일스톤·현재위치·사실·환원후보), [[status]](후속 해소·현황표·다음), [[pwm_pinmap]](dead-time 두 경로 단일소스 수렴 1줄), [[team_briefing_8kw]](로드맵 P1✓/P2△·보고포인트·§5), [[roadmap]](pwm 행), index.
+
+## [2026-06-09] ingest | oled_tv_software — 패킷 크기 정정(54/43) + app_protocol 적출 + 정리트랙 추월 (esb 9be1a7a)
+
+근거: c-oled_tv_software repo 코드 `9be1a7a`(esb). 코드 직접 확인 후 환원. 네 갈래:
+
+1. **패킷 크기 사실 정정**: 내부 데이터 컨테이너 `rx_module_data_t`/`tx_module_data_t` 크기를 코드 static_assert(`_shared/oled_tv_protocol.h:237-238`) 기준 **rx 54B / tx 43B**로 정정. wiki에 62B/51B(canonical [[spi_packet_format]])·56B/45B(entity·source) 두 드리프트값 혼재 → 모두 코드값으로. wire는 불변 11B. 갱신: [[spi_packet_format]]·[[rx_control]]·[[rx_ble_module]]·[[esb_ptx_ack_assembly]]. (entity 교차참조의 "HDR 0xC0·20ms"도 정정 — 실제 HDR 0x10–12/0x50–52·10ms.) **코드 repo `CLAUDE.md:20`도 45B/56B로 낡음 → 별도 갱신 필요(메모, wiki 밖).** source 스냅샷(prd/manual/schematic)은 historical로 잔존, static_assert가 정본.
+2. **정리트랙(spi-esb-refactor) 코드 추월**: R1~R3 부분 구현(공유 `_shared/oled_tv_protocol.{c,h}`+`pkt_build_*`/`pkt_apply_*`/`pkt_print_*`), R4(`SPI_PKT_*` 개명) 무효 — 코드는 이미 링크 중립 `PKT_HDR_*`. [[roadmaps/spi-esb-refactor]] 표·§5 갱신, [[roadmap]] §5·[[status]] 반영.
+3. **새 트랙 — app_protocol 적출/핸드오프 (완료·검증)**: 01의 SPI 프로토콜을 `common.c/h`→`app_protocol.c/h`로 적출. 공개 API `protocol_loop()` 하나(내부 static `exchange_packets`/`print_packets`) + 전역 3개. 4파일 자립(common.h 역의존 끊음). W1=트랜스포트 직접 호출, D1=센싱/지령 전역 유지(비-SPI 호출처 무수정). 더미 한 줄 토글·모니터 상시 ON·LINK UP/DOWN 출력 제거(COMM 중복)·죽은코드(monitor_spi_diag/spi_ok_cnt/build_rx_to_tx_pkt/LOG_EN/tx_data_log) 삭제. main 루프 = `adc_proc()`+`protocol_loop()`. **STM32CubeIDE 실 빌드 + 실보드 동작확인 완료(✓).** 신규 [[app_protocol_module]], [[rx_control]] 메인루프 갱신, [[status]] 반영, Monitor_Loop(`175a8f7`) 주석 미결 해소.
+4. **남은 후속(미착수)**: `_shared` 매크로 소유권 점검 — `PACKET_INTERVAL`(10ms)은 01만 호출(02/03 ESB 1ms 미사용)이라 SPI 전용 분리/개명(`SPI_PACKET_INTERVAL_MS`) 후보. [[roadmaps/spi-esb-refactor]] §6. (esb_crc=-1은 의도된 설계로 확정 — 점검 대상 아님.)
+
+## [2026-06-09] ingest | 8kw-ev-wpt-tx — PWM P1 완료(4핀) + 레그2 두 모듈 SYNC 상보 설계 + dead-time 단일소스 #define
+
+- **근거 커밋**: `6e6b342` (branch pwm). P1 = PWM 4핀(HS1/LS1/HS2/LS2) 전부 실보드 검증 완료.
+- **LS2 = EPWM7_B @ J6.51 확정**: 이전 "핀 미확정"을 해소. UG Table 2-30(`ug:1640`) Mode0=EPWM7_B 일치(오기 없음) + **pinmux.csv 핀 F1=EPWM7_B 교차확인**. 펌웨어 배정 정본=silicon 채널.
+- **회로도 net 라벨 함정 정확화**: 회사 회로도가 레그2 net을 채널이름 스타일 "EPWM4_B"(HS2)/"EPWM7_A"(LS2)로 라벨링 — 이 **suffix가 핀 노출 silicon 채널과 반대**(실제 EPWM4_A/EPWM7_B). HS2·LS2 동일 패턴. **정본=silicon 채널**, 라벨 suffix에 끌려가지 말 것([[adc_pinmap]] l/I 오기 동류).
+- **레그2 두 모듈 SYNC 상보 설계(SDK 1:1 예제 없던 자리, 해결)**: EPWM4 syncout(ON_CNTR_ZERO)→EPWM7 syncin·phaseShift=0 위상정렬 + EPWM7_B AQ 반전 + CMPB 오프셋으로 상보+dead-time(레그1 dead-band 대신 CMP 오프셋). ⚠️ **함정: `CMPB=TBPRD/2−DT_COUNTS`(반드시 <TBPRD/2). +부호면 LS ON이 HS OFF 넘어 shoot-through** — 구현 중 1회 부호 오류 잡음.
+- **dead-time 단일소스 #define 패턴(신규)**: `eta_pwm.h` `ETA_DEADTIME_NS` → `eta_pwm_init()`이 CMPB에 1회 적용, build-per-change(150↔300ns 실측). 레그2 적용, **레그1(EPWM2 dead-band) 미적용 → 향후 통일**(별도 세션).
+- **게이트 극성**: active-high 가정으로 4핀 검증 통과(상보·dead-time·shoot-through 0) → **가정 실보드 실증, 회로도 원본 미확인**.
+- **검증 실측치**: 100kHz, HS2 50%/LS2 47%, dead-time 150ns 양 edge, shoot-through 0 (Saleae 125MS/s, 13,421주기 전수 스캔). HS1 별도 99.997kHz/50%.
+- **갱신**: [[pwm_pinmap]](표 4핀 확정·회로도 라벨 함정·LS2 EPWM7_B·게이트극성·SYNC 요약), [[pwm]](P1 ✓완료·Pin4 SYNC 설계절·dead-time 단일소스절·P2 레그1 통일잔여·블로커 해소·환원후보), [[status]](P1 완료·현황표·미결 재구성), index 2행.
+
+## [2026-06-09] ingest | 8kw-ev-wpt-tx — PWM 핀맵 net/채널 분리 정정 + Pin3 HS2 실보드 검증 + EPWM 인스턴스·자유구동 사실
+
+- **정정 대상**: [[pwm_pinmap]] "사용자 net 라벨" 컬럼이 **보드 net과 SoC 채널을 혼동**. J6.52 행을 "EPWM4_B"로 적었으나 — ① UG가 강제하는 SoC 채널은 **EPWM4_A**(Mode0/primary, `teams/g/lp-am263p/raw/lp_am263p_ug/ug_lp-am263p.md:1641`), ② J6.52에 라우팅된 **보드 net은 PWM_HS2**(레그2 HS 게이트, 사용자 도메인 확인). 펌웨어도 EPWM4_A hard `$assign`으로 실측 통과.
+- **정정 방향**: 표를 **3단 모델(커넥터 핀 → SoC 채널 UG Mode0 → 보드 net)** 로 재구성, "EPWM4_B/EPWM7_A" 표기 제거. 이전 [2026-06-09 decision]의 "net 라벨 _B/_A vs 채널 반대" 프레이밍 자체가 net과 채널 혼동이었음 → 정정(net=PWM_HS2/LS2, 채널은 핀이 강제).
+- **UG 교차확인**: J4.39=EPWM2_A(`:1600`), J4.40=EPWM2_B(`:1601`), J6.52=EPWM4_A(`:1641`), J6.51=EPWM7_B(Mode0)/EPWM5_B(Mode10)(`:1640`). 레그1·HS2는 UG·실측 정합.
+- **Pin3 HS2 검증 환원**: EPWM4_A@J6.52 펌웨어 구현·실측 **99.998kHz/50%** → P1 진행 **1/4→2/4**(Pin1·Pin3 ✓, Pin2 LS1·Pin4 LS2 남음).
+- **신규 reference 사실(검증 근거)**: ① **EPWM4는 EPWM2와 독립 인스턴스**(SysConfig 수용, base `CSL_CONTROLSS_G0_EPWM4_U_BASE`). ② **SysConfig 기본 EPWM = SYNC-in disable + phaseShift=0 → 자유구동** → 단일 모듈 핀은 위상기준 없이 독립 검증 가능(HS2 레그1 무관 토글 실증). 단 레그2 상보·dead-time(Pin4)은 EPWM4↔EPWM7 SYNC 명시 활성화 필요.
+- **LS2 핀 미확정 명시**: 레그2 LS2는 **EPWM7 모듈만 사용자 확정**, 커넥터 핀 미확정 → J6.51은 "EPWM7 노출 UG 후보 핀"으로만 기재(검증된 사실 아님). Pin4 착수 시 호명.
+- **갱신**: [[pwm_pinmap]](표 3단 재구성·net/채널 정정·EPWM 인스턴스 자유구동 절 신설·LS2 핀 미확정·source), [[status]](Pin3 검증·P1 2/4·미결 2항), [[pwm]](P1 표·Pin3/4 행·현재위치), index 2행.
+
 ## [2026-06-09] ingest | 8kw-ev-wpt-tx — PWM P1 Pin1(HS1) 구현·실보드 검증 + EPWM primary 패드 force_io 불요 정본
 
 - **출처**: PWM P1 Pin1 = EPWM2_A → J4.39 (PWM_HS1) 실보드 검증.
