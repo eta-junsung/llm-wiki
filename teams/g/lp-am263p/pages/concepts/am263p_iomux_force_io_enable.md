@@ -84,11 +84,13 @@ UART5는 LaunchPad에서 **전용 핀이 없어 EPWM15 패드를 alt-function(`P
 
 펌웨어 IOMUX/PADCONFIG 처리는 **원인이 아니다.** 8kw의 TX force-output-enable이 검증된 lp-am263p 예제와 동일하고, OE 비트 극성(set=enable)도 확정됐다.
 
-★ **현재 상태(branch adc)**: TX force-enable 코드(`:64-94`, `:121-122`)는 **살아있으나**, UART5 차동라인으로 실제 바이트를 내보내는 `snprintf`+`UART_write` 블록은 **통째로 주석 처리**됨(`eta_uart5.c:159-170`) → **현재 UART5 차동 송신은 시도조차 안 함.** 1초 주기 출력은 UART0 콘솔(`DebugP_log`)로만 나간다. 또한 **RS-485 DE/485_EN(THVD1400 U13) 제어 코드 미구현**(src 전체 `485`/`DE`/`THVD` 토큰 0건).
+★ **현재 상태(branch adc)**: TX force-enable 코드(`:64-94`, `:121-122`)는 **살아있으나**, UART5 차동라인으로 실제 바이트를 내보내는 `snprintf`+`UART_write` 블록은 **통째로 주석 처리**됨(`eta_uart5.c:159-170`) → **현재 UART5 차동 송신은 시도조차 안 함.** 1초 주기 출력은 UART0 콘솔(`DebugP_log`)로만 나간다. 또한 **RS-485 DE/485_EN 제어 코드 미구현**(src 전체 `485`/`DE`/`THVD` 토큰 0건). ※ RS-485 트랜시버 THVD1400 U13은 **8kw 커스텀 보드** 부품이다 — LP-AM263P 온보드 부품이 아님(아래 박스 참조).
 
 따라서 미동작은 ① `UART_write` 비활성 + ② RS-485 DE 제어 부재 두 층 모두에서 기인. → 복구 작업: `UART_write` 주석 해제 + EN_485 GPIO 제어 구현·검증. 8kw [[status]] 미결 참조.
 
-**DE 핀 확정 (2026-06-10)**: THVD1400 U13 DE·485_EN 공통 연결 → **LP-AM263P J5.48 = GPIO91** (UG Table 2-30 Mode6/7). 코드 식별자 = **`EN_485`** (`485_EN`은 C 식별자 선두 숫자 금지로 변경). SysConfig GPIO 인스턴스를 `EN_485`로 추가, `GPIO91` hard assign 필요.
+**DE 핀 확정 (2026-06-10)**: THVD1400 U13은 **8kw-ev-wpt-tx 커스텀 보드** 부품이다 — LP-AM263P를 모듈(부스터팩 형태)로 결합한 8kw 보드 위에 얹혀 있으며 **LP 온보드 부품이 아니다.** 8kw 펌웨어가 이 트랜시버의 DE/`EN_485`를 **GPIO91**로 구동하고, GPIO91은 **LP-AM263P 헤더 J5.48**로 노출된다 (UG Table 2-30 Mode6/7). 즉 **J5.48=GPIO91이 LP↔8kw 경계 핀**이고 THVD1400은 그 너머 8kw 측에 있다. 코드 식별자 = **`EN_485`** (`485_EN`은 C 식별자 선두 숫자 금지로 변경). SysConfig GPIO 인스턴스를 `EN_485`로 추가, `GPIO91` hard assign 필요.
+
+> **LP-AM263P 설계 확인 (2026-06-10, TI PROC171 회로도 IPC 네트리스트 직접 검증)**: LP-AM263P 자체에는 RS-485 트랜시버가 **없다** — 네트리스트에 `485`/`THVD`/`RS485` 네트 0건. UART5_TXD/RXD는 온보드 **U54 SN74CB3Q3257 UART/EPWM 2:1 버스스위치 먹스**를 거쳐 BP 헤더로 나가고, 그 SEL/EN은 **TCA6416 IO expander(U63, I2C1 @0x20)** 가 구동한다(GPIO 아님). ★ **확인 필요 [미검증]**: UART5를 헤더로 직결 점검할 때 이 먹스가 UART 쪽으로 선택·인에이블돼 있어야 한다 — 펌웨어 IOMUX/PADCONFIG와 **별개의 보드-레벨 층위**이며, 8kw UART5 미동작의 LP-측 제3 후보 원인일 수 있다. 상세·검증 행동: [[lp_am263p_uart_epwm_mux]].
 
 ---
 

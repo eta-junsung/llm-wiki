@@ -108,7 +108,8 @@
 - [[am263p_adc_rti_trigger]] — **AM263P ADC 브링업 정본**: RTI 타이머→ADC SOC 트리거 결선 함정(SysConfig `enableIntr0` 미설정 시 INT0 export 게이트 차단) + JTAG/RAM 레지스터 검증 측정 시점 함정(reset 없이 read=전부 0 오진) + 검증된 설계 패턴(RTI 트리거+EOC ISR-flag, 1 kSPS). 레퍼런스 `adc_soc_rti`. 8kw 실측 환원 (2026-06-05)
 - [[am263p_epwm_module_sync_deadtime]] — **AM263P EPWM 모듈간 SYNC 상보·dead-time 정본**: 풀브리지 레그의 HS/LS가 다른 EPWM 모듈에 걸치면 모듈 dead-band 못 씀 → master `syncout=ON_CNTR_ZERO`→slave `syncin`·phaseShift=0 위상정렬 + slave AQ 반전 + **CMPB 오프셋(`TBPRD/2−DT`, `<TBPRD/2` 엄수 — +면 shoot-through)**. SYNC-in 기본 disable(자유구동) 주의. dead-band 레그와 ns 소스(`ETA_DEADTIME_NS`) 공유 — 메커니즘 둘·소스 하나. ⚠️ **모듈간 고정 위상 스큐(~수 count) → dead-time 방향별 비대칭**(합 보존, 저 dead-time 시 마진 깎임). 8kw 레그2(EPWM4_A→EPWM7_B) 실측(85.032kHz, 100/150/400ns 스윕 shoot-through 0, 스큐 ~11ns)
 - [[am263p_epwm_primary_pad_no_force_io]] — **AM263P EPWM primary 패드는 force_io 불필요 정본**: 출력이 핀 primary(Mode0) function이면 SysConfig 핀먹스만으로 출력 버퍼 켜짐 — KICK+PADCONFIG OE RMW 불요. force는 alt-function 패드(UART5=EPWM15)만. force_io 정본과 대조 짝. 근거=8kw PWM Pin1 EPWM2_A@J4.39 실측(100kHz/50%, force 없이). + OCRAM/ccs-debug+Saleae 검증법
-- [[am263p_iomux_force_io_enable]] — **AM263P IOMUX PADCONFIG force_io_enable 정본**: SysConfig 핀먹스만으론 alt-function 패드 입·출력 버퍼가 안 켜짐(OE/IE override `00` + `Pinmux_config` plain-write). KICK 언락 후 PADCONFIG RMW로 `PIN_FORCE_OUTPUT_ENABLE(0x40)`/`PIN_FORCE_INPUT_ENABLE(0x10)` OR-set 필수. ★OE/IE active-low 아님(set=enable). UART5(EPWM15_A/B) 사례 발견·전 alt-function 패드 일반화. 8kw UART5 미동작 = 펌웨어 원인 아님(RS-485 트랜시버 의심)
+- [[am263p_iomux_force_io_enable]] — **AM263P IOMUX PADCONFIG force_io_enable 정본**: SysConfig 핀먹스만으론 alt-function 패드 입·출력 버퍼가 안 켜짐(OE/IE override `00` + `Pinmux_config` plain-write). KICK 언락 후 PADCONFIG RMW로 `PIN_FORCE_OUTPUT_ENABLE(0x40)`/`PIN_FORCE_INPUT_ENABLE(0x10)` OR-set 필수. ★OE/IE active-low 아님(set=enable). UART5(EPWM15_A/B) 사례 발견·전 alt-function 패드 일반화. 8kw UART5 미동작 = 펌웨어 IOMUX 원인 아님(THVD1400 U13은 8kw 보드 부품·LP 아님 / LP-측 후보=UART/EPWM 먹스 [[lp_am263p_uart_epwm_mux]])
+- [[lp_am263p_uart_epwm_mux]] — **LP-AM263P UART/EPWM 부스터팩 먹스 사실**: UART5_TXD/RXD는 온보드 U54(SN74CB3Q3257) FET 버스스위치로 EPWM9와 다중화돼 BP 헤더로 나감. 먹스 SEL/EN은 TCA6416 IO expander(U63, I2C1 @0x20, P00/P14)가 구동 — GPIO 아님, 풀 없음. 펌웨어가 expander 설정 전엔 먹스 미정 → UART5 헤더 미출력 가능. SoC 핀먹스([[am263p_iomux_force_io_enable]])와 별개 보드-레벨 게이트. ★8kw UART5 미동작 LP-측 제3 후보(가설). 회로도 PROC171A ingest 산출
 - [[jtag_flash_harness]] — **JTAG flash 굽기 정본(flash-time 층위)**: ① runAsynch Node.js 하네스(DSS Rhino GEL_RunF는 R5 free-run+TCM read 0x400000으로 깨짐) ② 클린 호스트(IDE 종료) ③ 연속 시도 사이 파워 사이클(IDLE→never BUSY/300s timeout 해소) ④ standalone 부팅 banner 검증. flashwriter 내부(gCmd 0x70038000)·boot 프로파일·하네스 위치 (2026-06-05 8kw 실측)
 
 ### Sources
@@ -117,6 +118,7 @@
 - [[mcupsdk_flash_nor_ospi]] — TI MCU+ SDK `flash_nor_ospi.c` (NOR OSPI 공용 드라이버), 라인 인덱스 + 파생 페이지 링크
 - [[am263p_trm]] — AM263P Technical Reference Manual (1725쪽, 26챕터 raw 추출 + Grep 탐색 가이드). RAG MCP 대체
 - [[lp_am263p_ug]] — LP-AM263P LaunchPad User Guide (60쪽 전체 ingest: 핀맵·부트모드·핀먹스·OSPI 배선·보드 함정)
+- [[schematic_lp_am263p]] — LP-AM263P 회로도 (TI PROC171A, SPRR503A). Tier 2 선택적 ingest — Altium 소스 바이너리라 PDF 텍스트레이어 추출. UART5 먹스 블록 산출, RS-485 부재 확인. raw `proc171_schematic/`
 
 ---
 

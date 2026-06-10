@@ -1,0 +1,296 @@
+    1                                      2                                                                               3                                                                           4                                                                                                       5                                                                                    6
+
+
+
+
+                                                                                                                               AM263P ePWM, eQEP, FSI
+
+
+A                                                                                                                                                                                                                                                                                                                                                                                                                              A
+
+
+
+
+                                                                                                                                                                                                                                                               I2C3 Pull-Up
+                                                                                                                                                                                                                                                                               VSYS_3V3
+
+
+                                                                                                                                     COU1E
+                                                                                                                                     U1E
+                                                                                                                                                                                                                                                                                PIR5 02          PIR5602
+                          NLAM263P0EPWM00A
+                          AM263P_EPWM0_A                                     COR46
+                                                                             R46             22       NLAM263P0EPWM00A0R
+                                                                                                      AM263P_EPWM0_A_R          B2                                                                                                                                                    COR55
+                                                                                                                                                                                                                                                                                      R55              COR56
+                                                                                                                                                                                                                                                                                                       R56
+        AM263P_EPWM0_A    NLAM263P0EPWM00B                                      PIR4601       PIR4602
+                                                                                                      NLAM263P0EPWM00B0R       PIU10B2 EPWM0_A                                                                                                                                            4.7k         4.7k
+                          AM263P_EPWM0_B                                     COR47
+                                                                             R47             22       AM263P_EPWM0_B_R          B1
+        AM263P_EPWM0_B                                                          PIR4701       PIR4702                          PIU10B1   EPWM0_B
+                                                                                                                                                                                                                                                                                PIR5 01          PIR5601
+                          NLAM263P0EPWM10A
+                          AM263P_EPWM1_A                                     COR48
+                                                                             R48
+                                                                               PIR4801
+                                                                                                      NLAM263P0EPWM10A0R
+                                                                                              PIR4802 AM263P_EPWM1_A_R
+                                                                                             22                                 D3
+                                                                                                                               PIU10D3                                                                                                        AM263P_I2C3_SCL
+        AM263P_EPWM1_A                                                                                                                   EPWM1_A                                                                                                                                                               AM263P_I2C3_SCL
+                          NLAM263P0EPWM10B
+                          AM263P_EPWM1_B                                     COR49
+                                                                             R49
+                                                                               PIR4901
+                                                                                                      NLAM263P0EPWM10B0R
+                                                                                              PIR4902 AM263P_EPWM1_B_R
+                                                                                             22                                 D2
+                                                                                                                               PIU10D2                                                                                                        AM263P_I2C3_SDA
+        AM263P_EPWM1_B                                                                                                                   EPWM1_B                                                                                                                                                               AM263P_I2C3_SDA
+                          NLAM263P0EPWM20A
+                          AM263P_EPWM2_A                                     COR50
+                                                                             R50             22          NLAM263P0EPWM20A0R
+                                                                                                         AM263P_EPWM2_A_R       C2
+        AM263P_EPWM2_A    NLAM263P0EPWM20B                                     PIR5001        PIR5002
+                                                                                                      NLAM263P0EPWM20B0R       PIU10C2 EPWM2_A
+                          AM263P_EPWM2_B                                     COR51
+                                                                             R51             22       AM263P_EPWM2_B_R          C1
+        AM263P_EPWM2_B                                                         PIR5101        PIR5102                          PIU10C1   EPWM2_B
+                          NLAM263P0EPWM30A
+                          AM263P_EPWM3_A                                     COR52
+                                                                             R52             22       NLAM263P0EPWM30A0R
+                                                                                                      AM263P_EPWM3_A_R          E2
+        AM263P_EPWM3_A    NLAM263P0EPWM30B                                     PIR5201        PIR5202
+                                                                                                      NLAM263P0EPWM30B0R       PIU10E2   EPWM3_A
+                          AM263P_EPWM3_B                                     COR53
+                                                                             R53
+                                                                               PIR5301        PIR5302 AM263P_EPWM3_B_R
+                                                                                             22                                 E3
+                                                                                                                               PIU10E3
+        AM263P_EPWM3_B                                                                                                                   EPWM3_B
+B                                                                                                                                                                                                                                                                                                                                                                                                                              B
+                          NLAM263P0EPWM40A
+                          AM263P_EPWM4_A                                     COR433
+                                                                             R433           22                              D1
+        AM263P_EPWM4_A                           NLAM263P0FSITX10CLK
+                                                                               PIR43301      PIR43302
+                                                                                                      NLAM263P0FSITX10CLK0R
+                                                                                                                           PIU10D1 EPWM4_A
+                                                 AM263P_FSITX1_CLK           COR54
+                                                                             R54            22        AM263P_FSITX1_CLK_RPIU10E4
+                                                                                                                            E4
+                         AM263P_FSITX1_CLK                                      PIR5401      PIR5402                               EPWM4_B
+                                               AM263P_FSITX1_DATA0
+                                               NLAM263P0FSITX10DATA0 COR57                           AM263P_FSITX1_DATA0_RPIU10F2
+                                                                                                    NLAM263P0FSITX10DATA00R
+                     AM263P_FSITX1_DATA0
+                     AM263P_FSITX1_DATA1
+                                               NLAM263P0FSITX10DATA1
+                                                                     R57
+                                                                       PIR5701
+                                               AM263P_FSITX1_DATA1 COR58
+                                                                     R58
+                                                                       PIR5801
+                                                                                           22
+                                                                                            PIR5702
+                                                                                           22
+                                                                                            PIR5802
+                                                                                                    NLAM263P0FSITX10DATA10R
+                                                                                                                            F2
+                                                                                                    AM263P_FSITX1_DATA1_R PIU10G2
+                                                                                                                            G2
+                                                                                                                                  EPWM5_A
+                                                                                                                                  EPWM5_B
+                                                                                                                                                                                                                                                   BOOSTER_PACK_MUX
+                                                    NLAM263P0FSIRX10CLK
+                                                    AM263P_FSIRX1_CLK                                                           E1
+                           AM263P_FSIRX1_CLK                                                                                   PIU10E1
+                                                                                                                                       EPWM6_A
+                                                    NLAM263P0FSIRX10DATA0
+                                                    AM263P_FSIRX1_DATA0                                                          F3
+                          AM263P_FSIRX1_DATA0                                                                                  PIU10F3   EPWM6_B
+                                                                                                                                                                                   VSYS_3V3                                                   VSYS_3V3
+                                                    NLAM263P0FSIRX10DATA1
+                                                    AM263P_FSIRX1_DATA1                                                          F4
+                          AM263P_FSIRX1_DATA1        NLAM263P0EPWM70B                                    NLAM263P0EPWM70B0R
+                                                                                                                               PIU10F4   EPWM7_A                                                                                                                      COU54
+                                                     AM263P_EPWM7_B      COR436
+                                                                         R436                  22        AM263P_EPWM7_B_R        F1                                                                                                                                   U54
+                             AM263P_EPWM7_B                                PIR43601             PIR43602                       PIU10F1   EPWM7_B
+                                                                                                           NLAM263P0I2C30SDA
+                                                                                                           AM263P_I2C3_SDA      G3                                                      PIC260 1            PIC26101                                            16
+                                                                                                                               PIU10G3 EPWM8_A                                                                                                                 PIU54016   VCC
+                                                                                                           NLAM263P0I2C30SCL
+                                                                                                           AM263P_I2C3_SCL      H2                                                                 COC260
+                                                                                                                                                                                                   C260              COC261
+                                                                                                                                                                                                                     C261                                                                                                          2
+                                                                                                                                                                                                                                                                                                                            1B1 PIU5402
+                                                                                                                                                                                                                                                                                                                                                            NLAM263P0UART50TXD
+                                                                                                                                                                                                                                                                                                                                                            AM263P_UART5_TXD
+                                                                                                                               PIU10H2
+                                                                                                                                         EPWM8_B                                                                                                                                                                                                                                   AM263P_UART5_TXD
+                                                                                                                                                                                        PIC260 2 10V                              AM263P_EPWM15_A PIU5404
+                                                                                                                                                                                                                                                     4                                                                             3                        NLAM263P0EPWM150A0BP
+                                                                                                                                                                                                                                                                                                                                                            AM263P_EPWM15_A_BP
+                                                       NLAM263P0EPWM90A
+                                                       AM263P_EPWM9_A COR9                            NLAM263P0EPWM90A0R                                                                                    PIC26102 10uF                                                 1A                                                1B2 PIU5403                                            AM263P_EPWM15_A_BP
+                              AM263P_EPWM9_A
+                                                                        R9PIR901              PIR902 AM263P_EPWM9_A_R
+                                                                                             22                                 G1
+                                                                                                                               PIU10G1 EPWM9_A                                                     0.1uF               10V
+                                                       NLAM263P0EPWM90B
+                                                       AM263P_EPWM9_B COR12
+                                                                        R12                           NLAM263P0EPWM90B0R
+                                                                                              PIR1202 AM263P_EPWM9_B_R
+                                                                                             22                                  J2                                                                                               AM263P_EPWM15_B PIU5407
+                                                                                                                                                                                                                                                     7    2A                                                                       5
+                                                                                                                                                                                                                                                                                                                            2B1 PIU5405
+                                                                                                                                                                                                                                                                                                                                                            NLAM263P0UART50RXD
+                                                                                                                                                                                                                                                                                                                                                            AM263P_UART5_RXD
+                              AM263P_EPWM9_B                              PIR1201                                              PIU10J2   EPWM9_B                                                                                                                                                                                                            NLAM263P0EPWM150B0BP   AM263P_UART5_RXD
+                                                                                                                                                                                                                                                                                                                                   6
+                                                                                                                                                                                                                                                                                                                            2B2 PIU5406
+                                                                                                                                                                                                                                                                                                                                                            AM263P_EPWM15_B_BP
+                                                                                                                                                                                                                                                                                                                                                                                   AM263P_EPWM15_B_BP
+                                                                                                                                G4
+                             AM263P_MCAN5_RX                                                                                   PIU10G4 EPWM10_A
+                             AM263P_MCAN5_TX
+                                                                             COR393
+                                                                             R393
+                                                                               PIR39301      22
+                                                                                              PIR39302
+                                                                                                                                J3
+                                                                                                                               PIU10J3 EPWM10_B                                       GND                                                                         9
+                                                                                                                                                                                                                                                               PIU5409 3A
+                                                                                                                                                                                                                                                                                                                                    11
+                                                                                                                                                                                                                                                                                                                            3B1 PIU54011
+                                                                                                                                                                                                                                                                                                                                    10
+                                                                                                                                                                                                                                                                                                                            3B2 PIU54010
+                                                      NLAM263P0OSPI0ECS
+                                                      AM263P_OSPI_ECS COR13
+                                                                         R13                 22       NLAM263P0OSPI0ECS0R
+                                                                                                      AM263P_OSPI_ECS_R     H1
+                              AM263P_OSPI_ECS                             PIR1301             PIR1302                      PIU10H1 EPWM11_A
+                                                      NLAM263P0OSPI00RST
+                                                      AM263P_OSPI0_RST COR99
+                                                                         R99                 22       NLAM263P0OSPI00RST0R
+                                                                                                      AM263P_OSPI0_RST_R PIU10J1
+                                                                                                                             J1                                                                                                                                 12        4A                                                        14
+                                                                                                                                                                                                                                                                                                                            4B1 PIU54014
+                             AM263P_OSPI0_RST                                   PIR9901       PIR9902                              EPWM11_B                                                                                                                    PIU54012
+                                                                                                                                                                                                                                                                                                                                    13
+                                                                                                                                                                                                                                                                                                                            4B2 PIU54013
+                                                      NLAM263P0EPWM120A
+                                                      AM263P_EPWM12_A COR280
+                                                                        R280                 22        NLAM263P0EPWM120A0R
+                                                                                                       AM263P_EPWM12_A_R PIU10K2
+                                                                                                                           K2                                                                                            NLUART0EPWM0MUX0SEL
+                                                                                                                                                                                                                         UART/EPWM_MUX_SEL                        1       S
+                             AM263P_EPWM12_A                             PIR28001             PIR28002                           EPWM12_A                                                                                                                      PIU5401
+                             AM263P_EPWM12_B
+                                                      NLAM263P0EPWM120B
+                                                      AM263P_EPWM12_B COR281
+                                                                        R281
+                                                                         PIR28101            22
+                                                                                              PIR28102
+                                                                                                       NLAM263P0EPWM120B0R
+                                                                                                       AM263P_EPWM12_B_R PIU10J4
+                                                                                                                           J4
+                                                                                                                                 EPWM12_B
+                                                                                                                                                                                                                                                                                                                                 8
+                                                                                                                                                                                                                                                                                                                          GND PIU5408
+                                                                                                                                                                                                                         NLUART0EPWM0MUX0EN
+                                                                                                                                                                                                                         UART/EPWM_MUX_EN                       15
+C                                                                                                                                                                                                                                                              PIU54015   OE                                                                                                                                                   C
+                                                      NLAM263P0EPWM130A
+                                                      AM263P_EPWM13_A COR59
+                                                                        R59                  22       NLAM263P0EPWM130A0R
+                                                                                                      AM263P_EPWM13_A_R PIU10K4
+                                                                                                                          K4
+                             AM263P_EPWM13_A                             PIR5901              PIR5902                           EPWM13_A
+                             AM263P_EPWM13_B
+                                                      NLAM263P0EPWM130B
+                                                      AM263P_EPWM13_B COR60
+                                                                        R60     PIR6001
+                                                                                             22
+                                                                                              PIR6002
+                                                                                                      NLAM263P0EPWM130B0R
+                                                                                                      AM263P_EPWM13_B_R PIU10K3
+                                                                                                                          K3
+                                                                                                                                EPWM13_B
+                                                                                                                                                                                                                                               PIR39402
+                                                                                                                                                                                                                                                      R394
+                                                                                                                                                                                                                                                      COR394          SN74CB3Q3257PWR
+                                                      NLAM263P0EPWM140A
+                                                      AM263P_EPWM14_A COR282
+                                                                        R282                 22        NLAM263P0EPWM140A0R
+                                                                                                       AM263P_EPWM14_A_R V17                                                                                                                              0
+                             AM263P_EPWM14_A                                    PIR28201      PIR28202                     PIU10V17 EPWM14_A
+
+                             AM263P_EPWM14_B
+                                                      NLAM263P0EPWM140B
+                                                      AM263P_EPWM14_B COR283
+                                                                        R283
+                                                                         PIR28301            22
+                                                                                              PIR28302
+                                                                                                       NLAM263P0EPWM140B0R
+                                                                                                       AM263P_EPWM14_B_R T16
+                                                                                                                           PIU10T16      EPWM14_B
+                                                                                                                                                                                                                                               PIR39401
+                                                      AM263P_EPWM15_A COR284
+                                                      NLAM263P0EPWM150A R284                 22        AM263P_EPWM15_A_R PIU10P15
+                                                                                                       NLAM263P0EPWM150A0R P15                                                                                                                                                                                                                   GND
+                                                                         PIR28401             PIR28402                              EPWM15_A
+                                                      AM263P_EPWM15_B COR285
+                                                      NLAM263P0EPWM150B R285
+                                                                         PIR28501
+                                                                                             22
+                                                                                              PIR28502
+                                                                                                       AM263P_EPWM15_B_R R16
+                                                                                                       NLAM263P0EPWM150B0R
+                                                                                                                           PIU10R16 EPWM15_B
+                                                                                                                                                                                                                                              GND
+                                                                                            NLAM263P0EQEP00A
+                                                                                            AM263P_EQEP0_A                     B14
+                                                          AM263P_EQEP0_A                                                       PIU10B14 EQEP0_A
+                                                                                            NLAM263P0EQEP00B
+                                                                                            AM263P_EQEP0_B                     A14
+                                                          AM263P_EQEP0_B                                                       PIU10A14 EQEP0_B
+                                                                                            NLAM263P0EQEP00INDEX
+                                                                                            AM263P_EQEP0_INDEX                 D11
+                                                                                                                               PIU10D11 EQEP_I                                                                                                                                                             VSYS_3V3 VSYS_3V3
+                                                      AM263P_EQEP0_INDEX
+                                                                                            NLAM263P0EQEP00STROBE
+                                                                                            AM263P_EQEP0_STROBE                C12
+                                                     AM263P_EQEP0_STROBE                                                       PIU10C12  EQEP_S
+                                                                                                                                     AM263PxC                                                                                                                                                                  PIR39502                       PIR39602
+                                                                                                                                                                                                                                                                                                                      COR395
+                                                                                                                                                                                                                                                                                                                      R395                           COR396
+                                                                                                                                                                                                                                                                                                                                                     R396
+                                                                                                                                                                                                                                                                                                                          10.0k                      10.0k
+                                                                                                                                                                                                                                                                                                               PIR39501                       PIR39601
+                                                                                                                                                                                                                                                               UART/EPWM_MUX_SEL
+                                                                                                                                                                                                                              UART/EPWM_MUX_SEL
+                                                                                                                                                                                                                                                               UART/EPWM_MUX_EN
+                                                                                                                                                                                                                              UART/EPWM_MUX_EN
+                                                                                                                                                                                                                                                                                                                          PIR39702                       PIR39802
+                                                                                                                                                                                                                                                                                                                                 R397
+                                                                                                                                                                                                                                                                                                                                 COR397                         COR398
+                                                                                                                                                                                                                                                                                                                                                                R398
+                                                                                                                                                                                                                                                                                                                                     1.0k                           1.0k
+                                                                                                                                                                                                                                                                                                                          PIR39701                       PIR39801
+D                                                                                                                                                                                                                                                                                                                                                                                                                              D
+
+                                                                                                                                                                                                                                                                                                                                                 GND
+                                                                                                                                                                                                                                                                                                                    GND
+
+
+                                                                                                                                                                                                                                                              Orderable: LP-AM263P                                                          Designed for: TEXAS INSTRUMENTS Mod. Date: 23-08-2024
+                                                                                                                                                                                                                                                              TID #:     N/A                                                                Project Title: AM263P Launchpad
+                                                                                                                                                                                                                                                              Number: PROC171        Rev: A                                                 Sheet Title:
+                                       Texas Instruments and/or its licensors do not warrant the accuracy or completeness of this specification or any information contained therein. Texas Instruments and/or its licensors do not                           SVN Rev: Not in version control                                               Assembly Variant: 001                 Sheet: 11 of 27
+                                       warrant that this design will meet the specifications, will be suitable for your application or fit for any particular purpose, or will operate in an implementation. Texas Instruments and/or its                     Drawn By:                                                                     File: PROC171_AM263P_6_ePWM_eQEP_FSI.SchDoc Size: B            http://www.ti.com
+                                       licensors do not warrant that the design is production worthy. You should completely validate and test your design implementation to confirm the system functionality for your application.                            Engineer: Shrinivas                                                           Contact:                                                    © Texas Instruments
+    1                                      2                                                                               3                                                                           4                                                                                                       5                                                                                    6
+

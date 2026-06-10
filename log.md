@@ -4,6 +4,14 @@
 
 ---
 
+## [2026-06-10] ingest | lp-am263p — TI PROC171A 회로도 UART5 먹스 블록 (Tier 2) + THVD1400 오귀속 정정
+
+- **소스**: TI LP-AM263P 회로도 SPRR503A(`PROC171A`, Rev A). [[schematic_ingest_strategy]] **Tier 2**(PDF 텍스트레이어) — Altium `.SchDoc`이 바이너리 OLE라 Tier 1 네트리스트 export 불가(라이선스). 동봉 SCH PDF는 `pdftotext -layout` 추출 양호. raw `teams/g/lp-am263p/raw/proc171_schematic/`(PDF 전체 + 시트 11/13/21/23 텍스트). 새 소스 [[schematic_lp_am263p]].
+- **정정(검증된 오류)**: wiki가 RS-485 트랜시버 **THVD1400 U13을 lp-am263p 부품**처럼 다뤘으나 오류. 네트리스트에 `485`/`THVD`/`RS485` 0건 → **LP-AM263P엔 RS-485 트랜시버 없음**. THVD1400 U13은 **8kw-ev-wpt-tx 커스텀 보드** 부품(LP를 모듈로 결합). J5.48=GPIO91은 LP↔8kw 경계 핀. 수정: [[am263p_iomux_force_io_enable]] :87/:91, [[am263p_syscfg_soft_vs_hard_assign]] :49.
+- **핵심 발견 → [[lp_am263p_uart_epwm_mux]]**: UART5_TXD/RXD는 온보드 **U54(SN74CB3Q3257) FET 버스스위치**로 EPWM9와 다중화돼 BP 헤더(`EPWM15_A/B_BP`)로 나감. 먹스 SEL(pin1)/EN(pin15, active-low)은 **TCA6416 IO expander(U63, AM263P_I2C1 @0x20)의 P00/P14**가 구동 — GPIO 아님, 제어선 풀저항 없음. TCA6416 리셋=전포트 입력 → **펌웨어 I2C 설정 전 먹스 미정**.
+- **8kw 함의(가설, 미검증)**: 8kw가 BP 헤더(post-mux)에서 UART5 탭하면 LP의 이 먹스가 UART로 설정돼야 신호가 나옴 → 8kw UART5 미동작의 **LP-측 제3 후보 원인**([[am263p_iomux_force_io_enable]] 펌웨어 IOMUX 원인배제 + UART_write 주석 + RS-485 DE 미구현 위에 추가). 검증: 펌웨어 TCA6416 설정 grep + JTAG expander 레지스터 read + 헤더핀 스코프.
+- **확인 필요**: BP 헤더 J-핀 정합(회로도 net 핀34/J7.45 vs UG J1.4/J1.3), J1.4 post/pre-mux 여부, SEL 극성, 누가 expander 디폴트 설정(TI Board init?).
+
 ## [2026-06-10] ingest | oled_tv_software — UART monitor 텍스트→바이너리 전환 + PC GUI 추가 (commit 35b94d0)
 
 - **근거 커밋**: `35b94d0` (branch esb, 2026-06-10 실보드 검증). 직전 `2f2aa65`(COMM 라인 2인자·이벤트화) 위에, 01_RX_control UART5 모니터를 **텍스트 printf → 11B 바이너리 패킷 송출**로 바꾸고 host PC GUI(`tools/pc_uart_gui/uart_gui.py`)를 추가.
