@@ -9,6 +9,8 @@ subsystem: 01_RX_control
 
 [[rx_control]] 보드의 UART5 디버그 명령. 터미널에서 명령 입력 후 Enter.
 
+> **방향 주의 (`35b94d0`)**: 이 페이지는 **host→01 command 채널**(라인 단위·텍스트·ISR 파싱)을 다룬다 — 이 채널은 **무변경**. 반대 방향 **01→host 모니터 출력은 `35b94d0`부터 11B 바이너리 패킷**으로 바뀌었다([[comm_state_monitoring]] "monitor 바이너리 전환", host [[pc_uart_gui]]). command 응답 printf(`buck=.. V` 등)만 텍스트로 남아 바이너리 모니터와 한 포트(UART5)에 섞여 나간다 — 수동 TeraTerm 디버그용.
+
 ## 설정
 
 | 항목 | 값 |

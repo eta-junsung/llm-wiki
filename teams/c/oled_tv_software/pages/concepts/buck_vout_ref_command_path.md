@@ -42,6 +42,9 @@ subsystem: 01_RX_control, 02_RX_ble, 03_TX_ble
 |---|---|
 | `eca4d96` | buck 지령 기능 추가 (UART → 0x51 DATA[6,7] 적재) |
 | `175a8f7` | UART 키워드 단축: `eta-tx buck vout ref` → `buck` |
+| `35b94d0` | **경로 불변, 확인 방법만 갱신** — host PC GUI([[pc_uart_gui]]) 입력칸 → `buck <v>\r` UART5 송신. 확인은 텍스트 응답이 아니라 **01이 바이너리로 내보내는 0x51 패킷 `Tx_Buck_Vout_Ref`**(volts×100)로. monitor 텍스트→바이너리 전환([[comm_state_monitoring]]) |
+
+> **(`35b94d0`) 확인 채널 변화**: end-to-end 경로(UART→0x51 DATA[6,7]→SPI→ESB→03)는 그대로다. 다만 01 모니터가 바이너리화되며, host에서 적재값을 확인하려면 GUI가 파싱한 0x51 `Tx_Buck_Vout_Ref` 필드(volts×100)를 본다. 03 Monitor의 `tx_buck_vout_ref=12334` 텍스트(아래 실측)는 03측 표시로 여전히 유효.
 
 ## 새 "tx로 보내는 지령"을 늘릴 때의 첫 패턴
 
@@ -56,6 +59,7 @@ subsystem: 01_RX_control, 02_RX_ble, 03_TX_ble
 ## 관련 페이지
 
 - [[uart_command_set]] — `buck` 포함 UART5 명령어 전체
+- [[pc_uart_gui]] — host GUI: buck 입력칸 송신 + 0x51 `Tx_Buck_Vout_Ref` 파싱 확인
 - [[rx_to_tx_packets]] — 0x51 `DATA[6..7]` Tx Buck Vout Ref 와이어 사양 + passenger 인식
 - [[comm_state_monitoring]] — passenger 데이터 패턴(SPI_Comm_St·BLE_Comm_St)
 - [[cubeide_newlib_nano_float]] — float scanf 빌드 의존성

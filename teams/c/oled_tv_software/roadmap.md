@@ -1,6 +1,6 @@
 ---
 tags: [roadmap, oled_tv_software, living-doc]
-date: 2026-06-09
+date: 2026-06-10
 ---
 
 # oled_tv_software — 전체 로드맵
@@ -61,7 +61,7 @@ OLED TV 무선 전력 전송 시스템의 **3-MCU 제어신호 교환 펌웨어*
 - **(사실)** M3 통과(2026-06-01): SPI 10 ms 폴링 확정. 초당 100 트랜잭션, CRC fail 0건.
 - **(사실)** heartbeat 200 ms 독립 타이머 실보드 검증 완료(✓).
 - **(사실)** comm-state 비트 2개(SPI/BLE) 실보드 검증 완료(2026-06-08).
-- **남은 활성 작업은 M 호 밖의 별트랙뿐** — comm-state (T,N) 상수 통일·spi_status LINK/CRC 분리·COMM 라인 완료(`d2232fe`), 다음 = 02/03 COMM 라인 와이어링·N=20 실측·회사보드 LED3 전환. 단일 소스 [[status]] "다음 시작점".
+- **남은 활성 작업은 M 호 밖의 별트랙뿐** — comm-state·monitor 정리 완료(`d2232fe`→`2f2aa65`→`35b94d0`: UART monitor 바이너리화 + PC GUI [[pc_uart_gui]], 실보드 검증), 다음 = SPI-down→bit5 확인·N=20 실측·02/03 ESB merge·`_shared` 매크로 점검. 단일 소스 [[status]] "다음 시작점".
 
 ---
 
@@ -82,7 +82,7 @@ OLED TV 무선 전력 전송 시스템의 **3-MCU 제어신호 교환 펌웨어*
 ## 5. 환원 후보 (wiki ↔ 코드 어긋남)
 
 - 코드 정리 라운드 (tasks/monitor-formatting 이후) — **코드 `9be1a7a`가 추월: 부분 구현**: ① 모니터 1-헤더-1-줄 압축 ✓(01), ② 공유 출력 함수(`_shared/oled_tv_protocol.{c,h}` 신설, `pkt_print_*`) ✓, ③ serialize/deserialize 통합(`pkt_build_*`/`pkt_apply_*`) ✓ 대체로, ④ ~~`SPI_PKT_*` 개명~~ 무효(이미 링크 중립 `PKT_HDR_*`). 추가 적출은 [[app_protocol_module]] 완료. 남은 일 = 02/03 ESB 측 검증·merge·`_shared` 매크로 소유권 점검. → 작업 로드맵 [[roadmaps/spi-esb-refactor|SPI·ESB 리팩토링]].
-- PC GUI (아이디어·미착수): UART 패킷 모니터링 + `buck` 설정 호스트 툴. 설정 포트(01 UART5)와 모니터 포트(03 Monitor/01 Monitor_Loop) 조합 결정 선행. → 작업 로드맵 [[roadmaps/pc-gui|PC GUI]].
+- ~~PC GUI (아이디어·미착수)~~ ✓ **완료**(`35b94d0`, 2026-06-10 실보드 검증): UART 패킷 모니터링 + `buck` 설정 호스트 툴. G0 결정 = UART5 단일 포트 + 01 모니터를 **텍스트→11B 바이너리** 전환. 산출물 [[pc_uart_gui]](`tools/pc_uart_gui/uart_gui.py`). → 작업 로드맵 [[roadmaps/pc-gui|PC GUI]].
 - ~~BLE_Comm_St ESB-health 연결~~ ✓ 완료(`6cd7e6c`, 2026-06-08): presence 리셋 윈도우(`esb_rx_cnt`/`esb_ack_cnt` delta) 판정→0x10 bit6. `ble_link` 심볼은 코드에 없었음(폐기). 상세 [[comm_state_monitoring]]. 후속(`d2232fe`, 2026-06-09): (T,N) 상수 통일(N 3→20)·spi_status LINK/CRC 분리·COMM 라인. 다음 = 02/03 COMM 라인·N=20 실측.
 - `spi_wr_u16`에 음수 ADC 패턴 교정: `03_TX_ble build_tx_pkt case1·2` → `spi_wr_i16` 신설 — 별도 task, 미착수.
 - (보류) nRF52832 SPIS 최대 SCK datasheet ingest — M4 재개 시 선결. [[esb_link_layer]] 또는 신규 source 페이지.

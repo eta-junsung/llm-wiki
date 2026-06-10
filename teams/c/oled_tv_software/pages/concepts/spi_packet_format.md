@@ -42,9 +42,11 @@ subsystem: 01_RX_control, 02_RX_ble
 | 0x11 | TX 입력측 Analog (Vbus, Ibus) | [[tx_to_rx_packets]] |
 | 0x12 | TX 출력측 Analog + 온도 | [[tx_to_rx_packets]] |
 
+> **(사실, `35b94d0`) 같은 11B wire가 UART5에도 흐른다**: 01_RX_control 모니터 출력이 텍스트→바이너리로 전환되며, `print_packets()`가 이 11B 프레임 6종(0x10~0x12/0x50~0x52)을 1초 주기로 UART5에 송출한다. host([[pc_uart_gui]])는 SPI/ESB와 동일한 11B 구조로 파싱 — HDR 동기+CRC 검증. 상세 [[comm_state_monitoring]] "monitor 바이너리 전환".
+
 ## 전송 파라미터
 
-- **주기**: 10ms cyclic *(사양)* — ✓ 달성 (2026-06-01): `PACKET_INTERVAL=10`, CS Δt=10ms 오실로 확인. [[spi_link_reliability]] 참조. (ESB RF wire 10ms와는 별개 주기 — [[esb_link_layer]])
+- **주기**: 10ms cyclic *(사양)* — ✓ 달성 (2026-06-01): `PACKET_INTERVAL=10`, CS Δt=10ms 오실로 확인. [[spi_link_reliability]] 참조. (ESB RF wire 10ms와는 별개 주기 — [[esb_link_layer]]. UART 모니터 송출은 또 별개로 1초 `MONITOR_INTERVAL_MS`)
 - **SPI 속도**: 9.0 Mbps *(사양)* — ✗ 미달: STM32 9MHz 상향 시도 후 revert(`7143f55`), 더 낮은 클럭으로 동작 중. nRF52832 SPIS 최대 SCK datasheet 선결 필요.
 - **CS**: Low Active, Master = STM32 (클럭 생성)
 - **커넥터**: CN3 (SPI + 3.3V 비절연), CN4 (+5V 절연 — 통신 전원만)

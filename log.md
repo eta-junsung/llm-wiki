@@ -4,6 +4,20 @@
 
 ---
 
+## [2026-06-10] ingest | oled_tv_software — UART monitor 텍스트→바이너리 전환 + PC GUI 추가 (commit 35b94d0)
+
+- **근거 커밋**: `35b94d0` (branch esb, 2026-06-10 실보드 검증). 직전 `2f2aa65`(COMM 라인 2인자·이벤트화) 위에, 01_RX_control UART5 모니터를 **텍스트 printf → 11B 바이너리 패킷 송출**로 바꾸고 host PC GUI(`tools/pc_uart_gui/uart_gui.py`)를 추가.
+- **monitor 바이너리화**: `print_packets()`가 6헤더(0x10/0x11/0x12/0x50/0x51/0x52)를 `pkt_build_tx`/`pkt_build_rx`로 빌드해 신규 `uart_send()`(app_usart)로 1초 주기 송출. wire 11B(`[HDR][LEN=0x08][DATA[8]][CRC]`, BE, scale 0.01) 불변 — 이제 UART에도 흐름. TeraTerm으로 열면 깨져 보이는 게 정상.
+- **COMM 텍스트 라인 폐기**: `print_comm_line_on_change()` 삭제. 링크 health(SPI_Comm_St/BLE_Comm_St)는 0x10 status d0 **bit5/bit6**로 운반(1초 주기 항상 실림) — 별도 이벤트 라인 불필요. `pkt_print_comm_line()` 공유 포매터는 호출처 없는 orphan.
+- **PC UART GUI(신규)**: Python+Tkinter+pyserial. 단일 UART5 송수신, 11B HDR 동기+CRC(`pkt_checksum` XOR 포팅) 재동기(1바이트 슬라이드 → command 텍스트 잡음 자연 폐기). 2컬럼(좌 TX 0x10~12/우 RX 0x50~52) 뷰·필드명 사전표기·값만 갱신. `Link: SPI [UP/DOWN] ESB [UP/DOWN/-]`(d0 bit5/6). buck 입력칸 2개→`buck <v>\r` 송신, 확인은 0x51 `Tx_Buck_Vout_Ref`(volts×100).
+- **buck 경로 불변**: end-to-end(UART→0x51 DATA[6,7]→SPI→ESB→03)는 그대로, 확인 방법만 텍스트→바이너리 0x51 파싱으로.
+- **무변경**: command 채널(UART5 라인 단위 ISR 파싱)·응답 printf(`buck=.. V`)는 수동 TeraTerm 디버그용으로 잔존. command 응답 텍스트와 바이너리 모니터가 한 포트에 섞여 나감.
+- **빌드 함정(신규 페이지)**: STM32CubeIDE CLI 빌드 불가(`stm32cubeidec.exe` GUI 서브시스템·즉종료) → IDE Ctrl+B. CubeMX 재생성 금지. [[cubeide_cli_build_trap]].
+- **로드맵**: [[roadmaps/pc-gui]] G0~G3 완료(G0 결정=UART5 단일 포트·monitor 바이너리 전환).
+- **신규 페이지**: [[pc_uart_gui]], [[cubeide_cli_build_trap]].
+- **갱신**: [[comm_state_monitoring]](갱신이력3·monitor 바이너리 전환 절·pkt_print_comm_line historical 강등·보류·관련), [[app_protocol_module]](print_packets 바이너리화·print_comm_line_on_change 삭제·빌드함정·관련), [[spi_link_reliability]](링크표시 행·LINK DOWN/UP·단절후속), [[rx_control]](메인루프·UART5절), [[spi_packet_format]](11B가 UART에도), [[uart_command_set]](방향 주의), [[buck_vout_ref_command_path]](확인방법), [[status]](다음시작점·현황표 행3개·미결·예정), [[roadmap]](§3·§5·date), index, log.
+- ⚠️ **직전 환원(2f2aa65 COMM 라인 이벤트화, commit 66e1892)의 'COMM 텍스트 라인' 기술은 이번에 historical 강등** — `35b94d0`이 그 텍스트 라인 자체를 제거했기 때문.
+
 ## [2026-06-10] ingest | 8kw-ev-wpt-tx — PWM 주파수 85kHz 고정 + dead-time config 분리 구현·실보드 검증 (commit d01fc0a)
 
 - **근거 커밋**: `d01fc0a` (branch pwm). 직전 `8046744`(dead-time 단일소스)·`6e6b342`(P1 4핀) 위에 **주파수 확정값(85 kHz) 반영 + 튜닝 knob 파일 분리**를 얹어 4채널 실측 PASS. P2 △→✓.

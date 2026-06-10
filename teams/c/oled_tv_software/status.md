@@ -6,23 +6,25 @@ date: 2026-06-10
 
 ## 다음 시작점
 
-**01 COMM 라인 링크 전용 2인자·이벤트화 + CRC 카운터 제거 완료(`2f2aa65`) — 다음은 02/03 COMM 라인 와이어링·N=20 실측·`_shared` 매크로 점검**
+**UART monitor 바이너리 전환 + PC GUI 완료(`35b94d0`, 실보드 검증) — 다음은 SPI-down→bit5 확인·N=20 실측·02/03 ESB merge·`_shared` 매크로 점검**
 
-`2f2aa65`(2026-06-10): 01 COMM 라인을 **링크 전용 2인자(`pkt_print_comm_line(spi_link, esb_link)`)·이벤트(edge) 출력**으로 단순화. 신규 `print_comm_line_on_change()`가 `protocol_loop()`에서 `exchange_packets()` 직후 매 루프 평가→링크 변화 시점에만 출력(패킷 덤프는 `print_packets()` 1초 게이트로 분리 유지). CRC 표시처·`spi_crc_fail_cnt` 카운터 **모두 제거** — CRC fail은 이제 깨진 패킷 드롭만(플래그·재요청 없음, 무결성 검증은 유지). 직전 `9be1a7a`: 01 SPI 프로토콜 `app_protocol` 적출(공개 API `protocol_loop()`)·실보드 동작확인 — [[app_protocol_module]].
+`35b94d0`(2026-06-10, 실보드 검증): 01_RX_control UART5 모니터 출력을 **텍스트 printf → 11B 바이너리 패킷 송출**로 전환(`print_packets`가 6헤더를 `pkt_build_*`→`uart_send`). COMM 텍스트 라인(`print_comm_line_on_change`) 삭제 — 링크 health는 0x10 status d0 **bit5(SPI)/bit6(ESB)**로 운반. host 도구 [[pc_uart_gui]](`tools/pc_uart_gui/uart_gui.py`, Python+Tkinter+pyserial): 단일 UART5로 11B HDR 동기+CRC 재동기 파싱, 2컬럼(TX 0x10~12/RX 0x50~52) 뷰, `Link: SPI/ESB [UP/DOWN]`, buck 입력칸→`buck <v>\r` 송신→0x51 `Tx_Buck_Vout_Ref` 확인. [[roadmaps/pc-gui]] G0~G3 완료. (직전 `2f2aa65`: COMM 라인 2인자·이벤트화 — `35b94d0`에서 그 텍스트 라인 자체가 폐기됨.)
 
-1. **02/03 COMM 라인 와이어링**: `pkt_print_comm_line()`이 02/03엔 컴파일만 되고 호출 안 됨(unused). 02/03에 붙일 땐 **2인자(`spi_link`, `esb_link`) 시그니처** 기준 — ESB CRC 자리 없음(SW 검증 안 함). [[comm_state_monitoring]].
+1. **(검증) SPI 끊김 → 0x10 d0 bit5 = 0 낙하**: GUI `Link: SPI`가 이 비트로 표시되므로, SPI 단절 시 bit5가 정확히 0으로 떨어져 `SPI DOWN`이 뜨는지 실보드 확인. [[pc_uart_gui]].
 2. **N=20 실측 검증**: `BLE_COMM_ST_MIN_COUNT=20`(=200ms 윈도우 기대 ~200개의 ~10%)가 실 RF 수신율 대비 적정한지 확인.
 3. **`_shared` 매크로 소유권 점검**: `PACKET_INTERVAL`(=10ms)은 `_shared`에 있으나 01만 호출(02/03은 ESB 1ms) → SPI 전용 분리/개명(`SPI_PACKET_INTERVAL_MS`) 후보. [[roadmaps/spi-esb-refactor]] §6.
 4. **회사보드 실장 시 LED3 매크로 전환**: 체크인 기본은 DK P0.19(active-low) — 회사 BLE_Module_Board에는 `LED3_PIN`을 P0.06(active-high)으로 수동 교체. [[tx_ble_module]].
 5. **(별트랙)** SPI_FAIL/ESB_FAIL 응답 — Warning/Fault 플래그·PWM 차단 상태 머신은 여전히 미구현.
 
-참고: [[app_protocol_module]] — 01 SPI 프로토콜 적출·핸드오프(`print_comm_line_on_change`/`print_packets` 분리). [[comm_state_monitoring]] — (T,N) 모델·spi_status LINK/CRC·COMM 라인(2인자·이벤트). [[spi_packet_format]] — wire 11B·컨테이너 54B/43B. [[tx_ble_module]] — LED mirror. [[st_link_nrf52_flash]] — 플래싱.
+> ⚠️ 01 빌드는 **CubeIDE Ctrl+B 직접** — CLI 빌드 불가([[cubeide_cli_build_trap]]).
+
+참고: [[pc_uart_gui]] — host 바이너리 GUI. [[comm_state_monitoring]] — monitor 바이너리 전환·링크 health 0x10 d0 bit5/6·spi_status LINK/CRC. [[app_protocol_module]] — `print_packets` 바이너리화·`uart_send`. [[spi_packet_format]] — wire 11B(이제 UART에도). [[tx_ble_module]] — LED mirror. [[st_link_nrf52_flash]] — 플래싱.
 
 ---
 
 코드 정리 4개 라운드 (별도 트랙) — **코드 `9be1a7a` 추월·부분 구현**: ① 모니터 1-헤더-1-줄 ✓(01), ② 공유 출력 함수(`_shared/oled_tv_protocol.{c,h}`) ✓, ③ serialize/deserialize 통합 ✓ 대체로, ④ ~~`SPI_PKT_*` 개명~~ 무효(이미 `PKT_HDR_*`). → [[roadmaps/spi-esb-refactor]].
 
-예정 작업 (아이디어 단계·미착수): [[roadmaps/pc-gui|PC GUI]] (UART 패킷 모니터링 + buck 설정), [[roadmaps/spi-esb-refactor|SPI·ESB 리팩토링]] (02/03 검증·merge·`_shared` 매크로 점검).
+완료 작업: [[roadmaps/pc-gui|PC GUI]] ✓(`35b94d0`, 실보드 검증) — UART 바이너리 모니터 + buck 설정 호스트 툴 [[pc_uart_gui]]. 예정(미착수): [[roadmaps/spi-esb-refactor|SPI·ESB 리팩토링]] (02/03 검증·merge·`_shared` 매크로 점검).
 
 ## 구현 현황
 
@@ -33,7 +35,9 @@ date: 2026-06-10
 | SPI_Comm_St heartbeat (3-MCU) | ✓ | RX_ble가 0x10 Data[0] bit5(`COMM_ST_BIT_SPI`) 토글 → STM32 타임아웃(`d2232fe`: `SPI_COMM_ST_WINDOW_MS=1000`, 구 5s)으로 SPI 단절 감지. 오실로 200ms 토글 확인(Δt≈190ms). 검증 5/5 PASS (`e5e3efc`) |
 | 01 SPI 프로토콜 `app_protocol` 적출 | ✓ | `9be1a7a`. `common.c/h`→`app_protocol.c/h`. 공개 API `protocol_loop()`(내부 `exchange_packets`+`print_packets`). 4파일 핸드오프 자립. STM32CubeIDE 실 빌드 + 실보드 동작확인 완료 ([[app_protocol_module]]) |
 | `spi_status` LINK/CRC 분리 (이전 통합 환원) | ✓(01) | `e5e3efc` 통합 → `d2232fe`에서 분리: `spi_status`=LINK 전용(토글 타임아웃 `SPI_COMM_ST_WINDOW_MS=1000`), CRC는 1초 윈도우 fail로 별도. 01 실보드 동작확인(`9be1a7a`) ([[comm_state_monitoring]]) |
-| 3칩 공통 COMM 라인 `pkt_print_comm_line()` | ✓(01) | `2f2aa65`: **링크 전용 2인자(`spi_link`,`esb_link`)·이벤트(edge) 출력**으로 단순화(CRC 인자·표시 삭제). 출력 `COMM \| SPI:%c ESB:%c`(1=up,0=down,-=stale). **01만 호출**(`print_comm_line_on_change`, 실보드 동작확인), 02/03 unused·미와이어링 |
+| UART monitor 바이너리 전환 | ✓ | `35b94d0`(실보드 검증). 01 `print_packets`가 6헤더(0x10~12/0x50~52)를 `pkt_build_*`→`uart_send`로 **11B 바이너리** 송출(구 텍스트 모니터 대체). 링크 health는 0x10 d0 bit5/6 운반. ([[comm_state_monitoring]] "monitor 바이너리 전환", [[app_protocol_module]]) |
+| PC UART GUI (`tools/pc_uart_gui`) | ✓ | `35b94d0`(실보드 검증). Python+Tkinter+pyserial. 단일 UART5, 11B HDR 동기+CRC 재동기, 2컬럼 TX/RX 뷰, `Link: SPI/ESB [UP/DOWN]`(d0 bit5/6), buck 입력→`buck <v>\r`→0x51 확인. [[pc_uart_gui]], [[roadmaps/pc-gui]] |
+| ~~3칩 공통 COMM 텍스트 라인 `pkt_print_comm_line()`~~ | 제거 | `2f2aa65` 링크 전용 2인자·이벤트 출력 → `35b94d0` **텍스트 라인 자체 폐기**(`print_comm_line_on_change` 삭제). `pkt_print_comm_line()` 포매터는 호출처 없는 orphan. 링크 상태는 0x10 d0 bit5/6 바이너리로 대체 ([[comm_state_monitoring]]) |
 | heartbeat 200ms 독립 타이머 | ✓ | `SpiCommSt_Loop()` millis 게이트로 분리, SPI 사이클 종속 제거. bit5 적재는 송신 복사본 `spi_tx_pkt`에 `SPI_Loop` 송신 직전 stamp(race-free). 오실로 검증 완료 |
 | LED2(P0.08) = spi_comm_st_bit mirror | ✓ | 200ms blink 외형 동일, 비트값 정확히 미러. 실보드 검증 (`e5e3efc`). [[tx_ble_module]] |
 | 심볼·네이밍 통일 (`COMM_ST_BIT_*`, `spi_comm_st_*`) | ✓ | 3종 펌웨어. bit5/6은 tx_status 아니므로 prefix 분리. 라벨 문자열은 문서 표시명 유지 ([[comm_state_monitoring]]) |
@@ -49,7 +53,7 @@ date: 2026-06-10
 
 | 기능 | 상태 | 메모 |
 |------|------|------|
-| 모니터 출력 포맷 통일 | ✓(01)/△(02·03) | 01은 상시 ON·실보드 동작확인 — COMM 라인은 `print_comm_line_on_change`(edge), 패킷 라인 `[eta-tx>>eta-rx]`/`[eta-rx>>eta-tx]`은 `print_packets` 1초(`MONITOR_INTERVAL_MS`)로 **주기 분리**(`2f2aa65`). 02/03(SES)은 3빌드 통과·실보드 미검증 (`c9cf6a3`) |
+| 모니터 출력 포맷 | ✓(01 바이너리)/△(02·03 텍스트) | 01은 `35b94d0`부터 **11B 바이너리 송출**(상시 ON·실보드 검증, host [[pc_uart_gui]] 파싱). 구 01 텍스트 포맷(`[eta-tx>>eta-rx]`)은 폐기. 02/03(SES)은 여전히 텍스트 통일포맷·3빌드 통과·실보드 미검증 (`c9cf6a3`) |
 | 0x50 비트맵 매뉴얼 정합 | △ | bit2=Warning, bit3=Fault, BuckRunStop=data[2].bit0. DATA[1..2] 비트 매크로 신설. 3빌드 통과, 실보드 미검증 |
 | oled_tv_packet_t 통명 (spi_packet_t alias) | △ | 11B wire 링크 중립 통합 형식. 03_TX_ble 자체 esb_packet_t 제거. 3빌드 통과, 실보드 미검증 |
 | 0x51 Zin·Tx Buck Vout Ref 와이어 전송 | △ | data[4..5]=Zin, data[6..7]=Tx_Buck_Vout_Ref. rx_cmd_t 신설(passenger 분리). 3빌드 통과. Uint16 vs i16 잔여 차이 미확인 |
@@ -86,7 +90,8 @@ date: 2026-06-10
 - (보류 M4) nRF52832 SPIS 최대 SCK 클럭 datasheet 미ingest — 9MHz 상향 재개 시 선결 ([[roadmap]] §4)
 - SPI_FAIL/ESB_FAIL 응답 — Warning/Fault 플래그·PWM 차단·상태 머신 미구현 ([[comm_state_monitoring]])
 - BLE_Comm_St `N=20` 실측 검증 — 실 RF 수신율 대비 적정성 미확인(`d2232fe`로 3→20 설정됨). STM32 모니터 rx 카운트가 `LOG_EN` 게이트로 미관측 (필요 시 임시 활성)
-- 02/03 COMM 라인 미와이어링 — `pkt_print_comm_line()`(2인자 `spi_link`,`esb_link`) 호출 02/03 추가 필요 (현재 01만). CRC 자리 없음 — SW 검증 안 함(HW CRC 보증)
+- ~~02/03 COMM 라인 미와이어링~~ → **무의미**(`35b94d0`): COMM 텍스트 라인 자체가 폐기됨(링크 health는 0x10 d0 bit5/6 바이너리 운반). 02/03이 별도 COMM 라인 낼 이유 없음
+- (검증 대기) SPI 끊김 시 0x10 d0 bit5가 정확히 0으로 떨어져 host GUI `Link: SPI DOWN` 표시되는지 실보드 확인 ([[pc_uart_gui]], [[comm_state_monitoring]])
 - 회사 BLE_Module_Board 실장 시 LED3 매크로 P0.06(active-high) 전환 — 체크인 기본은 DK P0.19 ([[tx_ble_module]])
 - SPI 오류율 모니터 / spi_tx_busy 타임아웃 복구 실보드 장시간 안정성 검증
 - TX_ble stack_temp 실측 값 정상 여부 확인

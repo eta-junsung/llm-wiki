@@ -20,13 +20,13 @@ subsystem: 01_RX_control, 02_RX_ble
 | 패킷 적재 | `02_RX_ble` `SPI_Loop` | **나가는 SPI 송신 복사본 `spi_tx_pkt`에 송신 직전 stamp** — 공유 RX 버퍼 `esb_pkt[0]` 아님(race). `build_tx_pkt()`도 아님. race-free 근거 → [[comm_state_monitoring]] "race-free stamp" |
 | 변화 감지 | `01_RX_control` `app_protocol.c`(구 `common.c`) | bit5 변화 시 `spi_comm_st_last_change` 갱신 (`apply_rx_pkt`) |
 | 단절 판정 | `01_RX_control` `app_protocol.c` `exchange_packets()` | `d2232fe`부터 `SPI_COMM_ST_WINDOW_MS=1000`(구 `..._TIMEOUT_MS=5000`) 초과 무변화 → `spi_status=SPI_FAIL`. **이제 `spi_status`는 LINK(토글 타임아웃) 전용** |
-| 링크 상태 표시 | `01_RX_control` `app_protocol.c` `print_comm_line_on_change()` | **`9be1a7a`: 구 `spi\|LINK DOWN/UP` edge 출력 제거**(COMM 라인과 값 중복) → COMM 라인 `SPI:%c`로 표시. `2f2aa65`: COMM 라인이 **링크 전용 2인자·이벤트(edge) 출력**으로 단순화(CRC 표시 삭제). `spi_status`는 `d2232fe`부터 LINK 전용(토글 타임아웃) → [[comm_state_monitoring]] "spi_status LINK/CRC 분리". (적출 경위 [[app_protocol_module]]) |
+| 링크 상태 표시 | `01_RX_control` `app_protocol.c` `print_packets()` | **`35b94d0`: COMM 텍스트 라인 제거** — monitor가 바이너리로 전환되며 `spi_status`(SPI_Comm_St)는 **0x10 status 패킷 d0 bit5**에 실려 host로 운반된다. (연혁: `9be1a7a` `spi\|LINK DOWN/UP` 제거 → `2f2aa65` COMM 텍스트 라인 edge 출력 → `35b94d0` 텍스트 라인 자체 폐기.) `spi_status`는 `d2232fe`부터 LINK 전용(토글 타임아웃) → [[comm_state_monitoring]] "monitor 바이너리 전환". (적출 경위 [[app_protocol_module]], host [[pc_uart_gui]]) |
 | LED2 mirror | `03_TX_ble` (custom board) | LED2(P0.08)가 `spi_comm_st_bit` 값을 미러 — [[tx_ble_module]] |
 
 - **200ms 독립화의 의미**: 토글이 SPI 사이클에 종속되지 않으므로, SPI 폴링 주기(PACKET_INTERVAL)를 바꿔도 heartbeat 거동은 불변. STM32는 "토글 주기"가 아니라 "마지막 변화 시각"으로 판정하므로 토글 주기에 무관하게 동작.
 - **heartbeat 검증**: RX_ble `P0.17`(`PIN_DBG_HB`) GPIO 토글 오실로 측정 — Δt≈190ms (≈200ms), `P3NOFO01.PNG`. 실보드 검증 완료.
-- **LINK DOWN/UP 검증 (historical)**: 실보드, SPI 케이블 분리 시 `LINK DOWN`/재연결 시 `LINK UP` 1회 UART 확인 (2026-06-01, `fe5bf14`). **단, 이 출력은 `9be1a7a`에서 제거** — 링크 상태는 이제 COMM 라인 `SPI:%c`(edge 출력)로 본다.
-- **단절 후속 응답 구현 상태**: 링크 상태 가시화는 COMM 라인으로 일원화(구 LINK DOWN/UP 제거, `2f2aa65` 이벤트 기반). Warning/Fault 플래그·PWM 차단·상태 머신은 ✗ 미구현. 상세 → [[comm_state_monitoring]].
+- **LINK DOWN/UP 검증 (historical)**: 실보드, SPI 케이블 분리 시 `LINK DOWN`/재연결 시 `LINK UP` 1회 UART 확인 (2026-06-01, `fe5bf14`). **이 텍스트 출력은 `9be1a7a`→`35b94d0`을 거쳐 완전 제거** — 링크 상태는 이제 0x10 status 패킷 d0 bit5(SPI)/bit6(ESB) 바이너리로 운반, host([[pc_uart_gui]])가 `Link: SPI/ESB [UP/DOWN]`으로 표시.
+- **단절 후속 응답 구현 상태**: 링크 상태 가시화는 0x10 d0 bit5/6 바이너리 운반으로 일원화(COMM 텍스트 라인 폐기, `35b94d0`). Warning/Fault 플래그·PWM 차단·상태 머신은 ✗ 미구현. 상세 → [[comm_state_monitoring]].
 
 ## SPI 오류율 모니터 / CRC 카운터 — 전부 제거됨 (`9be1a7a`→`2f2aa65`)
 

@@ -21,7 +21,7 @@
 ### Living docs
 
 - [roadmap.md](teams/c/oled_tv_software/roadmap.md) — 전체 로드맵(M0~M3 현재 스코프 달성·M4~M6 보류 2026-06-09). 전략 spine, 현재 위치는 status 위임
-- [roadmaps/pc-gui.md](teams/c/oled_tv_software/roadmaps/pc-gui.md) — `pc-gui` 작업 호(G0~G3, 아이디어·미착수). UART 패킷 모니터링 + buck 설정 호스트 툴. G0 포트 조합 결정 선행
+- [roadmaps/pc-gui.md](teams/c/oled_tv_software/roadmaps/pc-gui.md) — `pc-gui` 작업 호(G0~G3 **✓ 완료** `35b94d0`, 실보드 검증). UART 바이너리 모니터링 + buck 설정 호스트 툴. G0 결정=UART5 단일 포트·monitor 텍스트→바이너리. 산출물 [[pc_uart_gui]]
 - [roadmaps/spi-esb-refactor.md](teams/c/oled_tv_software/roadmaps/spi-esb-refactor.md) — `spi-esb-refactor` 작업 호(R1~R4) — **코드 `9be1a7a` 추월: R1~R3 부분 구현·R4 무효(이미 `PKT_HDR_*`)**. §6 `_shared` 매크로 점검. 적출은 [[app_protocol_module]]
 - [status.md](teams/c/oled_tv_software/status.md) — 기능별 구현 현황표·다음 시작점 (파이프라인이 커밋마다 갱신)
 
@@ -38,9 +38,11 @@
 - [[pwm_system]] — TIM8/TIM3 64MHz·100kHz·120도 위상, `pwm_init`/`set_duty`/`pwm_set_freq`
 - [[dead_time]] — SW CCR offset 방식. TIM3에 BDTR 없어 두 타이머 통일
 - [[trip_zone]] — TIM8 BKIN(PA6) → `HAL_TIMEx_BreakCallback`로 PWM 전체 차단
-- [[uart_command_set]] — `duty`/`freq`/`dt`/`phase`/`start`/`stop`/`reset`/`buck` (UART5, 115200/8N1, PC12/PD2). ISR 구동 수신·prefix 매칭 파싱
-- [[buck_vout_ref_command_path]] — `buck <v>` = RF 링크 건너는 유일한 UART 지령. 01 UART5 → 0x51 DATA[6,7](volts×100) → 03 Monitor. 검증 `buck 123.34`→`12334`. 새 tx 지령 추가 패턴
+- [[uart_command_set]] — `duty`/`freq`/`dt`/`phase`/`start`/`stop`/`reset`/`buck` (UART5, 115200/8N1, PC12/PD2). ISR 구동 수신·prefix 매칭 파싱. ⚠️ command 채널(host→01)은 텍스트, 반대 모니터(01→host)는 `35b94d0`부터 바이너리
+- [[buck_vout_ref_command_path]] — `buck <v>` = RF 링크 건너는 유일한 UART 지령. 01 UART5 → 0x51 DATA[6,7](volts×100) → 03. 검증 `buck 123.34`→`12334`. `35b94d0`: host 확인은 바이너리 0x51 파싱([[pc_uart_gui]]). 새 tx 지령 추가 패턴
+- [[pc_uart_gui]] — **host PC GUI**(`tools/pc_uart_gui/uart_gui.py`, Python+Tkinter+pyserial, `35b94d0` ✓실보드). 단일 UART5, 11B HDR 동기+CRC 재동기 리더, 2컬럼 TX/RX 뷰, `Link: SPI/ESB [UP/DOWN]`(0x10 d0 bit5/6), buck 입력 송신
 - [[cubeide_newlib_nano_float]] — CubeIDE newlib-nano float 함정(`nanoprintffloat`/`nanoscanffloat`). scanf float 꺼지면 `buck 15.5` 소수 깨짐. 구성별 독립·Release 재확인
+- [[cubeide_cli_build_trap]] — CubeIDE **CLI 빌드 불가**(`stm32cubeidec.exe` GUI 서브시스템·즉종료) → IDE **Ctrl+B** 직접 빌드. CubeMX 재생성 금지
 - [[adc_channel_map]] — ADC1 6채널 핀맵(PA0~PA3, PC4/PC5) + TEMP1/TEMP2 라벨 swap 함정 + 평가보드 시험 가이드
 - [[spi_packet_format]] — STM32-nRF 내부 SPI wire 포맷 (11B 고정, HDR 0x10~0x12/0x50~0x52). ESB와 동일 패킷 구조
 - [[esb_packet_format]] — ESB wire 포맷 (11B, HDR round-robin 0x10-0x12/0x50-0x52, `ESB_TX_INTERVAL_MS=1ms`, ACK with payload, CRC-valid only 콜백)
@@ -48,9 +50,9 @@
 - [[tx_to_rx_packets]] — TX→RX: 0x10 시스템상태 / 0x11 입력 Analog / 0x12 출력 Analog+온도
 - [[rx_to_tx_packets]] — RX→TX (ESB ACK payload): 0x50 시스템상태 / 0x51 입력+Tx Vout Ref / 0x52 출력+온도 (코드 실측 레이아웃 + 불일치 추가)
 - [[esb_ptx_ack_assembly]] — PTX 모드 ACK payload 재조립: g_last_ack_by_hdr[3] 패턴 + ISR printf 금지
-- [[comm_state_monitoring]] — 0x10 Data[0] bit5/6은 tx_status 아닌 통신 링크 비트. SPI_Comm_St=200ms heartbeat(✓`e5e3efc`), BLE_Comm_St=ESB presence 리셋윈도우(02·03 각자 수신 delta, ✓`6cd7e6c`). `d2232fe`(2026-06-09): 각 링크 **(T,N) 직접 상수**(BLE N 3→20·SPI WINDOW 1000)·`spi_status` **LINK/CRC 분리**·3칩 공통 `pkt_print_comm_line()`(01만 호출). 심볼 컨벤션·라벨 구분·**race-free stamp(상태비트는 송신복사본 spi_tx_pkt에)**
+- [[comm_state_monitoring]] — 0x10 Data[0] bit5/6은 tx_status 아닌 통신 링크 비트. SPI_Comm_St=200ms heartbeat(✓`e5e3efc`), BLE_Comm_St=ESB presence 리셋윈도우(02·03 각자 수신 delta, ✓`6cd7e6c`). `d2232fe`: (T,N) 직접 상수·`spi_status` LINK/CRC 분리. **`35b94d0`(2026-06-10): monitor 텍스트→11B 바이너리 전환, COMM 텍스트 라인 폐기 — 링크 health는 0x10 d0 bit5/6으로 운반(host [[pc_uart_gui]])**. 심볼 컨벤션·라벨 구분·**race-free stamp(상태비트는 송신복사본 spi_tx_pkt에)**
 - [[spi_link_reliability]] — SPI heartbeat 구현(200ms 독립 타이머, P0.17 검증)·오류율 모니터·spi_tx_busy 타임아웃 복구·10ms 폴링 ✓ 검증 완료·9MHz 상향 미달
-- [[app_protocol_module]] — 01_RX_control SPI 프로토콜 계층 적출·핸드오프(`9be1a7a`). 공개 API `protocol_loop()` 하나 + 전역 3개(rx_module/tx_module/rx_cmd), 내부 `exchange_packets`/`print_packets`. 4파일 자립(common.h 역의존 끊음), W1 트랜스포트 직접호출·D1 전역 유지. 더미 토글·모니터 상시ON·죽은코드 삭제. STM32CubeIDE 빌드+실보드 동작확인 ✓
+- [[app_protocol_module]] — 01_RX_control SPI 프로토콜 계층 적출·핸드오프(`9be1a7a`). 공개 API `protocol_loop()` 하나 + 전역 3개(rx_module/tx_module/rx_cmd), 내부 `exchange_packets`/`print_packets`. 4파일 자립(common.h 역의존 끊음), W1 트랜스포트 직접호출·D1 전역 유지. **`35b94d0`: `print_packets` 11B 바이너리 송출(`uart_send`)·`print_comm_line_on_change` 삭제**. STM32CubeIDE 빌드+실보드 동작확인 ✓
 - [[gpio_verification_pinmap]] — 검증 핀맵: 기능 → 프로브 핀 → 기대값 (SPI CS PB12·PWM PC6~9·ESB P0.17/18·ADC). planner가 검증 경로에 인용. 미확인 핀은 "확인 필요"로 호명
 - [[st_link_nrf52_flash]] — 3-MCU 플래싱 정본 (듀얼 프로브: 01 ST-Link 네이티브 / 03 J-Link OB / 02 DK 온보드). SN 고정 함정·CLI 실측·pyOCD 폴백 강등 (2026-06-05)
 
