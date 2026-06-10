@@ -80,17 +80,24 @@ UART5는 LaunchPad에서 **전용 핀이 없어 EPWM15 패드를 alt-function(`P
 - **lp-am263p 레퍼런스** (loopback, RX+TX 둘 다 force): `evaluations/uart5/empty.c:52-88` (force_io 함수), `:107-113` (call site). 외부 loopback 배선 J1.4(TX) ↔ J1.3(RX). RX input buffer가 안 켜지면 `UART_read`가 영원히 블록된다 — 이게 발견 계기 (`empty.c:52-57` 주석).
 - **8kw-ev-wpt-tx** (TX 전용 디버그 송신): `src/eta_bsp/eta_uart5.c:64-94` — TX(EPWM15_A)만 `PIN_FORCE_OUTPUT_ENABLE`, RX force는 의도적으로 주석 처리(TX 전용). call site `eta_uart5.c:121-122` (`eta_uart5_init` 진입 직후). **lp-am263p TX 경로와 byte-identical.** TXD=EPWM15_A=J1.4.
 
-### 이번 8kw UART5 미동작 건 결론 (갱신 2026-06-09)
+### 이번 8kw UART5 미동작 건 결론 (갱신 2026-06-10)
 
 펌웨어 IOMUX/PADCONFIG 처리는 **원인이 아니다.** 8kw의 TX force-output-enable이 검증된 lp-am263p 예제와 동일하고, OE 비트 극성(set=enable)도 확정됐다.
 
-★ **현재 상태(branch adc)**: TX force-enable 코드(`:64-94`, `:121-122`)는 **살아있으나**, UART5 차동라인으로 실제 바이트를 내보내는 `snprintf`+`UART_write` 블록은 **통째로 주석 처리**됨(`eta_uart5.c:159-170`) → **현재 UART5 차동 송신은 시도조차 안 함.** 1초 주기 출력은 UART0 콘솔(`DebugP_log`)로만 나간다. 또한 **RS-485 DE/485_EN 제어 코드 미구현**(src 전체 `485`/`DE`/`THVD` 토큰 0건). ※ RS-485 트랜시버 THVD1400 U13은 **8kw 커스텀 보드** 부품이다 — LP-AM263P 온보드 부품이 아님(아래 박스 참조).
+**실제 근본원인: 보드레벨 U54 먹스(TCA6416 P00/P14 미세팅).** ~~2026-06-09 오진~~ "UART_write 주석처리 + RS-485 DE 미구현이 원인"은 오진이었다: (a) uart5 브랜치에서 UART_write는 이미 활성, (b) force_io(이 페이지 ① 층위)는 처음부터 정상, (c) 미동작은 force_io와 **별개 층위**인 U54 보드먹스(② 층위)가 막았다. DE/EN_485는 8kw 보드 결합 시 Phase 2이지 루프백 차단 원인이 아니었다. 상세: [[lp_am263p_uart_epwm_mux]].
 
-따라서 미동작은 ① `UART_write` 비활성 + ② RS-485 DE 제어 부재 두 층 모두에서 기인. → 복구 작업: `UART_write` 주석 해제 + EN_485 GPIO 제어 구현·검증. 8kw [[status]] 미결 참조.
+#### 2층 경로 모델 (이번 건의 교과서 사례)
 
-**DE 핀 확정 (2026-06-10)**: THVD1400 U13은 **8kw-ev-wpt-tx 커스텀 보드** 부품이다 — LP-AM263P를 모듈(부스터팩 형태)로 결합한 8kw 보드 위에 얹혀 있으며 **LP 온보드 부품이 아니다.** 8kw 펌웨어가 이 트랜시버의 DE/`EN_485`를 **GPIO91**로 구동하고, GPIO91은 **LP-AM263P 헤더 J5.48**로 노출된다 (UG Table 2-30 Mode6/7). 즉 **J5.48=GPIO91이 LP↔8kw 경계 핀**이고 THVD1400은 그 너머 8kw 측에 있다. 코드 식별자 = **`EN_485`** (`485_EN`은 C 식별자 선두 숫자 금지로 변경). SysConfig GPIO 인스턴스를 `EN_485`로 추가, `GPIO91` hard assign 필요.
+alt-function 패드 신호가 BP 헤더에 도달하려면 두 게이트를 **직렬**로 통과해야 한다:
 
-> **LP-AM263P 설계 확인 (2026-06-10, TI PROC171 회로도 IPC 네트리스트 직접 검증)**: LP-AM263P 자체에는 RS-485 트랜시버가 **없다** — 네트리스트에 `485`/`THVD`/`RS485` 네트 0건. UART5_TXD/RXD는 온보드 **U54 SN74CB3Q3257 UART/EPWM 2:1 버스스위치 먹스**를 거쳐 BP 헤더로 나가고, 그 SEL/EN은 **TCA6416 IO expander(U63, I2C1 @0x20)** 가 구동한다(GPIO 아님). ★ **확인 필요 [미검증]**: UART5를 헤더로 직결 점검할 때 이 먹스가 UART 쪽으로 선택·인에이블돼 있어야 한다 — 펌웨어 IOMUX/PADCONFIG와 **별개의 보드-레벨 층위**이며, 8kw UART5 미동작의 LP-측 제3 후보 원인일 수 있다. 상세·검증 행동: [[lp_am263p_uart_epwm_mux]].
+| 층위 | 게이트 | 제어 | 8kw 결과 |
+|------|--------|------|----------|
+| ① SoC 핀먹스/PADCONFIG (이 페이지) | OE/IE force-enable | `eta_uart5.c` force_io_enable | ✓ 처음부터 정상 |
+| ② 보드 외부먹스 U54+TCA6416 | [[lp_am263p_uart_epwm_mux]] | TCA6416 P00/P14=LOW (I2C1) | ✗ 미세팅 → **근본원인** |
+
+**DE 핀 확정 (2026-06-10, 여전히 유효)**: THVD1400 U13은 **8kw-ev-wpt-tx 커스텀 보드** 부품이다 — LP-AM263P를 모듈(부스터팩 형태)로 결합한 8kw 보드 위에 얹혀 있으며 **LP 온보드 부품이 아니다.** 8kw 펌웨어가 이 트랜시버의 DE/`EN_485`를 **GPIO91**로 구동하고, GPIO91은 **LP-AM263P 헤더 J5.48**로 노출된다 (UG Table 2-30 Mode6/7). 즉 **J5.48=GPIO91이 LP↔8kw 경계 핀**이고 THVD1400은 그 너머 8kw 측에 있다. 코드 식별자 = **`EN_485`**. Phase 2(8kw 보드 결합 시 RS-485 차동 송신)에서 구현 예정.
+
+> **LP-AM263P 설계 확인 (2026-06-10, TI PROC171 회로도 IPC 네트리스트 직접 검증)**: LP-AM263P 자체에는 RS-485 트랜시버가 **없다** — 네트리스트에 `485`/`THVD`/`RS485` 네트 0건. UART5_TXD/RXD는 온보드 **U54 SN74CB3Q3257 UART/EPWM 2:1 버스스위치 먹스**를 거쳐 BP 헤더로 나가고, 그 SEL/EN은 **TCA6416 IO expander(U63, I2C1 @0x20)** 가 구동한다(GPIO 아님). ★ **확정(2026-06-10)**: TCA6416 P00/P14=LOW 세팅 후 J1.4↔J1.3 루프백 PASS — U54 먹스가 UART5 미동작 근본원인임을 실보드 인과 확증. 상세: [[lp_am263p_uart_epwm_mux]].
 
 ---
 

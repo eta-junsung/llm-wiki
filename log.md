@@ -4,6 +4,15 @@
 
 ---
 
+## [2026-06-10] 갱신 | lp-am263p·8kw-ev-wpt-tx — UART5 U54 보드먹스 근본원인 확정·실보드 검증
+
+- **확정 사실**: U54(SN74CB3Q3257) SEL=L→UART(B1), OE#=L→인에이블(SCDS135E Table 6-1). TCA6416 P00/P14=LOW → UART5 헤더 연결. J1.4=GPIO73=UART5_TXD, J1.3=GPIO74=UART5_RXD(post-mux, UG :1525-1526).
+- **실보드 PASS (2026-06-10)**: J1.4↔J1.3 루프백 + TCA6416 P00/P14=LOW → TX==RX Logic2 토글. 세팅 전 무토글·후 토글 인과 확증.
+- **2026-06-09 오진 정정**: "UART_write 주석·DE 미구현이 원인" → 오진. 실제 근본원인 = ② 보드먹스(U54+TCA6416). ① force_io(SoC PADCONFIG)는 처음부터 정상. 2층 모델([[am263p_iomux_force_io_enable]]) 추가.
+- **함정 추가**: TCA6416 출력 레지스터 리셋 디폴트=HIGH → LOW 먼저 쓰고 방향 출력으로 세팅(글리치 방지). I2C1 핀: SCL=I2C1_SCL(D7), SDA=I2C1_SDA(C8) 확정.
+- **갱신**: [[lp_am263p_uart_epwm_mux]](가설→확정 재작성), [[am263p_iomux_force_io_enable]](오진 정정·2층 모델), 8kw [[status]](UART5 루프백 PASS·Phase 2 분리).
+- **잔여(Phase 2)**: 8kw 보드 결합 시 THVD1400 U13 DE(`EN_485`=GPIO91=J5.48) 구현.
+
 ## [2026-06-10] ingest | oled_tv_software — 02_RX_ble 모듈 분리 리팩토링 설계 결정 환원
 
 - **작업**: `02_RX_ble` 단일 `Application/main.c`(618줄) → 관심사별 모듈 분리. 01_RX_control `app_*.c/.h` layering을 기준 삼아 순수 코드 이동(동작 불변 목표). 빌드: `emBuild` 에러 0·경고 0, `RX_BLE.hex` 산출. 실보드 검증 미수행(내일 예정).
