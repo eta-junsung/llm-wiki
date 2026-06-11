@@ -6,7 +6,7 @@ date: 2026-06-11
 
 ## 다음 시작점
 
-**02 리팩토링·eta_ 전환 실보드 ✓(b92835c 2026-06-11) · 03_TX_ble 리팩토링 빌드 ✓(1d7f71a 2026-06-11) — 다음은 ①02 ADD_SPI 점검·실보드 재검증 ②03 실보드 검증(TX 보드·오실로스코프) ③SPI-down→bit5·N=20 ④`_shared` 레이어 다듬기**
+**_shared 프로토콜 다듬기 ✓(9ad338d·99c893f, 실보드 검증) — 다음은 ①02 ADD_SPI 점검·실보드 재검증 ②03 실보드 검증(TX 보드·오실로스코프) ③SPI-down→bit5·N=20**
 
 `35b94d0`(2026-06-10, 실보드 검증): 01_RX_control UART5 모니터 출력을 **텍스트 printf → 11B 바이너리 패킷 송출**로 전환(`print_packets`가 6헤더를 `pkt_build_*`→`uart_send`). COMM 텍스트 라인(`print_comm_line_on_change`) 삭제 — 링크 health는 0x10 status d0 **bit5(SPI)/bit6(ESB)**로 운반. host 도구 [[pc_uart_gui]](`tools/pc_uart_gui/uart_gui.py`, Python+Tkinter+pyserial): 단일 UART5로 11B HDR 동기+CRC 재동기 파싱, 2컬럼(TX 0x10~12/RX 0x50~52) 뷰, `Link: SPI/ESB [UP/DOWN]`, buck 입력칸→`buck <v>\r` 송신→0x51 `Tx_Buck_Vout_Ref` 확인. [[roadmaps/pc-gui]] G0~G3 완료. (직전 `2f2aa65`: COMM 라인 2인자·이벤트화 — `35b94d0`에서 그 텍스트 라인 자체가 폐기됨.)
 
@@ -57,7 +57,8 @@ date: 2026-06-11
 
 | 기능 | 상태 | 메모 |
 |------|------|------|
-| 모니터 출력 포맷 | ✓(01 바이너리)/△(02·03 텍스트) | 01은 `35b94d0`부터 **11B 바이너리 송출**(상시 ON·실보드 검증, host [[pc_uart_gui]] 파싱). 구 01 텍스트 포맷(`[eta-tx>>eta-rx]`)은 폐기. 02/03(SES)은 여전히 텍스트 통일포맷·3빌드 통과·실보드 미검증 (`c9cf6a3`) |
+| 모니터 출력 포맷 | ✓(01 바이너리·02 텍스트)/△(03 텍스트) | 01은 `35b94d0` 11B 바이너리(실보드 검증). 02는 `99c893f`(실보드 검증) 배너 줄 제거·말미 개행 통일 완료. 03 텍스트 실보드 미검증 |
+| `_shared` 프로토콜 다듬기 | ✓ | `9ad338d`(실보드 검증) 죽은 심볼(`pkt_print_comm_line`·`pkt_apply_rx`) 제거, 매직넘버 상수화(`PKT_KIND_COUNT=3`/`PKT_RR_STATUS=0`/`INPUT=1`/`OUTPUT=2`·`PKT_DATA_FW_OFFSET=6`), `calc_checksum`→`pkt_checksum` 통일(01 포함). `99c893f`(실보드 검증) 02 배너·개행 정리 |
 | 0x50 비트맵 매뉴얼 정합 | △ | bit2=Warning, bit3=Fault, BuckRunStop=data[2].bit0. DATA[1..2] 비트 매크로 신설. 3빌드 통과, 실보드 미검증 |
 | oled_tv_packet_t 통명 (spi_packet_t alias) | △ | 11B wire 링크 중립 통합 형식. 03_TX_ble 자체 esb_packet_t 제거. 3빌드 통과, 실보드 미검증 |
 | 0x51 Zin·Tx Buck Vout Ref 와이어 전송 | △ | data[4..5]=Zin, data[6..7]=Tx_Buck_Vout_Ref. rx_cmd_t 신설(passenger 분리). 3빌드 통과. Uint16 vs i16 잔여 차이 미확인 |
@@ -105,4 +106,3 @@ date: 2026-06-11
 - TX_ble stack_temp 실측 값 정상 여부 확인
 - (ESB) 실보드 장시간 안정성, GPIO 토글 핀 제거 여부, 01_RX_control ↔ 02_RX_esb UART 브리지 동작 확인
 - ~~01_RX_control `Monitor_Loop()` 주석처리 비활성(`175a8f7`)~~ → **해소** (`9be1a7a`): `protocol_loop()`의 `print_packets()`로 흡수돼 상시 ON ([[app_protocol_module]])
-- `_shared/oled_tv_protocol.h` 매크로 소유권 점검 (미착수) — `PACKET_INTERVAL`(10ms)은 01만 호출(02/03 ESB 1ms 미사용)이라 SPI 전용 분리/개명(`SPI_PACKET_INTERVAL_MS`) 후보. 각 매크로 3펌웨어 공유 여부 grep 확인 필요 ([[roadmaps/spi-esb-refactor]] §6). (구 esb_crc=-1 점검 항목은 `2f2aa65` COMM 라인 2인자화로 소멸)

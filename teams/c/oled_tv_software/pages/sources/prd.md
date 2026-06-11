@@ -77,7 +77,7 @@ subsystem: 01_RX_control, 02_RX_ble, 03_TX_ble
 
 ## 파생 페이지
 
-- [[spi_packet_format]] — STM32-nRF 내부 SPI 프레임 (56B/45B, HDR 0xC0)
+- [[spi_packet_format]] — STM32-nRF 내부 SPI 프레임 (wire 11B, 컨테이너 43B/54B; HDR 0xC0은 구 표기)
 - [[esb_packet_format]] — ESB wire 포맷 (11B, HDR round-robin)
 - [[esb_link_layer]] — ESB 링크 파라미터
 - [[rx_control]] — 01_RX_control STM32 entity

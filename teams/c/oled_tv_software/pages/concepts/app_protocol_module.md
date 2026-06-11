@@ -34,7 +34,7 @@ while (1) {
 
 > ⚠️ **`35b94d0`에서 `print_comm_line_on_change()` 삭제**: `2f2aa65`에 있던 COMM 텍스트 라인(edge 출력) 함수는 monitor 바이너리화로 제거됐다. COMM 텍스트 라인은 더 이상 UART로 나가지 않고, 링크 상태는 0x10 status 패킷 d0 bit5/6으로 운반된다 — [[comm_state_monitoring]] "monitor 바이너리 전환".
 
-보조 static: `calc_checksum`(static 강등), `apply_rx_pkt`(공유 `pkt_apply_tx` 래퍼 + 01 전용 hb/ble_comm/rx_flt_rst 추출), `build_tx_status_d0`, `inject_rx_dummy_data`.
+보조 static: `apply_rx_pkt`(공유 `pkt_apply_tx` 래퍼 + 01 전용 hb/ble_comm/rx_flt_rst 추출), `build_tx_status_d0`, `inject_rx_dummy_data`. *(`calc_checksum` → `9ad338d`에서 제거, 공유 `pkt_checksum`으로 통일)*
 
 ## 핸드오프 — 4파일 자립
 
@@ -70,20 +70,20 @@ _shared/oled_tv_protocol.h
 
 ---
 
-## 3펌웨어 표준 패턴 (01이 원형, 02 적용 완료, 03 예정)
+## 3펌웨어 표준 패턴 (01 원형, 02·03 완료)
 
-**01_RX_control이 원형** — 이 패턴이 확정된 뒤 02_RX_ble에 동일하게 적용됐다 (2026-06-10). 03_TX_ble도 동형(단일 `main.c`) 예정이나 `build_tx_pkt`/`print_rx_pkt` 비대칭 있어 별도 작업.
+**01_RX_control이 원형, 02·03 적용 완료** — 02: `b92835c`(실보드 검증), 03: `1d7f71a`(빌드 ✓). **접두사**: 01(STM32)은 `app_*` 유지, 02/03(nRF52)은 nRF5 SDK 충돌 회피로 `eta_*` — [[nrf52_module_naming]].
 
 ### 모듈 분할 기준
 
 | 모듈 | 역할 | 계층 |
 |------|------|------|
-| `app_gpio` | `gpio_init`, LED_Loop, `led_write` 헬퍼 | 저수준 드라이버 |
-| `app_clock` | lfclk/hfclk/timers/millis | 저수준 드라이버 |
-| `app_uart` (`app_uart_drv.h`) | `uart_init`/event | 저수준 드라이버 |
-| `app_spi` | 저수준 SPIS: `spi_drv_init`, `spi_set_buffers`, `spis_event_handler` ISR | 저수준 드라이버 |
-| `app_esb` | 저수준 ESB: `esb_init`, `esb_event_handler` ISR(헤더 demux 포함), `esb_send_ack` | 저수준 드라이버 |
-| `app_protocol` | 두꺼운 응용 계층: SPI exchange + ESB ACK forwarding + comm_st 판정 + monitor, `protocol_loop()` 단일 진입점 | 응용 계층 |
+| `eta_gpio` | `gpio_init`, LED_Loop, `led_write` 헬퍼 | 저수준 드라이버 |
+| `eta_clock` | lfclk/hfclk/timers/millis | 저수준 드라이버 |
+| `eta_uart` (`eta_uart.h`) | `uart_init`/event | 저수준 드라이버 |
+| `eta_spi` | 저수준 SPIS: `spi_drv_init`, `spi_set_buffers`, `spis_event_handler` ISR | 저수준 드라이버 |
+| `eta_esb` | 저수준 ESB: `esb_init`, `esb_event_handler` ISR(헤더 demux 포함), `esb_send_ack` | 저수준 드라이버 |
+| `eta_protocol` | 두꺼운 응용 계층: SPI exchange + ESB ACK forwarding + comm_st 판정 + monitor, `protocol_loop()` 단일 진입점 | 응용 계층 |
 | `main.c` | fault/assert/bsp/log/pwr/idle 보일러플레이트 + `main()` | 루트 |
 
 ### 계층 방향 (단방향 호출)
@@ -96,9 +96,18 @@ _shared/oled_tv_protocol.h
 
 SPI↔ESB 양방향 교차 버퍼 참조를 단방향으로 정리 — `app_protocol`이 양쪽 드라이버를 호출하는 팬인 구조.
 
-### `_shared` 체크섬 API 변경 (02 적용 시)
+### `_shared` 공개 API 표면 (`9ad338d` 기준, 세 펌웨어 공유)
 
-`_shared/oled_tv_protocol.c`의 `static pkt_checksum`을 **공개 함수로 승격**. 02의 자체 `calc_checksum` 제거. 01_RX_control은 미접촉.
+| 함수 | 역할 |
+|------|------|
+| `pkt_checksum` | XOR 누산 체크섬. `9be1a7a`에서 static→공개 승격(02 `calc_checksum` 제거). 01의 `calc_checksum`은 **`9ad338d`에서 제거** → 세 펌웨어 통일 |
+| `pkt_build_tx` / `pkt_build_rx` | TX/RX 방향 패킷 직렬화 |
+| `pkt_apply_tx` | 수신 패킷 역직렬화 (01의 `apply_rx_pkt`가 래퍼로 호출) |
+| `pkt_print_status_line` / `pkt_print_data_line` | 사람용 텍스트 모니터 출력 (02/03 `Monitor_Loop` 전용) |
+| `pkt_rd_u16` / `pkt_rd_i16` | `data[]` 바이트 쌍 읽기 |
+| `pkt_wr_u16` / `pkt_wr_i16` | `data[]` 바이트 쌍 쓰기 |
+
+**`9ad338d`에서 제거된 심볼**: `pkt_print_comm_line`(`35b94d0`에서 호출처 소멸→orphan), `pkt_apply_rx`(참조 0건).
 
 > ⚠️ SES 빌드 환경 함정(`.emProject` 파일 목록 하드코딩·nRF5 SDK 헤더 충돌·전처리기 매크로 스코프) → [[ses_build_conventions]]
 
@@ -109,5 +118,5 @@ SPI↔ESB 양방향 교차 버퍼 참조를 단방향으로 정리 — `app_prot
 - [[comm_state_monitoring]] — monitor 바이너리 전환·링크 health 0x10 d0 bit5/6·spi_status LINK/CRC
 - [[pc_uart_gui]] — host 바이너리 모니터 GUI(11B 리더·buck 송신)
 - [[cubeide_cli_build_trap]] — CubeIDE Ctrl+B 빌드 함정
-- [[roadmaps/spi-esb-refactor]] — R1~R4 정리 트랙(코드가 추월) + §6 `_shared` 매크로 소유권 점검
+- [[roadmaps/spi-esb-refactor]] — R1~R4 정리 트랙(코드가 추월). `_shared` 매크로 점검 `9ad338d` 완료
 - [[buck_vout_ref_command_path]] — `rx_cmd` 지령 경로

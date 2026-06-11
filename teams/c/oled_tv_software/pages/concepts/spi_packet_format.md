@@ -59,6 +59,18 @@ subsystem: 01_RX_control, 02_RX_ble
 - 전압/전류: scale factor 0.01 (예: 47.95V → 4795)
 - 온도: scale factor 패킷별 상이 → [[rx_to_tx_packets]], [[tx_to_rx_packets]] 참조
 
+## round-robin 인덱스 상수 (`9ad338d` 신설)
+
+`_shared/oled_tv_protocol.h`에 신설된 RR 인덱스 상수. 이전에는 매직넘버(`0/1/2`)로 분산돼 있었다.
+
+| 상수 | 값 | 의미 |
+|------|-----|------|
+| `PKT_KIND_COUNT` | 3 | 방향당 패킷 종류 수 (TX측: 0x10/0x11/0x12, RX측: 0x50/0x51/0x52) |
+| `PKT_RR_STATUS` | 0 | round-robin 인덱스 — 상태 패킷(0x10/0x50) |
+| `PKT_RR_INPUT` | 1 | round-robin 인덱스 — 입력 analog 패킷(0x11/0x51) |
+| `PKT_RR_OUTPUT` | 2 | round-robin 인덱스 — 출력 analog 패킷(0x12/0x52) |
+| `PKT_DATA_FW_OFFSET` | 6 | `data[]` 내 펌웨어 버전 바이트 오프셋 |
+
 ## 관련
 
 - [[spi_link_reliability]] — heartbeat·SPI 단절 복구·10ms/9MHz 실측 현황

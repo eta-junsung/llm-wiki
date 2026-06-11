@@ -74,8 +74,8 @@ ESB 링크 ALIVE  ⟺  최근 BLE_COMM_ST_WINDOW_MS(=200ms) 내 수신 delta ≥
 | **SPI** | **rolling-timeout** — 마지막 토글 edge 이후 `WINDOW(T)` 경과 시 dead, 윈도우 내 edge 1번이면 alive | **01_RX_control만** | `SPI_COMM_ST_WINDOW_MS=1000`(T), `SPI_COMM_ST_MIN_COUNT=1`(N) |
 | **BLE(ESB)** | **윈도우 카운트** — `WINDOW(T)` 동안 수신 이벤트 수 ≥ `MIN_COUNT(N)`이면 alive | **02·03** | `BLE_COMM_ST_WINDOW_MS=200`(T), `BLE_COMM_ST_MIN_COUNT=20`(N) |
 
-- **(사실)** `SPI_COMM_ST_MIN_COUNT=1`은 **모델 문서값** — rolling 검사가 마지막 edge 시각만 추적하므로 코드에서 **직접 참조하지 않는다**(헤더 주석 명시). SPI 판정 실코드는 `WINDOW`만 본다.
-- **(사실)** `SPI_COMM_ST_*`는 02/03에선 **호출되지 않는 unused #define**이 되지만 컴파일러 경고가 없어 무해 — 모델 통일 목적으로 공유 헤더에 둔다.
+- **(사실)** `SPI_COMM_ST_WINDOW_MS=1000`은 01만 소비. SPI 판정 실코드는 `WINDOW`만 참조(MIN_COUNT 미참조). `SPI_COMM_ST_MIN_COUNT=1`은 모델 문서값으로만 존재하다 **`9ad338d`에서 제거**됨(참조 0건).
+- **(사실)** `SPI_COMM_ST_WINDOW_MS`는 01만 소비; 02/03은 `BLE_COMM_ST_*` 상수만 사용. `SPI_COMM_ST_MIN_COUNT`는 `9ad338d`에서 _shared에서 삭제됨.
 
 ## SPI_Comm_St (Bit.5 of Buffer[0] in 0x10)
 
@@ -168,9 +168,9 @@ ESB 링크 ALIVE  ⟺  최근 BLE_COMM_ST_WINDOW_MS(=200ms) 내 수신 delta ≥
 
 > ⚠️ **CLAUDE.md 갱신 후보 (펌웨어 repo)**: 펌웨어 CLAUDE.md가 PC UART GUI 계약을 01/02 구분 없이 기술하고 있다면, "GUI 계약 = 01 UART5 바이너리 전용"으로 정정 필요. [[nrf52_firmware_conventions]] 참조.
 
-## pkt_print_comm_line — 3칩 공통 한 줄 출력 (`d2232fe` 신설 → `2f2aa65` 2인자 → ⚠️ `35b94d0` 호출처 제거, historical)
+## pkt_print_comm_line — 3칩 공통 한 줄 출력 (`d2232fe` 신설 → `2f2aa65` 2인자 → `35b94d0` orphan → ⚠️ `9ad338d` _shared에서 제거)
 
-> ⚠️ **historical (35b94d0)**: 아래는 `2f2aa65`까지의 COMM 텍스트 라인 동작 기록. `35b94d0`에서 monitor가 바이너리로 전환되며 01의 `print_comm_line_on_change()`가 삭제돼 **이 텍스트 라인은 더 이상 UART로 나가지 않는다**. `pkt_print_comm_line()` 공유 포매터는 컴파일은 되지만 호출처가 없다(orphan). 링크 health는 이제 위 "monitor 바이너리 전환"대로 0x10 d0 bit5/6으로 운반된다.
+> ⚠️ **제거됨 (`9ad338d`, 2026-06-11)**: `35b94d0`에서 호출처가 사라진 orphan `pkt_print_comm_line()`이 `9ad338d`에서 _shared에서 완전 삭제됐다. 아래는 `2f2aa65`까지의 동작 기록 — 현재 링크 health는 위 "monitor 바이너리 전환"대로 0x10 d0 bit5/6으로 운반된다.
 
 **(사실)** `_shared/oled_tv_protocol.c`에 공통 포매터. `2f2aa65`에서 **링크 전용 2인자로 단순화**됐다 (구 4인자는 `spi_crc`/`esb_crc`를 포함했으나 CRC 표시 자체가 제거되며 삭제):
 
