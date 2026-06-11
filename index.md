@@ -23,6 +23,7 @@
 - [roadmap.md](teams/c/oled_tv_software/roadmap.md) — 전체 로드맵(M0~M3 현재 스코프 달성·M4~M6 보류 2026-06-09). 전략 spine, 현재 위치는 status 위임
 - [roadmaps/pc-gui.md](teams/c/oled_tv_software/roadmaps/pc-gui.md) — `pc-gui` 작업 호(G0~G3 **✓ 완료** `35b94d0`, 실보드 검증). UART 바이너리 모니터링 + buck 설정 호스트 툴. G0 결정=UART5 단일 포트·monitor 텍스트→바이너리. 산출물 [[pc_uart_gui]]
 - [roadmaps/spi-esb-refactor.md](teams/c/oled_tv_software/roadmaps/spi-esb-refactor.md) — `spi-esb-refactor` 작업 호(R1~R4) — **코드 `9be1a7a` 추월: R1~R3 부분 구현·R4 무효(이미 `PKT_HDR_*`)**. §6 `_shared` 매크로 점검. 적출은 [[app_protocol_module]]
+- [roadmaps/04-tx-control-dummy.md](teams/c/oled_tv_software/roadmaps/04-tx-control-dummy.md) — `04_tx_control` 더미 작업 호(D0~D3) — 03 SPI_Loop 활성화 + STM32 SPI Master 더미 프로젝트. 최종 목표: 01→02→ESB→03→04 Vout Ref 전달 E2E 검증
 - [status.md](teams/c/oled_tv_software/status.md) — 기능별 구현 현황표·다음 시작점 (파이프라인이 커밋마다 갱신)
 
 ### Entities
