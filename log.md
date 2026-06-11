@@ -4,6 +4,16 @@
 
 ---
 
+## [2026-06-11] 환원 | 8kw-ev-wpt-tx — PWM 레그2 dead-time 정밀화 + EPWM0 fan-out + 레그2 동형화
+
+branch pwm-deadtime, commit 4014901. EPWM0 더미 마스터 fan-out + 레그2 isoform AQ + 2-compare 합성으로 dead-time 비대칭 ~22 ns→±2 ns, 레그1·레그2 동형 완전 확인.
+
+- **신규 [[pwm_leg2_isoform_report]]** (`pages/sources/`): 4-DT sweep(100/150/250/400 ns) 검증 리포트 + `raw/pwm_leg2_isoform/` 원본 데이터(digital.csv×4 + analyze.py×3 + capture.sal).
+- **핵심 토폴로지 변경**: 구(EPWM4 0-hop / EPWM7 1-hop) → **신(output-less EPWM0 → EPWM2/4/7 전부 1-hop)**. TBPHS trim 불요. gEpwmTbClkSyncDisableMask에 EPWM0 자동 포함.
+- **레그2 isoform**: EPWM4_A CMPA=TBPRD/2+DT·CMPB=TBPRD/2 / EPWM7_B CMPA=TBPRD/2−DT·CMPB=TBPRD/2. ETA_DEADTIME_NS 단일소스 자동 추종.
+- **검증 결과**: 비대칭 ≤4 ns(5 ns 양자화 바닥), 4에지 시차 ≤2 ns, high-time 4채널 완전 일치, shoot-through 0(전 구간).
+- **갱신**: [[pwm]](§3 P2 EPWM0 fan-out 서브섹션 + §비대칭 해결됨), [[am263p_epwm_module_sync_deadtime]](패턴·검증·8kw 인스턴스·스큐 0 토폴로지 검증됨), [[am263p_epwm_sync_topology]](검증 질문 확인·토폴로지 표 갱신), [[pwm_pinmap]](비대칭 ~22 ns→±2 ns), [[status]], index, log.
+
 ## [2026-06-11] ingest | lp-am263p — EPWM Time-Base Counter Synchronization (§7.5.6.4.3.3) + fan-out 스큐 토폴로지
 
 TRM EPWM sync 본문 보완 요청. **핵심 발견: 본문 누락 아님** — raw `ch07_5_controlss.md` :5683–5953은 PDF pp.651–654를 충실 재현(끊긴 cross-ref ":5801 Refer to **for** a list…"는 PDF p.652 TI 원본 버그, 추출 손실 아님). PDF figure 7-181/7-182를 직독해 환원.

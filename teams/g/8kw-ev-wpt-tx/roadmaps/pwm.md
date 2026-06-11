@@ -1,11 +1,11 @@
 ---
 tags: [roadmap, pwm, 8kw-ev-wpt-tx, living-doc]
-date: 2026-06-10
+date: 2026-06-11
 ---
 
 # pwm — 8kW WPT TX 보드 PWM 전력제어 작업 호 (P0~P4)
 
-> ADC 계측 브링업([[adc]]) 다음의 **전력제어** 작업 호. **P1 완료(`6e6b342`) — 4핀 실보드 검증·레그2 SYNC 상보·shoot-through 0. P2 dead-time 단일소스(`8046744`). 85 kHz 고정 + dead-time config 분리(`d01fc0a`) — 85.032 kHz 실측·100/150/400 ns 스윕 PASS.** 현재 위치·다음 시작점은 [[status]].
+> ADC 계측 브링업([[adc]]) 다음의 **전력제어** 작업 호. **P1 완료(`6e6b342`) — 4핀 실보드 검증·레그2 SYNC 상보·shoot-through 0. P2 dead-time 단일소스(`8046744`). 85 kHz 고정 + dead-time config 분리(`d01fc0a`) — 85.032 kHz 실측·100/150/400 ns 스윕 PASS. EPWM0 fan-out + 레그2 동형화(`4014901`, branch pwm-deadtime) — 모듈간 스큐 ~22 ns→±2 ns, 4ch 100/150/250/400 ns 전 항목 PASS.** 현재 위치·다음 시작점은 [[status]].
 > 핀맵 정본 [[pwm_pinmap]]. 상위 프로젝트 호는 [[roadmap]].
 
 ---
@@ -22,7 +22,13 @@ LP-AM263P의 **EPWM2·EPWM4·EPWM7**(레그1=EPWM2 / 레그2=EPWM4+EPWM7)로 8kW
   - **인버터 = 풀브리지(4스위치, 2레그). 인스턴스 3개.**
     - **레그1 = EPWM2 단일 모듈**: EPWM2_A=HS1@J4.39, EPWM2_B=LS1@J4.40. (UG·사용자 일치)
     - **레그2 = EPWM4 + EPWM7 두 모듈**: EPWM4_A=HS2@J6.52 (`ug:1641`), **EPWM7_B=LS2@J6.51** (`ug:1640` + pinmux.csv F1=EPWM7_B 교차확인). 4핀 전부 실측 확정. ⚠️ 회로도 net 라벨("EPWM4_B"/"EPWM7_A")과 silicon 채널 suffix **반대** — 펌웨어 정본=silicon 채널(EPWM4_A/EPWM7_B), 라벨에 끌려가지 말 것([[pwm_pinmap]]).
-  - ✅ **레그2 두 모듈 SYNC 상보·dead-time 해결**: EPWM4 syncout(ON_CNTR_ZERO)→EPWM7 syncin, phaseShift=0 위상정렬 + EPWM7_B AQ 반전 + CMPB 오프셋(`CMPB=TBPRD/2−DT`, 부호 `−` 엄수). 레그1(단일 모듈 dead-band)과 비대칭. 상세 [[pwm_pinmap]]·§3 Pin4.
+  - ✅ **레그2 두 모듈 SYNC 상보·dead-time 해결 (구 토폴로지 — P1 기준)**: EPWM4 syncout(ON_CNTR_ZERO)→EPWM7 syncin, phaseShift=0 위상정렬 + EPWM7_B AQ 반전 + CMPB 오프셋(`CMPB=TBPRD/2−DT`, 부호 `−` 엄수). 레그1(단일 모듈 dead-band)과 비대칭. 모듈간 ~11 ns 스큐로 dead-time 방향별 비대칭 잔존. 상세 §3 Pin4.
+  - ✅ **EPWM0 더미 마스터 fan-out + 레그2 동형화 (`4014901`, branch pwm-deadtime)**: 구 토폴로지(EPWM4 0-hop·EPWM7 1-hop → ~22 ns 비대칭)를 대체. output-less EPWM0(SysConfig 인스턴스, syncout=ON_CNTR_ZERO)가 공통 동기원 → EPWM2/4/7 전부 EPWMSYNCINSEL=EPWM0 SYNCOUT 1-hop 슬레이브. 결과: 레그2 모듈간 스큐 ~22 ns → **±2 ns(측정 격자 바닥)**. TBPHS trim 불요(trim=0). EPWM0는 SysConfig 인스턴스라 `gEpwmTbClkSyncDisableMask`에 `(1<<0)` 자동 포함 → TBCLK 전역 정렬.
+  - ✅ **레그2 동형화 — 비대칭 AQ + 2-compare 합성**:
+    - EPWM4_A(HS2): AQ = UP_CMPA→HIGH / DOWN_CMPB→LOW. **CMPA = TBPRD/2 + DT_COUNTS**, CMPB = TBPRD/2 → 상승만 DT 지연 = 레그1 HS1 RED dead-band 동형.
+    - EPWM7_B(LS2): AQ = ZERO→HIGH / UP_CMPB→LOW / DOWN_CMPA→HIGH. CMPB = TBPRD/2, **CMPA = TBPRD/2 − DT_COUNTS** → HS2 정확한 상보(양방향 both-LOW 갭).
+    - 단일소스: `ETA_DEADTIME_NS` → `DT_COUNTS = round(ns × 0.2)` → CMPA/CMPB 자동 추종. 런타임 override로 SysConfig 면역.
+  - ✅ **검증 결과 (4-DT sweep, `4014901`)**: dead-time 100/150/250/400 ns 전 구간 정확 추종(양방향 합 = 2×설정값), 4에지 시차 ≤2 ns, shoot-through 0 — 리포트 [[pwm_leg2_isoform_report]].
   - ✅ **UART5(EPWM15)와 충돌 없음** — PWM은 EPWM2/4/7.
   - **스위칭 주파수 = 85 kHz 고정 — 구현·실측 확정**(`d01fc0a`, 런타임 가변 아님). 브링업 임시값 100 kHz → **85 kHz로 전환·실측**. UP_DOWN: `TBPRD = TBCLK/(2·f_sw) = 200MHz/(2·85kHz) = 1176`, `cmpA = TBPRD/2 = 588`(50% duty), `EPWM7 CMPB = 588 − 30 = 558`(@150 ns). **Saleae 실측 85.032 kHz**(계산 1176과 일치).
   - **TBCLK = 200 MHz 확정 사실**(더 이상 전제 아님): 85.032 kHz@TBPRD=1176 + P1의 100 kHz@TBPRD=1000 양쪽 실측 일치 → **1 count = 5 ns**.
@@ -45,7 +51,7 @@ LP-AM263P의 **EPWM2·EPWM4·EPWM7**(레그1=EPWM2 / 레그2=EPWM4+EPWM7)로 8kW
 |------|------|---------|------|
 | **P0** | PWM 요구사항·핀맵 확정 | 핀맵·토폴로지·채널·dead-time 방식 확정 + EPWM 핀 배정표 | △ (핀맵·토폴로지·dead-time·4핀 채널·**주파수 85kHz 구현·실측 확정**·게이트 극성 active-high 실증 / 보호신호 소스·극성 회로도 확인 미정) |
 | **P1** | 기본 PWM 출력 | EPWM2/4/7 SysConfig 설정 → 4채널 PWM 실보드 출력, 오실로로 주파수·dead-time(~150ns) 검증 | ✓ **완료 (4/4) — HS1/LS1/HS2/LS2 전부 실보드 검증** (커밋 `6e6b342` branch pwm) |
-| **P2** | dead-time 튜닝·레그 정합 + 주파수 확정 | 레그1(EPWM2 dead-band)·레그2(EPWM4+7 모듈간 동기) dead-time 정합, build-per-change 스윕, **주파수 85 kHz 고정** | ✓ **완료** — 단일소스 통일·150/300ns(`8046744`) + **85 kHz 고정·100/150/400ns 스윕 4ch PASS·config 분리(`d01fc0a`)**. dead-time **최종값**은 전력단 브링업 때 확정(인프라는 완료) |
+| **P2** | dead-time 튜닝·레그 정합 + 주파수 확정 + 동형화 | 레그1(EPWM2 dead-band)·레그2(EPWM4+7 모듈간 동기) dead-time 정합, build-per-change 스윕, **주파수 85 kHz 고정**, 레그1·레그2 동형(4에지 ≤2 ns, shoot-through 0) | ✓ **완료** — 단일소스 통일·150/300ns(`8046744`) + **85 kHz 고정·100/150/400ns 스윕 4ch PASS·config 분리(`d01fc0a`)**. **EPWM0 fan-out + 동형화(`4014901`, branch pwm-deadtime) — 모듈간 스큐 ~22 ns→±2 ns, 100/150/250/400 ns 4점 전 항목 PASS**. dead-time **최종값**은 전력단 브링업 때 확정(인프라는 완료) |
 | **P3** | 보호 (trip-zone) | 과전류/과전압 시 PWM 즉시 차단 — ADC/비교기/외부 trip 입력 연동, 실보드 차단 검증 | ✗ |
 | **P4** | 제어 루프 연동 | ADC 피드백(전류·전압) → duty/위상 갱신. **이때 ADC SOC 트리거를 RTI→EPWM으로 전환** | ✗ |
 
@@ -142,16 +148,15 @@ LP-AM263P의 **EPWM2·EPWM4·EPWM7**(레그1=EPWM2 / 레그2=EPWM4+EPWM7)로 8kW
 
 > duty가 50%보다 작은 것은 dead-time 갭만큼 HS ON이 줄어든 정상 동작(`50% − dt/T`) — AHC(Active-High-Complementary) 정상이며 결함이 아니다.
 
-#### ⚠️ 레그2 dead-time 비대칭 (향후 참조 — P3/P4 마진 검토)
+#### ✅ 레그2 dead-time 비대칭 — 해결 (EPWM0 fan-out + 동형화, `4014901`)
 
-레그2(HS2=EPWM4_A / LS2=EPWM7_B)는 **서로 다른 EPWM 모듈을 동기시켜 만든 상보쌍**이라 모듈간 **~11 ns(≈2.2 counts) 고정 위상 스큐**가 있다 → dead-time이 **HS→LS +11 ns / LS→HS −11 ns 비대칭**(합은 항상 정확히 2×설정값). 레그1(EPWM2 한 모듈 HW dead-band)은 비대칭 없음.
+구 토폴로지(EPWM4 master 0-hop / EPWM7 slave 1-hop)에서 ~11 ns(≈2.2 counts) 고정 스큐로 비대칭 ~22 ns가 있었다. **EPWM0 fan-out + 레그2 AQ 동형화**로 해결.
 
-- **현 스펙(100~400 ns)에선 무해** — 최소 89 ns 마진(LS2→HS2 = 100−11 ≈ 89 ns).
-- **50 ns 이하로 갈 계획이면** LS2→HS2가 `설정−11 ns`까지 줄어 마진 재확인 필요.
-- **대칭이 필요하면** EPWM7 CMPB에 약 **+2 counts 트림** 검토(스큐 보정).
-- 근본 원인·패턴은 플랫폼 정본 [[am263p_epwm_module_sync_deadtime]]. 향후 보드 리비전에서 레그2를 한 모듈로 묶으면 비대칭 자체가 사라짐([[pwm_pinmap]] §향후).
+- **신 비대칭 ≤4 ns(측정 격자 바닥)**: 5 ns 양자화 ± sub-clock 잔류. 구 baseline ~22 ns 대비 1/5 이하.
+- **50 ns 이하 마진 검토 불요**: 최소 비대칭 4 ns 기준 100 ns 설정 시 최소 갭 = 100−4 = 96 ns. 현 안전 기준 완전 충족.
+- 근본 원인·패턴은 플랫폼 정본 [[am263p_epwm_module_sync_deadtime]]. 보드 수준 단일모듈화는 여전히 개선 후보 ([[pwm_pinmap]] §향후).
 
-### P2 — dead-time 튜닝·레그 정합 (✓ 단일소스 통일·150/300ns 스윕 + 85kHz 100/150/400ns 스윕, commit `8046744`·`d01fc0a`)
+### P2 — dead-time 튜닝·레그 정합 (✓ 단일소스·스윕 + 85kHz + EPWM0 fan-out + 동형화, commit `8046744`·`d01fc0a`·`4014901`)
 
 - dead-time을 **리얼타임이 아니라 build-per-change**로 스윕 — 값 바꿔 빌드→RAM-load→Saleae 측정. (런타임 가변 코드 불필요)
 - ✅ **두 레그 모두 `ETA_DEADTIME_NS` 단일소스로 통일**: 레그1=EPWM2 **dead-band RED/FED**(`EPWM_setRisingEdgeDelayCount`/`setFallingEdgeDelayCount`), 레그2=EPWM7 **CMPB 오프셋**(`EPWM_setCounterCompareValue`). **메커니즘 둘·ns 소스 하나.** `d01fc0a`에서 단일소스를 `eta_tuning.h`로 이전 + 100~400 ns `#error` 범위가드. 상세·매크로는 위 §dead-time 단일소스.
@@ -159,6 +164,47 @@ LP-AM263P의 **EPWM2·EPWM4·EPWM7**(레그1=EPWM2 / 레그2=EPWM4+EPWM7)로 8kW
 - ✅ **주파수 85 kHz 고정·실측 확정**(85.032 kHz). 주파수·dead-time 모두 `eta_pwm_init()` 런타임 override로 SysConfig 면역.
 - 잔여(인프라 완료, 값만 미정): **dead-time 최종값 고정** — 현재 150 ns 베이스라인, **전력단 브링업 때 100~400 ns 중 확정**.
 - (개념 참조: oled rx_control [[dead_time]]·[[pwm_system]] — STM32 TIM 기반이라 레지스터는 다름, 개념만.)
+
+#### EPWM0 더미 마스터 fan-out + 레그2 동형화 (✓ commit `4014901`, branch pwm-deadtime)
+
+`d01fc0a` 위에 **SYNC 토폴로지를 EPWM0 fan-out으로 재설계 + 레그2 AQ를 동형화**했다. 리포트 [[pwm_leg2_isoform_report]].
+
+**문제**: 구 토폴로지(EPWM4 master 0-hop / EPWM7 slave 1-hop)는 hop 수 차이 = 2×EPWMCLK ≈ 10 ns 스큐 → dead-time 방향별 비대칭 **~22 ns**. 근본 원인은 [[am263p_epwm_sync_topology]].
+
+**해결 — EPWM0 더미 마스터**:
+- **output-less EPWM0** (SysConfig 인스턴스, no pad 배정, `syncout=ON_CNTR_ZERO`)가 공통 동기원.
+- EPWM2/4/7 전부 `EPWMSYNCINSEL=EPWM0_SYNCOUT` → **모두 1-hop** → 상호 정수클록 스큐 0.
+- TBPHS trim 불요(trim=0). EPWM0가 SysConfig 인스턴스라 `gEpwmTbClkSyncDisableMask`에 `(1<<0)` 자동 포함 → TBCLK 전역 정렬 깔끔.
+- 결과: 레그2 dead-time 비대칭 **~22 ns → ±2 ns(측정 격자 바닥)**.
+
+**해결 — 레그2 동형화 (비대칭 AQ + 2-compare 합성)**:
+
+구 설계: EPWM7_B CMPB = TBPRD/2 − DT (LS2만 오프셋, 단방향 보정)  
+신 설계: 레그1 HS/LS의 symmetric dead-band와 동형인 AQ + compare 구성.
+
+| 채널 | AQ 이벤트 | 동작 | compare 값 |
+|------|-----------|------|------------|
+| EPWM4_A (HS2) | UP_CMPA | HIGH | CMPA = TBPRD/2 + DT_COUNTS |
+| EPWM4_A (HS2) | DOWN_CMPB | LOW | CMPB = TBPRD/2 |
+| EPWM7_B (LS2) | ZERO | HIGH | — |
+| EPWM7_B (LS2) | UP_CMPB | LOW | CMPB = TBPRD/2 |
+| EPWM7_B (LS2) | DOWN_CMPA | HIGH | CMPA = TBPRD/2 − DT_COUNTS |
+
+→ HS2는 카운트 UP 때 CMPA에서 켜지고(= RED dead-time만큼 늦게 켜짐), CMPB에서 꺼짐(= DOWN 시). LS2는 ZERO에서 켜지고 UP 때 CMPB에서 꺼지고 DOWN 때 CMPA에서 다시 켜짐. **양방향 both-LOW 갭이 정확히 DT_COUNTS**. `ETA_DEADTIME_NS` 단일소스 → `DT_COUNTS` 자동 추종.
+
+**검증 결과** (4-DT sweep, Saleae 4ch 500MS/s, 안정 80% 구간):
+
+| DT 설정 | HS2→LS2 | LS2→HS2 | 비대칭 | 4에지 시차 | shoot-through |
+|---------|---------|---------|--------|-----------|---------------|
+| 100 ns | 102 ns | 100 ns | 2 ns | ≤2 ns | 0 |
+| 150 ns | 152 ns | 148 ns | 4 ns | ≤2 ns | 0 |
+| 250 ns | 252 ns | 248 ns | 4 ns | ≤2 ns | 0 |
+| 400 ns | 402 ns | 398 ns | 4 ns | ≤2 ns | 0 |
+
+- **비대칭 ≤4 ns**: 5 ns 양자화(±1 count) + sub-clock 잔류 — 측정 격자 바닥. 구 baseline ~22 ns 대비 1/5 이하.
+- **4에지 시차 ≤2 ns**: 레그1·레그2 파형 동형 — 측정 격자(2 ns) 수준.
+- **high-time 완전 일치**: 4채널 median 동일. high = 5880 − DT_ns 공식 정확 추종.
+- **레그1 회귀 없음**: HS1→LS1 / LS1→HS1 모두 명목값 정확 유지.
 
 ### P3 — 보호 (trip-zone)
 
@@ -183,13 +229,13 @@ LP-AM263P의 **EPWM2·EPWM4·EPWM7**(레그1=EPWM2 / 레그2=EPWM4+EPWM7)로 8kW
 
 ## 4. 현재 위치
 
-→ [[status]] 단일 소스. **P1 완료 4/4**(4핀 실보드 검증) **+ P2 dead-time 단일소스 통일·150/300ns 스윕(`8046744`) + 85 kHz 고정·100/150/400ns 스윕 PASS·config 분리(`d01fc0a`, 85.032 kHz 실측, shoot-through 0).** 다음 = P3 보호(trip-zone) / dead-time 최종값 고정(전력단 브링업) / 보호신호·게이트 극성 회로도 스펙 확보 / P4 제어루프.
+→ [[status]] 단일 소스. **P1 완료 4/4**(4핀 실보드 검증) **+ P2 완전 완료** — 단일소스 통일·스윕(`8046744`), 85 kHz 고정·100/150/400ns PASS·config 분리(`d01fc0a`), **EPWM0 fan-out + 레그2 동형화(`4014901`) — 4-DT sweep 전 항목 PASS, 비대칭 ~22 ns→±2 ns, 동형 완전 확인**. 다음 = P3 보호(trip-zone) / dead-time 최종값 고정(전력단 브링업) / 보호신호·게이트 극성 회로도 스펙 확보 / P4 제어루프.
 
 ---
 
 ## 5. 블로커 / 선결
 
-- ~~레그2 두 모듈(EPWM4+EPWM7) 동기 dead-time~~ — **해결**(EPWM4→EPWM7 SYNC + CMPB 오프셋, shoot-through 0 실측, §3 Pin4). **향후 보드 리비전 시 한 모듈로 묶도록 수정 요청 예정**([[pwm_pinmap]] §향후 보드 개선).
+- ~~레그2 두 모듈(EPWM4+EPWM7) 동기 dead-time~~ — **해결**(구 토폴로지 EPWM4→EPWM7 SYNC + CMPB, P1). **추가 해결**: EPWM0 fan-out + 동형화(`4014901`) — 비대칭 ~22 ns→±2 ns. **향후 보드 리비전 시 한 모듈로 묶도록 수정 요청 예정**([[pwm_pinmap]] §향후 보드 개선).
 - ~~주파수 확정값 미정~~ — **확정: 85 kHz 고정·구현·실측(`d01fc0a`, 85.032 kHz)**.
 - **dead-time 최종값 미고정** — 인프라(100~400 ns 스윕)·config 분리 완료, 현재 150 ns 베이스라인. 전력단 브링업 때 확정.
 - **보호(trip) 신호 소스 미정** — P3 선결(과전류/과전압 입력).
@@ -205,5 +251,5 @@ LP-AM263P의 **EPWM2·EPWM4·EPWM7**(레그1=EPWM2 / 레그2=EPWM4+EPWM7)로 8kW
 - AM263P EPWM 설정 노하우 → ✓ 1차 환원: [[am263p_epwm_primary_pad_no_force_io]] (EPWM primary 패드는 force_io 불필요).
 - **레그2 두 모듈 SYNC 상보·dead-time 설계** → ✅ **concept 승격 완료: [[am263p_epwm_module_sync_deadtime]]** (AM263P 플랫폼 정본, lp-am263p concepts). §3 Pin4는 8kw 구현 기록.
 - **dead-time 단일소스 #define 패턴**(`ETA_DEADTIME_NS`→레그1 RED/FED·레그2 CMPB, build-per-change, `eta_tuning.h` knob 분리·`#error` 범위가드·런타임 override로 SysConfig 면역) → ✓ §3 §dead-time 단일소스에 매크로·검증표 기록 + [[am263p_epwm_module_sync_deadtime]] §dead-time ns 단일소스 연계.
-- **레그2 모듈간 위상 스큐 → dead-time 비대칭(~11 ns)** → ✓ §3 §레그2 dead-time 비대칭 기록 + [[am263p_epwm_module_sync_deadtime]]에 플랫폼 일반 사실로 반영. P3/P4·저 dead-time 시 마진 검토 단서.
+- **레그2 모듈간 위상 스큐 → dead-time 비대칭(구 ~22 ns → 신 ±2 ns)** → ✓ §3 §EPWM0 fan-out + 동형화 기록 + [[am263p_epwm_module_sync_deadtime]] 갱신. [[pwm_leg2_isoform_report]] 리포트.
 - **보드 개선 요청 (향후)**: 레그2(HS2/LS2)를 한 EPWM 모듈로 묶도록 회로도 수정 요청 — 기회 생길 때. 상세 [[pwm_pinmap]] §향후 보드 개선.

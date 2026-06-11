@@ -1,7 +1,7 @@
 ---
 tags: [concept, am263p, epwm, sync, deadtime, platform]
-source: 2026-06-09~10 8kw-ev-wpt-tx PWM 레그2(EPWM4_A=HS2 / EPWM7_B=LS2 두 모듈) SYNC 상보·dead-time 실보드 검증 (commit 6e6b342 SYNC 상보 + 8046744 dead-time 단일소스·스윕)
-date: 2026-06-10
+source: 2026-06-09~11 8kw-ev-wpt-tx PWM 레그2(EPWM4_A=HS2 / EPWM7_B=LS2 두 모듈) SYNC 상보·dead-time + EPWM0 fan-out + 동형화 실보드 검증 (commit 6e6b342 SYNC 상보 + 8046744 단일소스·스윕 + d01fc0a 85kHz + 4014901 fan-out+isoform)
+date: 2026-06-11
 ---
 
 # AM263P EPWM 모듈간 SYNC 상보·dead-time (두 모듈 풀브리지 레그)
@@ -10,7 +10,7 @@ date: 2026-06-10
 
 ## 한 줄 요약
 
-**HS와 LS가 다른 EPWM 모듈에 걸친 레그**는 ① master EPWM `syncout=ON_CNTR_ZERO` → slave `syncin`, slave `phaseShift=0`으로 **매 주기 영점에서 카운터 정렬**, ② slave 채널 **AQ 반전 + CMPB 오프셋**으로 상보 PWM + dead-time을 만든다. dead-time은 **`CMPB = TBPRD/2 − DT_COUNTS` (반드시 `< TBPRD/2`)** — `+`부호면 LS ON이 HS OFF 구간을 넘어 **shoot-through**. 같은 모듈 레그(dead-band RED/FED)와 **메커니즘은 다르지만 dead-time ns 소스는 하나**로 공유 가능.
+**HS와 LS가 다른 EPWM 모듈에 걸친 레그**는 ① **공통 동기원(EPWM0 더미 마스터 등) fan-out → 모든 출력 모듈이 1-hop**으로 모듈간 정수클록 스큐 0 달성, ② **비대칭 AQ + 2-compare 합성**으로 레그1 dead-band와 동형인 파형 생성. dead-time = **CMPA = TBPRD/2 + DT_COUNTS(HS), CMPA = TBPRD/2 − DT_COUNTS(LS), CMPB = TBPRD/2(공유)** — 양방향 both-LOW 갭이 정확히 DT_COUNTS. 같은 모듈 레그(dead-band RED/FED)와 **메커니즘은 다르지만 dead-time ns 소스는 하나**로 공유 가능. 8kw 실증: 비대칭 ~22 ns→±2 ns, 4에지 시차 ≤2 ns.
 
 ---
 
@@ -24,11 +24,11 @@ date: 2026-06-10
 
 ## 패턴 (3단)
 
-1. **위상 정렬 (SYNC)**: master EPWM **`syncout = ON_CNTR_ZERO`** → slave EPWM **`syncin = master의 SYNCOUT`**, slave **`phaseShift = 0`**. 두 모듈 카운터를 매 주기 영점에서 정렬한다.
-2. **상보 (AQ 반전)**: slave 채널 **Action Qualifier 반전**으로 master(HS)의 반대 위상을 만든다.
-3. **dead-time (CMPB 오프셋)**: slave **CMPB**를 `TBPRD/2`에서 dead-time 카운트만큼 **앞당겨** LS의 ON 에지를 HS OFF 뒤로 민다. 모듈 내 dead-band 레지스터 대신 **CMPB 오프셋**이 dead-time을 만든다.
-   - **`CMPB_INIT = TBPRD/2 − DT_COUNTS`** (UP_DOWN 카운터 기준).
-   - `DT_COUNTS = round(dead_time_ns × TBCLK_HZ)` (정수 floor — [[#dead-time ns 단일소스 연계]]).
+1. **위상 정렬 (SYNC) — fan-out 방식 권장**: **공통 동기원(output-less 더미 EPWM 또는 EXTSYNCIN)을 하나 두고, 모든 출력 모듈이 그것을 1-hop으로 선택** → 모든 출력 모듈의 hop 수가 동일 → 상호 정수클록 스큐 0. (구 방식: master EPWM `syncout=ON_CNTR_ZERO` → slave `syncin`, slave `phaseShift=0`. 이 경우 master 0-hop / slave 1-hop → ~2×EPWMCLK 스큐 잔존. → fan-out으로 대체 권장.)
+2. **동형화 (비대칭 AQ + 2-compare)**: HS(master 레그)와 LS(slave 레그)를 레그1 dead-band와 동형으로 만들기 위해 **HS·LS 각각에 2개 compare**를 사용.
+   - **HS** (`EPWM4_A` 사례): AQ = UP_CMPA→HIGH / DOWN_CMPB→LOW. **CMPA = TBPRD/2 + DT_COUNTS**, CMPB = TBPRD/2 → 상승 에지가 DT만큼 지연(= RED dead-band 동형).
+   - **LS** (`EPWM7_B` 사례): AQ = ZERO→HIGH / UP_CMPB→LOW / DOWN_CMPA→HIGH. CMPB = TBPRD/2, **CMPA = TBPRD/2 − DT_COUNTS** → HS의 정확한 상보(양방향 DT).
+3. **dead-time 단일소스**: `DT_COUNTS = round(dead_time_ns × TBCLK_HZ)` (정수 floor — [[#dead-time ns 단일소스 연계]]). HS의 CMPA·LS의 CMPA 양쪽이 `DT_COUNTS`로 추종.
 
 ---
 
@@ -37,8 +37,7 @@ date: 2026-06-10
 - **CMPB 부호 (shoot-through 직결)**: `CMPB`는 **반드시 `< TBPRD/2`**. `TBPRD/2 + DT`(부호 오류)로 두면 LS ON 구간이 HS OFF 구간을 **넘어 겹쳐 shoot-through**가 난다. 8kw 구현 중 1회 부호 오류로 발생→정정. 부호는 `−`.
 - **SYNC-in 기본 disable**: SysConfig 기본 EPWM 인스턴스는 **SYNC-in disable + phaseShift=0**이라 단독 **자유구동(free-run)** 한다. 즉 **단일 모듈 핀은 위상기준 없이 독립 검증 가능**(이 점은 브링업에 유리)하지만, 이 패턴의 모듈간 위상정렬은 **SYNC를 명시 활성화**해야 성립한다 — 기본값으로는 두 모듈이 정렬되지 않는다. ([[pwm_pinmap]] §EPWM 인스턴스·자유구동)
 - ⚠️ **모듈간 위상 스큐 → dead-time 비대칭 (플랫폼 일반 사실)**: SYNC로 정렬해도 두 모듈 사이엔 **고정 잔류 위상 스큐**가 남는다(8kw 실측 **~11 ns ≈ 2.2 counts @200 MHz TBCLK**). **근본 원인은 hop 수 비대칭** — master(EPWM4)는 자기 영점이 기준이라 **0 hop**, slave(EPWM7)는 SYNCIN으로 **1 hop = 2×EPWMCLK(=10 ns @prescale 1)** 지연. 즉 11 ns ≈ 이 1-hop 지연이다. TRM 지연 모델·토폴로지 정본은 [[am263p_epwm_sync_topology]]. 결과로 dead-time이 **HS→LS / LS→HS 방향에 따라 ±스큐만큼 비대칭**(두 갭의 **합은 항상 정확히 2×설정값**으로 보존). **같은 모듈 dead-band 레그(RED/FED)는 비대칭 없음.** 함의: dead-time이 충분히 크면 무해하지만, **설정값이 스큐에 근접할 만큼 작아지면**(예: 8kw 스큐 11 ns에 대해 ≲50 ns) 짧은 쪽 갭이 `설정−스큐`까지 줄어 **shoot-through 마진을 직접 깎는다** → 저 dead-time 설계 시 마진 재확인 필수.
-  - **스큐 0 토폴로지(미검증 예측)**: 지연은 hop당 고정·target 인덱스 무관이므로, **두 모듈을 공용 소스에서 fan-out**(예: EPWM2 SYNCOUT을 EPWM4·EPWM7이 각각 SYNCINSEL로 선택 → 둘 다 1-hop)하면 **상호 정수클록 스큐 0**(잔여 sub-clock은 TRM 모델 밖). 단 풀브리지는 레그 간 정합도 필요 — 전 출력 모듈을 동일 hop으로 두는 설계가 정석. 근거·한계·레지스터 표 [[am263p_epwm_sync_topology]].
-  - 빠른 보정: 대칭이 필요하면 **slave CMPB/TBPHS에 스큐 보정 트림(8kw 기준 약 +2 counts = 2×EPWMCLK)** 검토. (근본 해소는 보드 단계에서 레그를 한 모듈로 묶는 것.)
+  - **스큐 0 토폴로지 — ✅ 검증됨(8kw `4014901`, 2026-06-11)**: 지연은 hop당 고정·target 인덱스 무관이므로, **더미 EPWM0(output-less)을 공용 소스로 두고 EPWM2/4/7 모두 EPWM0 SYNCOUT을 1-hop으로 선택**하면 **상호 정수클록 스큐 0**(잔여 sub-clock은 TRM 모델 밖 — 실측 ±2 ns). 실측: 비대칭 ~22 ns → **±2 ns(5 ns 양자화 + sub-clock 잔류)**. 풀브리지 전 출력 모듈을 동일 hop으로 두는 것이 정석. 근거·한계·레지스터 표 [[am263p_epwm_sync_topology]].
 
 ---
 
@@ -55,9 +54,9 @@ date: 2026-06-10
 
 ## 검증 (8kw 실측)
 
-- **자유구동 단독검증 → SYNC 결선**: master(EPWM4_A=HS2)는 free-run으로 단독 100 kHz/50% 확인 후, slave(EPWM7_B=LS2)를 SYNC 결선해 상보·dead-time 측정.
-- **dead-time = 상보쌍 both-LOW 갭 / shoot-through = both-HIGH 겹침** (Saleae 4ch, transition CSV). 150/300 ns(100 kHz, `8046744`) + 100/150/400 ns(85 kHz, `d01fc0a`) 빌드 4채널: 두 레그 dead-time이 명목 **선형 추종**, **shoot-through 0**(전 빌드, 최소 마진 89 ns). 결과표 [[pwm]] §검증 방법·결과·§85 kHz 검증.
-- **레그2 비대칭 실측**: 모듈간 ~11 ns 위상 스큐로 HS→LS/LS→HS dead-time이 ±11 ns 비대칭(합 보존). 현 8kw 스펙(100~400 ns)에선 무해(89 ns 마진). 위 §함정 "모듈간 위상 스큐" 참조.
+- **P1 자유구동 단독검증 → SYNC 결선** (`6e6b342`): EPWM4_A=HS2 free-run 단독 확인 후 SYNC 결선. 100 kHz, shoot-through 0.
+- **P2 dead-time 스윕** (`8046744`·`d01fc0a`, Saleae 4ch, transition CSV): 150/300 ns(100 kHz) + 100/150/400 ns(85 kHz). 두 레그 dead-time 명목 선형 추종, shoot-through 0. 레그2 비대칭 ~11 ns(HS→LS vs LS→HS) 첫 실측 — 합 보존 확인. 결과표 [[pwm]] §검증 방법·결과.
+- **EPWM0 fan-out + 동형화** (`4014901`, Saleae 4ch 500MS/s): 100/150/250/400 ns 4-DT sweep. **비대칭 ~22 ns → ±2 ns(측정 격자 바닥)**. 4에지 시차 ≤2 ns(레그1·레그2 동형). high-time 4채널 완전 일치. shoot-through 0(전 구간). 레그1 회귀 없음. 리포트 [[pwm_leg2_isoform_report]].
 
 ---
 
@@ -69,16 +68,20 @@ date: 2026-06-10
 | dead-time | RED/FED 카운트(대칭, 주기당 갭 2개) | CMPB 오프셋 `TBPRD/2 − DT` |
 | 위상 | 한 모듈이라 자동 | master syncout→slave syncin, phaseShift=0 **명시 SYNC 필요** |
 | 함정 | (적음) | CMPB 부호(`<TBPRD/2`), SYNC-in 기본 disable |
-| 8kw 사례 | 레그1 = EPWM2_A/B | 레그2 = EPWM4_A@J6.52(HS2) + EPWM7_B@J6.51(LS2) |
+| 8kw 사례 | 레그1 = EPWM2_A/B (dead-band) | 레그2 = EPWM4_A@J6.52(HS2) + EPWM7_B@J6.51(LS2) (isoform AQ+2-compare, EPWM0 fan-out) |
 
 ---
 
 ## 8kw 구체 인스턴스 (출처)
 
-- **레그2**: HS2 = **EPWM4_A @ J6.52** (master), LS2 = **EPWM7_B @ J6.51** (slave). EPWM4 `syncout=ON_CNTR_ZERO` → EPWM7 `syncin`, EPWM7 `phaseShift=0`, EPWM7_B AQ 반전 + `ETA_EPWM7_CMPB_INIT = TBPRD/2 − ETA_DEADTIME_COUNTS`. 핀맵 정본 [[pwm_pinmap]].
-- **주파수**: 8kw는 **85 kHz 고정 — 구현·실측 확정**(`d01fc0a`, Saleae **85.032 kHz**). `TBPRD=1176`/`cmpA=588`/`EPWM7 CMPB=558`(@150 ns). dead-time 조정범위 **100~400 ns**(실험 후 고정 예정, 현재 150 ns 베이스라인). dead-time 카운트는 **TBCLK(200 MHz, 실측 확정 — 1 count=5 ns) 기준이라 주파수와 무관**(CMPB의 `TBPRD/2`만 주파수 따라 바뀜: 브링업 100 kHz 때 CMPB=470, 85 kHz에서 558).
-- **단일소스 위치**: `ETA_DEADTIME_NS`는 8kw에서 `src/eta_bsp/eta_tuning.h`(컴파일타임 튜닝 knob 전용, 100~400 ns `#error` 가드)에 둔다. 주파수·dead-time 모두 `eta_pwm_init()`이 런타임 override → SysConfig 재생성 면역.
-- 근거 커밋: `6e6b342`(SYNC 상보), `8046744`(dead-time 단일소스·스윕), `d01fc0a`(85 kHz 고정·config 분리·비대칭 실측). branch pwm.
+- **SYNC 토폴로지 (신 — `4014901`, branch pwm-deadtime)**: **output-less EPWM0**(SysConfig 인스턴스, `syncout=ON_CNTR_ZERO`) → EPWM2/4/7 모두 `EPWMSYNCINSEL=EPWM0_SYNCOUT` (1-hop). 모듈간 스큐 ~22 ns → **±2 ns**.
+- **레그2 isoform**: HS2 = **EPWM4_A @ J6.52**, LS2 = **EPWM7_B @ J6.51**.
+  - EPWM4_A: CMPA = TBPRD/2 + DT, CMPB = TBPRD/2 (AQ: UP_CMPA→HIGH / DOWN_CMPB→LOW).
+  - EPWM7_B: CMPA = TBPRD/2 − DT, CMPB = TBPRD/2 (AQ: ZERO→HIGH / UP_CMPB→LOW / DOWN_CMPA→HIGH).
+  - @150 ns, TBPRD=1176: EPWM4_A CMPA=588+30=618, CMPB=588. EPWM7_B CMPA=588−30=558, CMPB=588.
+- **주파수**: **85 kHz 고정** (`d01fc0a`, Saleae 85.032 kHz). `TBPRD=1176`, TBCLK=200 MHz, 1 count=5 ns.
+- **단일소스 위치**: `ETA_DEADTIME_NS`는 `src/eta_bsp/eta_tuning.h`(100~400 ns `#error` 가드). `eta_pwm_init()` 런타임 override → SysConfig 면역.
+- 근거 커밋: `6e6b342`(SYNC 상보), `8046744`(단일소스·스윕), `d01fc0a`(85 kHz·비대칭 첫 실측), `4014901`(EPWM0 fan-out+isoform — 비대칭 ~22 ns→±2 ns). branch pwm / pwm-deadtime. 리포트 [[pwm_leg2_isoform_report]].
 
 ---
 

@@ -1,7 +1,7 @@
 ---
 tags: [entity, pwm, 8kw-ev-wpt-tx, pinmap]
-source: 사용자 제공 + [[lp_am263p_ug]] Table 2-30 교차확인 (2026-06-09) — PWM 핀맵·스펙. net/채널 분리 정정(J6.52=EPWM4_A, HS2 실측)
-date: 2026-06-10
+source: 사용자 제공 + [[lp_am263p_ug]] Table 2-30 교차확인 (2026-06-09) — PWM 핀맵·스펙. net/채널 분리 정정(J6.52=EPWM4_A, HS2 실측). EPWM0 fan-out + isoform (2026-06-11, 4014901)
+date: 2026-06-11
 ---
 
 # pwm_pinmap — 8kW WPT TX 보드 PWM 핀맵
@@ -31,8 +31,8 @@ date: 2026-06-10
 
 - **레그1 = EPWM2 단일 모듈**(A=HS1, B=LS1) → 모듈 내 **dead-band 유닛**으로 상보 PWM + dead-time 깔끔히 생성.
 - ⚠️ **레그2 = EPWM4_A@J6.52(HS2) + EPWM7_B@J6.51(LS2) — 서로 다른 두 모듈에 걸침** (확정·4핀 실측 2026-06-09). J6.51은 EPWM4_B를 노출하지 않아(EPWM7_B/EPWM5_B만, `ug:1640`) **한 모듈로 못 묶음** → 두 모듈 SYNC 필요.
-  - → 레그2 상보 PWM·dead-time은 **모듈 내 dead-band 불가**. **EPWM 동기(EPWM4 syncout ON_CNTR_ZERO → EPWM7 syncin) + EPWM7_B AQ 반전 + CMPB 오프셋**으로 상보+dead-time 생성 — **✓ 구현·검증 완료**. 설계·함정 상세는 [[pwm]] Pin4 절. 레그1(dead-band)과 **비대칭 구현**.
-  - dead-time 튜닝(build-per-change, 150ns)도 레그1=dead-band RED/FED / 레그2=CMPB 오프셋으로 **메커니즘이 다름**. 단 **ns 소스는 `ETA_DEADTIME_NS` 하나로 수렴**(두 레그 공유, `8046744`) — 매크로·검증표는 [[pwm]] §dead-time 단일소스.
+  - → 레그2 상보 PWM·dead-time은 **모듈 내 dead-band 불가**. **EPWM0 더미 마스터 fan-out**(output-less, `syncout=ON_CNTR_ZERO`) + **비대칭 AQ + 2-compare 합성**으로 상보+dead-time 생성(isoform) — **✓ 구현·4-DT sweep 검증 완료**(`4014901`). 설계 상세는 [[pwm]] §EPWM0 fan-out + 동형화. 레그1(dead-band)과 **메커니즘은 다르나 파형·timing 동형**.
+  - dead-time: 레그1=dead-band RED/FED / 레그2=2-compare(CMPA=TBPRD/2±DT, CMPB=TBPRD/2). **ns 소스는 `ETA_DEADTIME_NS` 하나로 수렴**(`eta_tuning.h`) — 매크로·검증표는 [[pwm]] §dead-time 단일소스.
   - **의도된 설계 확인(2026-06-09)** — 현 회사 회로도가 이렇게 라우팅됨. 단 향후 개선 대상(아래 §향후 보드 개선).
 - **채널 suffix는 핀이 강제, 회로도 라벨과 반대 (레그2 공통 패턴, 확정)**: 회로도 net 라벨이 "EPWM4_B"(HS2)/"EPWM7_A"(LS2)지만 핀이 노출하는 silicon 채널은 EPWM4_A(`ug:1641`)/EPWM7_B(`ug:1640`, pinmux.csv F1=EPWM7_B 교차확인). **펌웨어 배정·정본은 silicon 채널**(EPWM4_A/EPWM7_B) — 회로도 라벨 suffix에 끌려가지 말 것. 4핀 전부 이 기준으로 실측 통과.
 - ✅ **UART5(EPWM15)와 충돌 없음** — PWM은 EPWM2/4/7 사용. ([[am263p_iomux_force_io_enable]] EPWM15 점유 건과 무관)
@@ -59,7 +59,7 @@ date: 2026-06-10
 - **토폴로지**: 풀브리지 인버터 (4스위치, 2레그). WPT 공진 탱크 구동(LCC 탱크는 [[adc_pinmap]] `I_LCC_SEN` 단서 — 가설 유지).
 - **스위칭 주파수**: **85 kHz 고정 — 구현·실측 확정**(`d01fc0a`, **Saleae 85.032 kHz** 측정, `TBPRD=1176`/`cmpA=588`/`EPWM7 CMPB=558`). 런타임 가변 아님. (브링업 임시 100 kHz에서 전환.)
 - **Dead-time**: **이것만 가변.** **리얼타임 변경 불필요** — 값 바꿔 **재빌드**(build-per-change). **조정 범위 100~400 ns**(`#error` 범위가드), 실험 후 최종값 고정 예정(현재 150 ns 베이스라인). 두 레그 단일소스 **`ETA_DEADTIME_NS`(`src/eta_bsp/eta_tuning.h`)** — 패턴 정본 [[am263p_epwm_module_sync_deadtime]]. 주파수·dead-time 모두 `eta_pwm_init()` 런타임 override → SysConfig 재생성 면역.
-- **레그2 dead-time 비대칭(~11 ns)**: 두 모듈 동기라 모듈간 ~2.2 counts 위상 스큐 → HS→LS +11/LS→HS −11 ns(합=2×설정). 현 스펙(100~400 ns) 무해(최소 89 ns 마진), 50 ns 이하 시 마진 재확인. 상세 [[pwm]] §레그2 비대칭·[[am263p_epwm_module_sync_deadtime]].
+- **레그2 dead-time 비대칭** — **✅ ±2 ns 이하로 감소** (`4014901`, EPWM0 fan-out + isoform). 구 토폴로지 ~22 ns 비대칭 → 현재 ±2 ns(5 ns 양자화 바닥). 100 ns 설정 시 최소 갭 = 100−2 = 98 ns. 상세 [[pwm]] §EPWM0 fan-out·[[am263p_epwm_module_sync_deadtime]].
 - **제어**: (현재 범위 밖) 추후 ADC 피드백 제어루프.
 
 ---
