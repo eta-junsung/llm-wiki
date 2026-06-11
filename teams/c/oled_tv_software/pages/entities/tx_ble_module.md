@@ -83,6 +83,8 @@ ESB tx=0x000C3E fail=0/s | ACK rx=0x000C3D [0x50 0x51 0x52]
 
 `custom_board.h`: `LEDS_NUMBER 0`, `BUTTONS_NUMBER 0`, `RX_PIN_NUMBER 14`, `TX_PIN_NUMBER 15`, HWFC 미사용. 보드 전환 = emProject `BOARD_PCA10040` ↔ `BOARD_CUSTOM` 한 줄 토글. `02_RX_ble`도 동일 `custom_board.h` 공유 (LED 동작은 03만 구현).
 
+> ⚠️ **스코프핀 P0.17/P0.18은 이 펌웨어(03_TX_ble) 한정**: ESB TX 타이밍 검증용으로 추가된 핀이며, "제거 금지" 경고도 03 전용이다. 02_RX_ble에서 DK P0.17/18/19는 LED1/2/3(System Ready·SPI_Comm_St·BLE_Comm_St)이며 ESB 토글 핀이 아니다 — [[rx_ble_module]] "GPIO 핀 현행" 절 참조.
+
 ## 통신 인터페이스
 
 - **ESB RF**: [[rx_ble_module]](PRX)과 2.4GHz 링크. 파라미터 → [[esb_link_layer]]

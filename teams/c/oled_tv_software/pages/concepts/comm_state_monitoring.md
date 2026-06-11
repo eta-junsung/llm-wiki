@@ -153,6 +153,21 @@ ESB 링크 ALIVE  ⟺  최근 BLE_COMM_ST_WINDOW_MS(=200ms) 내 수신 delta ≥
 - **command 채널 무변경**: UART5 라인 단위 ISR 파싱·command 응답 printf(`buck=.. V` 등)는 그대로 남는다 — 수동 TeraTerm 디버그용. monitor 송출(바이너리)과 command 응답(텍스트)이 한 UART5에 섞여 나가므로, host 리더는 11B HDR 동기 + CRC 검증으로 command 텍스트 잡음을 자연 폐기한다([[pc_uart_gui]]).
 - **변경 파일**: `app_usart.h/.c`(`uart_send` 추가), `app_protocol.c`(`print_packets` 바이너리화, COMM 비트는 0x10 d0에 반영, `print_comm_line_on_change` 삭제). 무변경: command 파서·응답 printf(`HAL_UART_RxCpltCallback`).
 
+## 모니터링 채널 분리 — 기계 계약 vs 사람 디버그 (b92835c→e85839c, 2026-06-11 확정)
+
+01과 02의 모니터링 출력은 **성격이 다른 두 채널**이다. 혼동하면 02 코드 수정 시 GUI 영향을 오판한다.
+
+| 노드 | 채널 | 포맷 | 소비처 |
+|------|------|------|--------|
+| **01_RX_control** | UART5 | **11B 바이너리** (HDR 0x10~0x52, `pkt_build_*`→`uart_send`) | `tools/pc_uart_gui/uart_gui.py`가 `decode_packet`으로 파싱 — **기계 파싱 계약** |
+| **02_RX_ble** | UART (CON2) | **사람이 읽는 텍스트** (`pkt_print_status_line`의 `"0x10 \| [0]xxxxxxx-"` 비트나열) | 별도 디버그 터미널 — **어떤 기계 파서도 의존하지 않음** |
+
+**결론**: 02의 init/배너 printf 제거, Monitor 텍스트 포맷 변경, `Monitor_Loop` 리팩토링은 **PC GUI(uart_gui.py)에 무관하게 안전하다**. GUI가 파싱하는 것은 01 UART5 바이너리뿐이다.
+
+02 텍스트 Monitor는 "사람 모니터링 계약"으로만 보존하면 된다 — 기계 파서 호환성 고려 불필요.
+
+> ⚠️ **CLAUDE.md 갱신 후보 (펌웨어 repo)**: 펌웨어 CLAUDE.md가 PC UART GUI 계약을 01/02 구분 없이 기술하고 있다면, "GUI 계약 = 01 UART5 바이너리 전용"으로 정정 필요. [[nrf52_firmware_conventions]] 참조.
+
 ## pkt_print_comm_line — 3칩 공통 한 줄 출력 (`d2232fe` 신설 → `2f2aa65` 2인자 → ⚠️ `35b94d0` 호출처 제거, historical)
 
 > ⚠️ **historical (35b94d0)**: 아래는 `2f2aa65`까지의 COMM 텍스트 라인 동작 기록. `35b94d0`에서 monitor가 바이너리로 전환되며 01의 `print_comm_line_on_change()`가 삭제돼 **이 텍스트 라인은 더 이상 UART로 나가지 않는다**. `pkt_print_comm_line()` 공유 포매터는 컴파일은 되지만 호출처가 없다(orphan). 링크 health는 이제 위 "monitor 바이너리 전환"대로 0x10 d0 bit5/6으로 운반된다.

@@ -4,6 +4,16 @@
 
 ---
 
+## [2026-06-11] 환원 | oled_tv_software — 02_RX_ble 정리 도메인 사실 (채널 분리·GPIO 구분·코딩 관습)
+
+코드만으로 드러나지 않거나 펌웨어 CLAUDE.md와 어긋난 4가지 사실 환원 (b92835c→e85839c):
+
+- **[1] 모니터링 채널 분리**: 01 UART5 = 11B 바이너리(기계 파싱 계약, uart_gui.py), 02 Monitor_Loop = 사람 텍스트(디버그 터미널, 기계 파서 없음). 02 코드 수정은 GUI 무관. [[comm_state_monitoring]] "모니터링 채널 분리" 절 신설. CLAUDE.md 갱신 후보 표시.
+- **[2] GPIO P0.17/18 구분**: "P0.17/18 = ESB 토글 핀, 제거 금지"는 **03_TX_ble 한정**. 02_RX_ble DK에서 P0.17/18/19는 LED1/2/3(System Ready·SPI_Comm_St·BLE_Comm_St). [[rx_ble_module]] "GPIO 핀 현행" 절 신설, [[tx_ble_module]] 경고 주석 추가. CLAUDE.md 갱신 후보 표시.
+- **[3] nRF52 코딩 관습** 신규 페이지 [[nrf52_firmware_conventions]]: ISR printf 금지(HardFault 실증)·오류 카운터 패턴(1초 윈도우 블록 끝 append)·init 배너 printf 금지·eta_ 접두사([[nrf52_module_naming]] 위임).
+- **[4] NRF_LOG/SEGGER_RTT 잔재**: 02_RX_ble init 코드만 존재·호출 0건. 무해하나 신규 정리 시 혼동 주의. [[nrf52_firmware_conventions]] 수록.
+- **갱신**: [[comm_state_monitoring]], [[rx_ble_module]], [[tx_ble_module]], index, log.
+
 ## [2026-06-11] 환원 | oled_tv_software — nRF52 모듈 네이밍 관습 + SES emProject 가상 폴더 확정
 
 - **[1] nRF52 로컬 모듈 `eta_` 접두사 규칙** (`b92835c`, 빌드·실보드 검증 완료): `app_`은 nRF5 SDK 네임스페이스(`app_uart`/`app_timer`/`app_fifo` 등 다수)라 로컬 모듈과 충돌. `eta_`로 근본 제거 — 헤더/소스 이름 대칭 회복(`eta_uart.h`+`eta_uart.c`). 적용 범위: 02_RX_ble 완료, 03 후보, 01 해당 없음. 신규 페이지 [[nrf52_module_naming]] 작성.

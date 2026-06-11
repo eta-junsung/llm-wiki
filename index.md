@@ -54,6 +54,7 @@
 - [[spi_link_reliability]] — SPI heartbeat 구현(200ms 독립 타이머, P0.17 검증)·오류율 모니터·spi_tx_busy 타임아웃 복구·10ms 폴링 ✓ 검증 완료·9MHz 상향 미달
 - [[app_protocol_module]] — 01_RX_control SPI 프로토콜 계층 적출·핸드오프(`9be1a7a`). 공개 API `protocol_loop()` 하나 + 전역 3개(rx_module/tx_module/rx_cmd), 내부 `exchange_packets`/`print_packets`. 4파일 자립(common.h 역의존 끊음), W1 트랜스포트 직접호출·D1 전역 유지. **`35b94d0`: `print_packets` 11B 바이너리 송출(`uart_send`)·`print_comm_line_on_change` 삭제**. STM32CubeIDE 빌드+실보드 동작확인 ✓. **3펌웨어 표준 패턴 원형**: app_spi/app_esb=저수준·app_protocol=두꺼운 응용 계층·`protocol_loop()` 단일 진입점 — 02_RX_ble 동일 패턴 적용 완료(빌드 ✓, 실보드 △), 03 예정
 - [[nrf52_module_naming]] — **nRF52 로컬 모듈 `eta_` 접두사 규칙**: `app_`은 nRF5 SDK 네임스페이스 → 충돌. `eta_`로 근본 제거(`b92835c`, ✓실보드). 02_RX_ble 적용·03 후보·01 해당 없음
+- [[nrf52_firmware_conventions]] — **nRF52 코딩 관습**(b92835c→e85839c 확정): ISR printf 금지(HardFault 실증)·오류 카운터 패턴(1초 윈도우 append)·init/배너 printf 금지·NRF_LOG 초기화 잔재(호출 0건) 인지
 - [[ses_build_conventions]] — SES `.emProject` 함정: ①파일 목록 하드코딩(와일드카드 없음) ②nRF5 SDK 헤더 충돌(→`eta_` 접두사로 해소·[[nrf52_module_naming]]) ③`ADD_SPI` 전역 전파 주의 ④`<folder>` 는 가상 그룹·빌드 무영향
 - [[gpio_verification_pinmap]] — 검증 핀맵: 기능 → 프로브 핀 → 기대값 (SPI CS PB12·PWM PC6~9·ESB P0.17/18·ADC). planner가 검증 경로에 인용. 미확인 핀은 "확인 필요"로 호명
 - [[st_link_nrf52_flash]] — 3-MCU 플래싱 정본 (듀얼 프로브: 01 ST-Link 네이티브 / 03 J-Link OB / 02 DK 온보드). SN 고정 함정·CLI 실측·pyOCD 폴백 강등 (2026-06-05)

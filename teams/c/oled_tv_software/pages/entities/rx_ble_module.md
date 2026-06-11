@@ -66,6 +66,20 @@ subsystem: 02_RX_esb
 | 핀 순서 | 1 COMM_P5V · 2 TXD_uC(P0.15) · 3 RXD_uC(P0.14) · 4 COMM_GND (사용자 확인 2026-06-05) |
 | 비고 | PC 모니터링 전용. 절연형이라 COMM 전원(5V) 별도 공급 필요 |
 
+## GPIO 핀 현행 — 02_RX_ble DK(PCA10040) 기준 (b92835c, 2026-06-11 확정)
+
+| 핀 | 용도 | 비고 |
+|----|------|------|
+| P0.17 | LED1 = System Ready (상시 점등) | DK PCA10040 기본 LED1 할당 |
+| P0.18 | LED2 = `spi_comm_st_bit` mirror (200ms 토글) | DK PCA10040 기본 LED2 할당 |
+| P0.19 | LED3 = `ble_comm_st_bit` mirror (ESB Comm St) | DK PCA10040 기본 LED3, active-low |
+
+> ⚠️ **03_TX_ble와의 혼동 주의**: 03_TX_ble에서 P0.17/P0.18은 **ESB TX 타이밍 검증용 오실로스코프 토글 핀**이다. "P0.17/18 제거 금지" 경고는 **03 한정** — 02에 적용하면 안 된다. 상세 → [[tx_ble_module]].
+>
+> ⚠️ **CLAUDE.md 갱신 후보 (펌웨어 repo)**: P0.17/18 오실로 토글 경고가 02/03을 구분하지 않고 기술돼 있다면, 03_TX_ble 한정임을 명시 필요. [[nrf52_firmware_conventions]] 참조.
+
+comm-status 비트 심볼 → [[comm_state_monitoring]], LED 사양 전문 → [[tx_ble_module]] (02/03 공유 `custom_board.h`).
+
 ## 펌웨어 현황 (PRD v1.0 기준)
 
 | 항목 | 상태 |
