@@ -1,6 +1,6 @@
 ---
 tags: [roadmap, 8kw-ev-wpt-tx, living-doc]
-date: 2026-06-10
+date: 2026-06-11
 ---
 
 # 8kw-ev-wpt-tx — 프로젝트 로드맵
@@ -31,6 +31,7 @@ date: 2026-06-10
 
 - **전략 단계**: `adc` 작업 **A2 완료** — 6채널 ADC 실보드 검증(2026-06-09, commit c512e3b). 물리 인스턴스 5개(ADC0~4) + AIN 핀 모두 hard `$assign`, RTI1 공통 트리거, eta_adc.c 테이블 주도 리팩토링. ADC 잔여 = A3 스케일링(센서 스펙 대기·블로커) / UART5 차동 송신 복구(미해결) / A4 교차검증.
 - **활성 트랙**: `pwm` 작업 호([[pwm]], P0~P4) — **P1 완료**(EPWM2/4/7 4핀 실보드 검증, 레그2 두 모듈 SYNC 상보, shoot-through 0) **+ P2 완료**(`ETA_DEADTIME_NS` 단일소스·150/300ns `8046744`) **+ 85 kHz 고정·dead-time config 분리(`d01fc0a`)** — **85.032 kHz 실측**, dead-time 100/150/400ns 스윕 4ch PASS(shoot-through 0), `eta_tuning.h` knob 분리(100~400ns `#error` 가드)·주파수/dead-time 런타임 override로 SysConfig 면역. 레그2 SYNC dead-time·모듈간 비대칭(~11ns)은 plat 정본 [[am263p_epwm_module_sync_deadtime]]. 다음 = P3 보호(trip-zone) / dead-time 최종값(전력단 브링업) / 보호신호·게이트 극성 회로도 스펙 확보.
+- **별트랙 완료(2026-06-11)**: UART5 PC 텔레메트리 — 18B 바이너리 패킷([[uart5_packet_protocol]]) + PC GUI([[pc_monitor_gui]]) 실보드 검증(branch uart5, ba241fa·979699d). A1.5 UART 출력의 진화(채널 하드코딩 해소). 잔여 = 송신 논블로킹화·RS-485 Phase 2.
 - **전술(다음 시작점·기능별 현황)**: [[status]] 단일 소스.
 
 ---

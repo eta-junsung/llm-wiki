@@ -4,6 +4,18 @@
 
 ---
 
+## [2026-06-11] 환원 | 8kw-ev-wpt-tx — UART5 PC 텔레메트리 (18B 바이너리 패킷 + PC GUI)
+
+UART5로 ADC 6채널을 PC에 송출하는 바이너리 패킷 + 호스트 GUI 작업 환원 (branch uart5, commit ba241fa·979699d, 실보드 검증 2026-06-11). c팀 oled 선례([[pc_uart_gui]]) 형식 참조.
+
+- **신규 [[uart5_packet_protocol]]**: 18B 고정 big-endian `[SOF=0xA5][LEN=12][TYPE=0x01][SEQ][ch0..ch5 raw u16][CRC-16/CCITT-FALSE]`, CRC poly 0x1021·init 0xFFFF·범위 byte[1..15]. RTI2 10Hz·115200/8N1 polled blocking. thin device(wire=raw only)·smart host(mV=raw*3300/4095 미러). 채널 순서=ETA_ADC_CH enum, `eta_packet.c` 직렬화 자동 추종. SOF동기+CRC 1바이트 슬라이드 재동기. 선례 대비 CRC-16·단일 패킷·단방향.
+- **신규 [[pc_monitor_gui]]**: `tools/gui/gui.py`(pyserial+Tkinter+matplotlib). 4컬럼 표(Channel/ADC(V)/ADC(12bits)/Physical)·채널 체크박스(플롯·CSV 토글)·패킷 헬스(Hz/SEQ드롭/CRC에러)·라이브 플롯·raw-only CSV·PyInstaller 단일 exe. Physical 계수 테이블 단일 소스(계수 미입수 placeholder).
+- **검증**: COM13(CP210x, J1.4→THVD1400→J24) 29.8s — 10.067Hz, 301프레임 전부 유효, SEQ 드롭 0·CRC 에러 0. 프레이밍 강건성(정상/1바이트 손상→재동기/ASCII 잡음·가짜 SOF→폐기 후 복구) 모두 PASS.
+- **미결 해소**: A1.5 UART 출력 채널 하드코딩(`DebugP_log`) → `eta_packet.c` 채널 루프 직렬화로 대체(자동 추종).
+- **신규 잔여**: UART5 송신 논블로킹화(현재 polled blocking), 물리량 변환 계수 미입수(GUI Physical placeholder), RS-485 Phase 2.
+- ⚠️ **핸드오프 프롬프트 전제 정정**: "wiki 루트 빈 슬레이트, status.md 신규" → 오류. 실제로는 ADC(A2)·PWM(P1/P2) 이력이 가득한 기존 디렉토리 → status.md는 **갱신**(덮어쓰기 아님), concept 2개만 신규.
+- **갱신**: [[status]](UART5 텔레메트리 직전완료 절·구현현황표 행·미결사항), [[roadmap]](§2 별트랙 완료), index, log.
+
 ## [2026-06-11] 환원 | oled_tv_software — 02_RX_ble 정리 도메인 사실 (채널 분리·GPIO 구분·코딩 관습)
 
 코드만으로 드러나지 않거나 펌웨어 CLAUDE.md와 어긋난 4가지 사실 환원 (b92835c→e85839c):

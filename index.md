@@ -138,6 +138,8 @@
 
 - [[team_briefing_8kw]] — **팀 업무보고 참고 자료(8kw)**: 주차별 보고 스냅샷 이력·작업 호(A0~A4)·ADC 6채널 완료 현재 위치·만난 문제표(트리거 결선·soft 재셔플)·다음(A3 스펙 대기/UART5 복구). 보고 직전 참고
 - [[jtag_flash_clean_host]] — **운영 함정**: AM263P OSPI JTAG 굽기는 CCS IDE를 완전히 내린 클린 호스트에서. host-driven 스크립팅(run.bat/flash_node.js, DSS Rhino) ↔ IDE 상주 cloudagent+DSLite 디버그 백엔드 경합 → 비일관 실패(펌웨어/보드 오인 위험). `getDebugSessions=[]`라도 프로세스 레벨 확인 (2026-06-05 실측)
+- [[uart5_packet_protocol]] — **UART5 텔레메트리 패킷 정본**(branch uart5 ba241fa·979699d, ✓실보드): 18B 고정 big-endian `[SOF=0xA5][LEN=12][TYPE=0x01][SEQ][raw u16×6][CRC-16/CCITT-FALSE]`, CRC 범위 byte[1..15]. RTI2 10Hz·115200/8N1 polled. thin device(raw만 wire)·smart host(mV=raw*3300/4095 미러). 채널 순서=ETA_ADC_CH enum, eta_packet.c 직렬화 자동 추종. SOF동기+CRC 1바이트 슬라이드 재동기. 선례 oled 대비 CRC-16·단일·단방향
+- [[pc_monitor_gui]] — **host PC GUI**(`tools/gui/gui.py`, pyserial+Tkinter+matplotlib, ✓실보드 2026-06-11): 18B 수신 파서, 4컬럼 표(Channel/ADC(V)/ADC(12bits)/Physical), 채널 체크박스(플롯·CSV 토글), 패킷 헬스(Hz/SEQ드롭/CRC에러), 라이브 플롯, raw-only CSV, PyInstaller 단일 exe. Physical 계수 테이블 단일 소스(미입수 placeholder). 검증 COM13 10.067Hz·301프레임·0드롭/0CRC
 
 ### Entities
 
