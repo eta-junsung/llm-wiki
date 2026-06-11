@@ -61,6 +61,7 @@ level-1 챕터 기준. 거대 챕터 **ch7(Processors)·ch13(Peripherals)** 만 
 작업 트리거 시 lazy ingest. 이해된 지식은 아래 concept이 단일 소스, 위 raw는 출처:
 
 - [[am263p_mcspi_controller]] — MCSPI(13.1.3) 환원. S6 `SPI not responsive` 디버그용 (CS 프레이밍·EDMA·클록).
+- [[am263p_epwm_sync_topology]] — EPWM Time-Base Counter Synchronization(§7.5.6.4.3.3, p.651–654) 환원: per-module fan-out MUX·hop당 고정 지연 모델·Figure 7-181/7-182 직독. 8kw 모듈간 스큐 근본 + fan-out 0-스큐 토폴로지. **검증(2026-06-11)**: ch07_5_controlss.md :5683–5953은 PDF를 충실 재현, 본문 누락 없음(끊긴 cross-ref ":5801 Refer to for…"는 PDF p.652의 TI 원본 버그). device-specific sync-order 표는 TRM에 부재 — Table 7-153 참조는 Table 7-154 선택행렬을 가리킴.
 
 ## Candidate 섹션 (현재 블로커 기반, 미ingest)
 

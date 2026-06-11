@@ -4,6 +4,15 @@
 
 ---
 
+## [2026-06-11] ingest | lp-am263p — EPWM Time-Base Counter Synchronization (§7.5.6.4.3.3) + fan-out 스큐 토폴로지
+
+TRM EPWM sync 본문 보완 요청. **핵심 발견: 본문 누락 아님** — raw `ch07_5_controlss.md` :5683–5953은 PDF pp.651–654를 충실 재현(끊긴 cross-ref ":5801 Refer to **for** a list…"는 PDF p.652 TI 원본 버그, 추출 손실 아님). PDF figure 7-181/7-182를 직독해 환원.
+
+- **신규 [[am263p_epwm_sync_topology]]**: ① SYNC는 **모듈별 독립 MUX(fan-out)**, 데이지체인 아님 — `EPWMSYNCINSEL`로 공용 SYNCOUT 풀(Table 7-154: EPWM0~23/ECAP0~9/INPUTXBAR/TIMESYNCXBAR/FSI)에서 소스 1개 선택. ② source→target **hop당 지연 고정**(`TBCLK==EPWMCLK`→2×EPWMCLK, `TBCLK<EPWMCLK`→1×TBCLK), **target 인덱스 무관·누적 없음**. ③ Figure 7-181(SYNCIN MUX·SYNCOUT 로직·SYNCPER)·7-182(EXTSYNCOUT 8 PLLSYSCLK stretch) 직독. ④ 레지스터 표(PHSEN/PHSDIR/TBPHS/PRDLD/PRDLDSYNC/SYNCOUTEN/EPWMSYNCINSEL/EPWM_CLKSYNC/one-shot).
+- **검증질문 답**: EPWM2 SYNCOUT을 EPWM4·EPWM7이 각각 fan-out 선택 → **둘 다 1-hop·같은 지연 → 상호 정수클록 스큐 0**(잔여 sub-clock은 TRM 모델 밖, 미검증 예측). 8kw ~11ns 비대칭의 정체 = master 0-hop vs slave 1-hop = 2×EPWMCLK(≈10ns @prescale 1, 200MHz) + 라우팅 ~1ns.
+- **Table 7-153 "synchronization order" 해소**: 가리키는 실체는 §7.5.6.4.3.3 = Figure 7-181 MUX + Table 7-154 선택행렬. **device-specific sync-order/체인 표는 TRM에 부재**(SPRUJ55D).
+- **갱신**: [[am263p_epwm_module_sync_deadtime]](§함정 "모듈간 위상 스큐" 근본=hop 수 비대칭으로 재서술 + fan-out 0-스큐 토폴로지 추가), [[am263p_trm]](Ingested 섹션 등록 + 본문 누락 없음 확인), index, log.
+
 ## [2026-06-11] 환원 | 8kw-ev-wpt-tx — UART5 PC 텔레메트리 (18B 바이너리 패킷 + PC GUI)
 
 UART5로 ADC 6채널을 PC에 송출하는 바이너리 패킷 + 호스트 GUI 작업 환원 (branch uart5, commit ba241fa·979699d, 실보드 검증 2026-06-11). c팀 oled 선례([[pc_uart_gui]]) 형식 참조.

@@ -36,7 +36,9 @@ date: 2026-06-10
 
 - **CMPB 부호 (shoot-through 직결)**: `CMPB`는 **반드시 `< TBPRD/2`**. `TBPRD/2 + DT`(부호 오류)로 두면 LS ON 구간이 HS OFF 구간을 **넘어 겹쳐 shoot-through**가 난다. 8kw 구현 중 1회 부호 오류로 발생→정정. 부호는 `−`.
 - **SYNC-in 기본 disable**: SysConfig 기본 EPWM 인스턴스는 **SYNC-in disable + phaseShift=0**이라 단독 **자유구동(free-run)** 한다. 즉 **단일 모듈 핀은 위상기준 없이 독립 검증 가능**(이 점은 브링업에 유리)하지만, 이 패턴의 모듈간 위상정렬은 **SYNC를 명시 활성화**해야 성립한다 — 기본값으로는 두 모듈이 정렬되지 않는다. ([[pwm_pinmap]] §EPWM 인스턴스·자유구동)
-- ⚠️ **모듈간 위상 스큐 → dead-time 비대칭 (플랫폼 일반 사실)**: SYNC로 정렬해도 두 모듈 사이엔 **수 count 수준의 고정 잔류 위상 스큐**가 남는다(8kw 실측 **~11 ns ≈ 2.2 counts @200 MHz TBCLK**). 결과로 dead-time이 **HS→LS / LS→HS 방향에 따라 ±스큐만큼 비대칭**(두 갭의 **합은 항상 정확히 2×설정값**으로 보존). **같은 모듈 dead-band 레그(RED/FED)는 비대칭 없음.** 함의: dead-time이 충분히 크면 무해하지만, **설정값이 스큐에 근접할 만큼 작아지면**(예: 8kw 스큐 11 ns에 대해 ≲50 ns) 짧은 쪽 갭이 `설정−스큐`까지 줄어 **shoot-through 마진을 직접 깎는다** → 저 dead-time 설계 시 마진 재확인 필수. 대칭이 필요하면 **slave CMPB에 스큐 보정 트림(8kw 기준 약 +2 counts)** 검토. (근본 해소는 보드 단계에서 레그를 한 모듈로 묶는 것.)
+- ⚠️ **모듈간 위상 스큐 → dead-time 비대칭 (플랫폼 일반 사실)**: SYNC로 정렬해도 두 모듈 사이엔 **고정 잔류 위상 스큐**가 남는다(8kw 실측 **~11 ns ≈ 2.2 counts @200 MHz TBCLK**). **근본 원인은 hop 수 비대칭** — master(EPWM4)는 자기 영점이 기준이라 **0 hop**, slave(EPWM7)는 SYNCIN으로 **1 hop = 2×EPWMCLK(=10 ns @prescale 1)** 지연. 즉 11 ns ≈ 이 1-hop 지연이다. TRM 지연 모델·토폴로지 정본은 [[am263p_epwm_sync_topology]]. 결과로 dead-time이 **HS→LS / LS→HS 방향에 따라 ±스큐만큼 비대칭**(두 갭의 **합은 항상 정확히 2×설정값**으로 보존). **같은 모듈 dead-band 레그(RED/FED)는 비대칭 없음.** 함의: dead-time이 충분히 크면 무해하지만, **설정값이 스큐에 근접할 만큼 작아지면**(예: 8kw 스큐 11 ns에 대해 ≲50 ns) 짧은 쪽 갭이 `설정−스큐`까지 줄어 **shoot-through 마진을 직접 깎는다** → 저 dead-time 설계 시 마진 재확인 필수.
+  - **스큐 0 토폴로지(미검증 예측)**: 지연은 hop당 고정·target 인덱스 무관이므로, **두 모듈을 공용 소스에서 fan-out**(예: EPWM2 SYNCOUT을 EPWM4·EPWM7이 각각 SYNCINSEL로 선택 → 둘 다 1-hop)하면 **상호 정수클록 스큐 0**(잔여 sub-clock은 TRM 모델 밖). 단 풀브리지는 레그 간 정합도 필요 — 전 출력 모듈을 동일 hop으로 두는 설계가 정석. 근거·한계·레지스터 표 [[am263p_epwm_sync_topology]].
+  - 빠른 보정: 대칭이 필요하면 **slave CMPB/TBPHS에 스큐 보정 트림(8kw 기준 약 +2 counts = 2×EPWMCLK)** 검토. (근본 해소는 보드 단계에서 레그를 한 모듈로 묶는 것.)
 
 ---
 
