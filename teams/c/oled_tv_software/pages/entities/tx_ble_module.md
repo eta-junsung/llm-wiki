@@ -27,7 +27,8 @@ TX 보드 측 무선 모듈. nRF52832 기반, ESB PTX로 동작. TX 보드와 SP
 | LED 인디케이터 (LED1 점등 / LED2=spi_comm_st mirror / LED3=ble_comm_st mirror) | ✓ 구현+검증 (LED2 `e5e3efc`·LED3 `6cd7e6c`, 2026-06-08 실보드) |
 | 보드 분기 (BOARD_CUSTOM + custom_board.h) | ✓ 구현+검증 |
 | while(1) 구조 정리 | △ 구현됨·미검증 |
-| GPIO P0.17/P0.18 토글 (OSC 검증용) | △ 구현됨·미검증 |
+| 03_TX_ble 모듈 분리 리팩토링 | △ 구현됨·미검증 | `1d7f71a`(2026-06-11) emBuild 에러 0·경고 0. 실보드 미검증. eta_ 모듈 구조 6개. SPI_Loop 비활성 보존. [[nrf52_firmware_conventions]] |
+| GPIO P0.17/P0.18 (`DBG_PIN_TX_ATTEMPT`/`DBG_PIN_TX_DONE`) | △ | ESB TX 시도·완료 오실로스코프 측정용. 타이밍 검증 목적(TX~920µs 실측). **03 한정 핀** — 02에서 동일 핀은 DK LED임([[rx_ble_module]]) |
 | TX_FAILED 1초 윈도우 카운터 | △ 구현됨·미검증 |
 | TX UART 모니터 출력 포맷 개선 | △ 구현됨·미검증 |
 
@@ -83,7 +84,7 @@ ESB tx=0x000C3E fail=0/s | ACK rx=0x000C3D [0x50 0x51 0x52]
 
 `custom_board.h`: `LEDS_NUMBER 0`, `BUTTONS_NUMBER 0`, `RX_PIN_NUMBER 14`, `TX_PIN_NUMBER 15`, HWFC 미사용. 보드 전환 = emProject `BOARD_PCA10040` ↔ `BOARD_CUSTOM` 한 줄 토글. `02_RX_ble`도 동일 `custom_board.h` 공유 (LED 동작은 03만 구현).
 
-> ⚠️ **스코프핀 P0.17/P0.18은 이 펌웨어(03_TX_ble) 한정**: ESB TX 타이밍 검증용으로 추가된 핀이며, "제거 금지" 경고도 03 전용이다. 02_RX_ble에서 DK P0.17/18/19는 LED1/2/3(System Ready·SPI_Comm_St·BLE_Comm_St)이며 ESB 토글 핀이 아니다 — [[rx_ble_module]] "GPIO 핀 현행" 절 참조.
+> ⚠️ **P0.17/18 = `DBG_PIN_TX_ATTEMPT`/`DBG_PIN_TX_DONE` (03_TX_ble 한정)**: ESB TX 시도·완료 순간을 오실로스코프로 측정하기 위해 추가된 디버그 핀. 타이밍 검증 목적이며 제거 시 ESB 타이밍 분석 불가. "제거 금지" 경고도 03 전용 — 02_RX_ble에서 DK P0.17/18/19는 LED1/2/3(System Ready·SPI_Comm_St·BLE_Comm_St)이다. [[rx_ble_module]] "GPIO 핀 현행" 참조.
 
 ## 통신 인터페이스
 

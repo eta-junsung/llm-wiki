@@ -53,6 +53,36 @@ g_esb_tx_full_cnt = 0;
 
 `NRF_LOG_INIT` 호출이 보인다고 해서 로그 출력이 어딘가 나간다는 의미가 아니다. 활성화된 출력 채널은 01 UART5 바이너리([[pc_uart_gui]])와 02 텍스트 모니터([[comm_state_monitoring]] "모니터링 채널 분리") 뿐이다.
 
+## 모듈 의존 방향 — protocol → {esb, spi, clock, gpio} 단방향
+
+응용 계층 `eta_protocol`이 저수준 드라이버를 호출한다. 역방향 호출 금지.
+
+```
+eta_protocol
+    ↓
+eta_esb / eta_spi / eta_clock / eta_gpio
+```
+
+이 방향이 깨지면 순환 의존이 발생한다. 02/03 모두 이 구조를 준수한다.
+
+## Monitor 1초 윈도우 — baseline-delta, unsigned wrap 무해
+
+`Monitor_Loop`가 1초마다 1줄 진단을 출력한다. 카운터는 **누적 전역**(리셋 없음)을 두고, 출력은 **윈도우 delta**로 표시한다:
+
+```c
+uint32_t g_esb_rx_cnt;          // 누적 전역
+static uint32_t baseline = 0;
+uint32_t delta = g_esb_rx_cnt - baseline;   // unsigned 뺄셈
+baseline = g_esb_rx_cnt;
+printf("rx=%u/s ...\r\n", delta);
+```
+
+`uint32_t` overflow 시 wrap해도 unsigned 뺄셈이라 delta는 정확하다 — millis rollover와 같은 패턴.
+
+## ESB health 판정 독립성
+
+02(`esb_rx_cnt` delta)·03(`esb_ack_cnt` delta)이 각자 `BLE_COMM_ST_WINDOW_MS` 윈도우로 **독립 판정**한다. 판정 결과를 상대방에게 보내지 않는다 — RF 상태는 직접 받는 노드만 안다는 설계 원칙. 임계·메커니즘 전문 → [[comm_state_monitoring]].
+
 ## 관련
 
 - [[nrf52_module_naming]] — `eta_` 접두사 규칙 전문
