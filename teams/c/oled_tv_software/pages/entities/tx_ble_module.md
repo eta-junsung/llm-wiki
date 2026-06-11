@@ -23,7 +23,7 @@ TX 보드 측 무선 모듈. nRF52832 기반, ESB PTX로 동작. TX 보드와 SP
 | ESB PTX 기본 동작 | ✓ 구현됨 |
 | ACK payload 수신 (0x50/0x51/0x52) | ✓ 구현됨 |
 | round-robin HDR 송신 | ✓ 구현됨 |
-| TX 보드 ↔ 03_TX_ble SPI (`SPI_Loop`) | ✗ 전체 주석 처리됨 |
+| TX 보드 ↔ 03_TX_ble SPI (`SPI_Loop`) | △ | `e706b53` 기존 SPIM 코드 → SPIS 전면 재작성(02 거울, `nrf_drv_spis` MODE_2). `g_last_ack_by_hdr[3]` round-robin MISO 서빙. `emBuild` ✓. 실보드 미검증. ([[roadmaps/04-tx-control-dummy]] §4) |
 | LED 인디케이터 (LED1 점등 / LED2=spi_comm_st mirror / LED3=ble_comm_st mirror) | ✓ 구현+검증 (LED2 `e5e3efc`·LED3 `6cd7e6c`, 2026-06-08 실보드) |
 | 보드 분기 (BOARD_CUSTOM + custom_board.h) | ✓ 구현+검증 |
 | while(1) 구조 정리 | △ 구현됨·미검증 |

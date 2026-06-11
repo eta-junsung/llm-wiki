@@ -6,7 +6,7 @@ date: 2026-06-11
 
 ## 다음 시작점
 
-**_shared 프로토콜 다듬기 ✓(9ad338d·99c893f, 실보드 검증) — 다음은 ①02 ADD_SPI 점검·실보드 재검증 ②03 실보드 검증(TX 보드·오실로스코프) ③SPI-down→bit5·N=20**
+**03 SPIS 재작성 △(e706b53) · 04 더미 △(07fbf1f, CubeIDE 빌드 미수행) — 다음은 ①04 CubeIDE Ctrl+B 빌드(에러 0) ②4보드 플래시 → 03↔04 SPI 링크 검증(CS 10ms·CRC fail 0) ③01→02→ESB→03→04 E2E(`buck 12.00` → 04 raw 1200)**
 
 `35b94d0`(2026-06-10, 실보드 검증): 01_RX_control UART5 모니터 출력을 **텍스트 printf → 11B 바이너리 패킷 송출**로 전환(`print_packets`가 6헤더를 `pkt_build_*`→`uart_send`). COMM 텍스트 라인(`print_comm_line_on_change`) 삭제 — 링크 health는 0x10 status d0 **bit5(SPI)/bit6(ESB)**로 운반. host 도구 [[pc_uart_gui]](`tools/pc_uart_gui/uart_gui.py`, Python+Tkinter+pyserial): 단일 UART5로 11B HDR 동기+CRC 재동기 파싱, 2컬럼(TX 0x10~12/RX 0x50~52) 뷰, `Link: SPI/ESB [UP/DOWN]`, buck 입력칸→`buck <v>\r` 송신→0x51 `Tx_Buck_Vout_Ref` 확인. [[roadmaps/pc-gui]] G0~G3 완료. (직전 `2f2aa65`: COMM 라인 2인자·이벤트화 — `35b94d0`에서 그 텍스트 라인 자체가 폐기됨.)
 
@@ -68,7 +68,9 @@ date: 2026-06-11
 | 기능 | 상태 | 메모 |
 |------|------|------|
 | 02_RX_ble 모듈 분리 리팩토링 | ✓ | `b92835c`(2026-06-11) eta_ 접두사 전환·실보드 검증 완료. 모듈 구조: eta_gpio/clock/uart/spi/esb(저수준) + eta_protocol(응용 계층). 잔여 점검: `ADD_SPI` 전역 전파 확인(빌드·동작 정상이나 TU 전파 범위 미확인). ([[app_protocol_module]], [[ses_build_conventions]], [[nrf52_module_naming]]) |
-| 03_TX_ble 모듈 분리 리팩토링 | △ | `1d7f71a`(2026-06-11) `emBuild` 에러 0·경고 0. 실보드 미검증(TX 보드·오실로스코프 연결 필요). 02와 동일 eta_ 모듈 구조(gpio/clock/uart/spi/esb(저수준) + protocol). SPI_Loop는 TX 보드 미연결로 비활성 보존. P0.17/18 = DBG_PIN_TX_ATTEMPT/DONE(ESB TX 오실로용). ([[tx_ble_module]], [[nrf52_module_naming]], [[nrf52_firmware_conventions]]) |
+| 03_TX_ble 모듈 분리 리팩토링 | △ | `1d7f71a`(2026-06-11) `emBuild` 에러 0·경고 0. 실보드 미검증(TX 보드·오실로스코프 연결 필요). 02와 동일 eta_ 모듈 구조(gpio/clock/uart/spi/esb(저수준) + protocol). P0.17/18 = DBG_PIN_TX_ATTEMPT/DONE(ESB TX 오실로용). ([[tx_ble_module]], [[nrf52_module_naming]], [[nrf52_firmware_conventions]]) |
+| 03_TX_ble SPI_Loop SPIS 재작성 | △ | `e706b53`(2026-06-11) 기존 SPIM 코드 폐기 → 02 거울 SPIS(`nrf_drv_spis`, MODE_2, PIN_SPI_* 동일) 전면 재작성. `g_last_ack_by_hdr[3]` round-robin MISO 서빙. `emBuild` ✓. **실보드 미검증**. ([[roadmaps/04-tx-control-dummy]] §4) |
+| 04_tx_control 더미 프로젝트 | △ | `07fbf1f`(2026-06-11) 01_RX_control 복제 → ADC/PWM/CAN/DAC 제거, pkt_print 수신 모니터 추가. SPI2+UART5 잔존. **.ioc 파일명 `RX_control.ioc` 잔류. STM32CubeIDE Ctrl+B 빌드 미수행**. ([[roadmaps/04-tx-control-dummy]]) |
 | BLE(ESB)_Comm_St presence 판정 | ✓ | `EsbCommSt_Loop()`가 수신 delta(02=`esb_rx_cnt`, 03=`esb_ack_cnt`)로 `ble_comm_st_bit` 판정. `BLE_COMM_ST_WINDOW_MS=200`/`MIN_COUNT=20`(`d2232fe`, 이전 3). 양방향 실보드 검증 (`6cd7e6c`) ([[comm_state_monitoring]]) |
 | BLE_Comm_St bit6 전달·소비 | ✓ | 02가 0x10 bit6(`COMM_ST_BIT_BLE`) 적재(송신 복사본 race-free)→01 `ble_comm` 추출→`esb \| LINK UP/DOWN` edge 콘솔. 03은 자기 LED3 미러만(STM32 전송 없음) |
 | LED3 = ble_comm_st_bit mirror | ✓ | 02·03 모두. 매크로 기본 DK P0.19(active-low), 회사보드 P0.06 주석 ([[tx_ble_module]]) |
@@ -93,6 +95,9 @@ date: 2026-06-11
 
 ## 미결 사항
 
+- **(04 더미 D1→D2)** 04 STM32CubeIDE Ctrl+B 빌드 에러 0 확인 → 4보드 플래시 → 03↔04 SPI 링크 검증(CS 10ms Δt·CRC fail 0). ([[roadmaps/04-tx-control-dummy]] D2)
+- **(04 더미 D3)** E2E Vout Ref: 01 `buck 12.00` → 04 UART 모니터 `Tx_Buck_Vout_Ref=1200`(raw, ÷100 없음). ([[roadmaps/04-tx-control-dummy]] D3)
+- **(정리)** 04 `.ioc` 파일명 `RX_control.ioc` → `TX_control.ioc` 개명 여부 결정.
 - (02 리팩토링) `ADD_SPI` 전역 전파 점검 — 원래 `main.c` 로컬 `#define` → `.emProject` `c_preprocessor_definitions` 전역 이동. 의도치 않은 TU 전파 여부 확인 필요. ([[ses_build_conventions]]) *(헤더명 이슈는 eta_ 전환(b92835c)으로 해소)*
 - (03 리팩토링) 실보드 미검증 — `1d7f71a` 빌드 통과(에러 0), ESB PTX 동작·Monitor 출력·P0.17/18 오실로 확인 미수행. TX 보드·오실로스코프 연결 필요. ([[tx_ble_module]])
 - 0x51 Zin·Tx Buck Vout Ref: 코드 Type 재확인 (매뉴얼 Uint16 vs 코드 i16 잔여 차이)
