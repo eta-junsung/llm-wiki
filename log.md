@@ -4,6 +4,12 @@
 
 ---
 
+## [2026-06-11] 환원 | oled_tv_software — nRF52 모듈 네이밍 관습 + SES emProject 가상 폴더 확정
+
+- **[1] nRF52 로컬 모듈 `eta_` 접두사 규칙** (`b92835c`, 빌드·실보드 검증 완료): `app_`은 nRF5 SDK 네임스페이스(`app_uart`/`app_timer`/`app_fifo` 등 다수)라 로컬 모듈과 충돌. `eta_`로 근본 제거 — 헤더/소스 이름 대칭 회복(`eta_uart.h`+`eta_uart.c`). 적용 범위: 02_RX_ble 완료, 03 후보, 01 해당 없음. 신규 페이지 [[nrf52_module_naming]] 작성.
+- **[2] SES `.emProject` `<folder>` 가상 그룹 확정**: `<folder Name="...">` 는 Solution Explorer 표시 전용 — `file_name`·`c_user_include_directories`를 건드리지 않는 한 빌드·디스크 경로 무영향. [[ses_build_conventions]] §4 추가.
+- **갱신**: [[ses_build_conventions]](§2 해소 처리·`eta_` 전환 경위·§4 가상 폴더 신설·관련 링크), index, log.
+
 ## [2026-06-10] 갱신 | lp-am263p·8kw-ev-wpt-tx — UART5 U54 보드먹스 근본원인 확정·실보드 검증
 
 - **확정 사실**: U54(SN74CB3Q3257) SEL=L→UART(B1), OE#=L→인에이블(SCDS135E Table 6-1). TCA6416 P00/P14=LOW → UART5 헤더 연결. J1.4=GPIO73=UART5_TXD, J1.3=GPIO74=UART5_RXD(post-mux, UG :1525-1526).
