@@ -4,6 +4,13 @@
 
 ---
 
+## [2026-06-12] briefing | C팀 oled_tv_software — 주간 업무보고 2026-06-12 (6/5~6/11)
+
+- **신규 [[team_briefing_oled]]**: C팀 oled_tv_software 업무보고 living-doc 신설 (G팀 선례 동일 패턴).
+- **외부 파일**: `C:\Users\echog\eta\업무보고_2026-06-12.md` 생성.
+- **보고 핵심(6/5~6/11)**: ① SPI·ESB comm-state 비트 2개 실보드 검증 완료 ② PC UART 바이너리 모니터 + GUI 완성·검증 ③ 코드 정리 3종(app_protocol 적출·02 리팩토링·_shared 다듬기) ④ 04_tx_control 더미 신설(E2E 준비).
+- **갱신**: [[team_briefing_oled]](신규), index(Concepts 1행), log.
+
 ## [2026-06-11] 환원 | 8kw-ev-wpt-tx — PWM 레그2 dead-time 정밀화 + EPWM0 fan-out + 레그2 동형화
 
 branch pwm-deadtime, commit 4014901. EPWM0 더미 마스터 fan-out + 레그2 isoform AQ + 2-compare 합성으로 dead-time 비대칭 ~22 ns→±2 ns, 레그1·레그2 동형 완전 확인.

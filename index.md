@@ -36,6 +36,7 @@
 
 ### Concepts
 
+- [[team_briefing_oled]] — C팀 oled_tv_software 주간 업무보고 참고 자료 (보고 스냅샷 이력·작업 호 현황·진행/문제·다음계획 living-doc)
 - [[pwm_system]] — TIM8/TIM3 64MHz·100kHz·120도 위상, `pwm_init`/`set_duty`/`pwm_set_freq`
 - [[dead_time]] — SW CCR offset 방식. TIM3에 BDTR 없어 두 타이머 통일
 - [[trip_zone]] — TIM8 BKIN(PA6) → `HAL_TIMEx_BreakCallback`로 PWM 전체 차단
