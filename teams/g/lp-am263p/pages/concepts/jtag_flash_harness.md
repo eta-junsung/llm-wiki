@@ -70,8 +70,9 @@ AM263P OSPI JTAG flash 자동화는 **① run.bat Node.js(`runAsynch`) 하네스
 | banner | `eta-tx: 8kw-ev-wpt v1.0e00` ⚠️ **구 이미지 기준** — 현재 `src/main.c`:45 배너는 `"eta-tx: 8kw-ev-wpt start"`([[ospi_boot_console_diagnostic]] §5) |
 
 **SW1 부트모드** (정정본, 근거 LP-AM263P UG SPRUJ85B Table 2-5 — 단일 소스는 [[CLAUDE]] "하드웨어" 절):
-- **DevBoot = `0,1,0,0`** (SW1.3만 ON, "No SBL") — 개발 편의용. **굽기에 필수는 아님**(굽기는 OSPI(4S)=`1,1,1,1`에서도 성공, 2026-06-12 실측 — 아래 §7).
-- **standalone 부팅 OSPI(4S) Quad Read = `1,1,1,1`** — 이번에 `sbl_ospi_am263p.tiimage`로 실증.
+- **DevBoot = `0,1,0,0`** (SW1.3만 ON, "No SBL") — 개발 편의용. **굽기에 필수는 아님**(굽기는 OSPI(4S)=`1,1,1,1`에서도 성공, 2026-06-12 실측 — 아래 §7). ※ 굽기는 JTAG `loadProgram`로 flashwriter를 RAM에 올리므로 **부트 스트랩과 무관** — 어느 SW1 값이든 굽힌다.
+- **standalone 부팅 정답 스트랩 = xSPI 8D (SFDP) = `0,0,1,1`** — 2026-06-12 실증(SBL→app→`eta-tx: 8kw-ev-wpt start`). 정본 [[ospi_boot_mode_strap]].
+  - ⚠️ **정정**: 종전 이 줄은 "standalone 부팅 OSPI(4S) `1,1,1,1` — `sbl_ospi_am263p.tiimage`로 실증"이라 적었으나 **오류**. 보드 flash(IS25LX256)는 octal-only라 4S(`0x6B`/QE) 부팅이 물리적으로 불가([[ospi_boot_mode_strap]] §2). `1,1,1,1`은 ROM→SBL 실패(`'C'` ping)를 내던 잘못된 스트랩이었다.
 - ※ 과거 cc3351 노트의 `DevBoot=1,1,0,0`은 **오기**(`1,1,0,0`은 OSPI 8S Octal Read 값) — [[CLAUDE]]에서 2026-06-05 정정 완료.
 
 ---
@@ -119,13 +120,13 @@ AM263P OSPI JTAG flash 자동화는 **① run.bat Node.js(`runAsynch`) 하네스
 
 `flash_node_8kw.js`가 굽는 `C:/ti/sbl_ospi_am263p.tiimage`(307005B, SHA256 `735D12EB...58108B7`)는 SDK 공식 프리빌트 `mcu_plus_sdk_am263px_26_00_00_01/.../sbl_ospi_multicore_elf.release.tiimage`와 **바이트 동일**. 파일명 `am263p`는 공식 rename. SBL 변종(multicore_elf)·실리콘(am263px-lp)·무결성 전부 정합.
 
-**결론**: "SBL 파일이 잘못됐다" 가설 완전 제거. 잔여 블로커는 SBL 자체가 아닌 flash 프로그래밍/설정. 상세: [[ospi_boot_console_diagnostic]] §4.
+**결론**: "SBL 파일이 잘못됐다" 가설 완전 제거. ~~잔여 블로커는 SBL 자체가 아닌 flash 프로그래밍/설정.~~ → **실제 블로커는 부트모드 스트랩 미스매치**였고 strap 교정(`0,0,1,1`)으로 같은 SBL이 정상 부팅([[ospi_boot_mode_strap]]). 상세: [[ospi_boot_console_diagnostic]] §4.
 
 ---
 
 ## 빈자리 (미검증)
 
-- ~~토글-프리 루프 부팅 절반 미확정~~ — **✅ (A) 부팅 실패 확정 (2026-06-12)**: COM4(UART0 콘솔) `'C'` ping 반복·VCC 완전 제거 확인 → ROM→SBL 로드 단계 실패. 잔여 블로커: flash 프로그래밍/설정([[ospi_boot_console_diagnostic]] §3). 전체 맥락: [[toggle_free_flash_loop]] §②.
+- ~~토글-프리 루프 부팅 절반 미확정~~ — **✅ 해소 (2026-06-12)**: `1,1,1,1`(4S)에서의 `'C'` ping은 **부트모드 스트랩 미스매치** 때문(octal-only 칩). **SW1=`0,0,1,1`(xSPI 8D SFDP)로 교정 → 완전 부팅** → 굽기 ✓ + 부팅 ✓로 루프 닫힘. 정본 [[ospi_boot_mode_strap]], 맥락 [[toggle_free_flash_loop]] §②.
 - **OSPI 독립 readback 미검증** — 이번 세션에서 굽기 검증은 **standalone 부팅(§4)으로 대체**했다. 하네스/MCP를 통한 별도 flash 독립 read-back 검증은 수행하지 않음.
 - §1 `Error 0x400000`이 R5 free-run + TCM 접근 조합 외 다른 영역(외부 OSPI 매핑)에서도 동일하게 거부되는지 — 미확인(필요시 추가 측정).
 
@@ -133,7 +134,8 @@ AM263P OSPI JTAG flash 자동화는 **① run.bat Node.js(`runAsynch`) 하네스
 
 ## 함께 보기
 
-- 토글-프리 dead-time 반복 루프(굽기 ✓ + 부팅 OPEN): [[toggle_free_flash_loop]]
+- **부트모드 스트랩 미스매치 = standalone 무부팅 진짜 원인 (해소 정본)**: [[ospi_boot_mode_strap]]
+- 토글-프리 dead-time 반복 루프(굽기 ✓ + 부팅 ✓): [[toggle_free_flash_loop]]
 - 클린 호스트 deep-dive(8kw 첫 ingest): [[jtag_flash_clean_host]]
 - 런타임 `Flash_open()` 블로커(층위 다름): [[flash_open_facts]] · [[flash_open_diagnostic_log]] · [[sbl_app_flash_handoff]] · [[flash_open_sequence]]
 - 부트 흐름·SW1 부트모드·플래시 base: [[CLAUDE]] "하드웨어 — 부트 모드 / boot flow" 절

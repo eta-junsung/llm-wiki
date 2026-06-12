@@ -6,8 +6,10 @@ date: 2026-06-12
 
 # OSPI 부팅 진단 — UART0 콘솔 채널·boot triage recipe·flash 프로그래밍 블로커
 
-> **8kw-ev-wpt-tx 특정 페이지.** 2026-06-12 진단 사이클의 검증된 사실 묶음.
+> **8kw-ev-wpt-tx 특정 페이지.** 2026-06-12 진단 사이클의 검증된 사실 묶음(진단 채널·triage recipe·SBL provenance).
 > 부팅 실패 확정 전체 맥락은 [[toggle_free_flash_loop]] §②. JTAG flash 굽기 정본은 [[jtag_flash_harness]].
+>
+> ⚠️ **§3 갱신 (2026-06-12, standalone 무부팅 해소)**: 이 페이지가 §3에서 잔여 블로커로 지목하던 "flash 프로그래밍/설정(cell 영속성·QE bit NV)"은 **무효**로 판명. 진짜 원인은 **부트모드 핀 스트랩 미스매치**(SW1=`1,1,1,1`=4S Quad가 octal-only 칩과 불일치)였고, SW1=`0,0,1,1`(xSPI 8D SFDP)로 교정해 **완전 부팅 실측**. 정본 [[ospi_boot_mode_strap]]. 아래 §2 triage recipe와 §4 SBL provenance는 여전히 유효.
 
 ---
 
@@ -26,7 +28,7 @@ COM4(UART0)에서 관측되는 출력으로 부팅이 어느 단계에서 막혔
 
 | 관측 | 판정 | 의미 |
 |------|------|------|
-| SBL banner **없음** + `'C'`(0x43) XMODEM ping 반복 | **ROM→SBL 로드 실패** | ROM이 OSPI flash에서 SBL을 읽는 데 실패 → 블로커: flash 프로그래밍/설정(§3) |
+| SBL banner **없음** + `'C'`(0x43) XMODEM ping 반복 | **ROM→SBL 로드 실패** | ROM이 OSPI flash에서 SBL을 읽는 데 실패 → 원인: 부트모드 스트랩 미스매치(§3, [[ospi_boot_mode_strap]]) — flash 프로그래밍 아님 |
 | SBL banner(boot profile) **있음** → 이후 `'C'` ping 다시 시작 | **SBL→app 핸드오프 실패** | SBL은 로드됐으나 app mcelf 로드·실행 실패 |
 | `"eta-tx: 8kw-ev-wpt start"` (app banner) 출력 | **부팅 정상** — PWM 무토글이라면 측정·배선 문제 |  |
 
@@ -38,25 +40,31 @@ COM4(UART0)에서 관측되는 출력으로 부팅이 어느 단계에서 막혔
 **2026-06-12 실측 결과**: `'C'` ping + ID 블롭(`"AM263PX"/cdab=0xABCD/32B hash`) 반복·SBL banner 전무 → **ROM→SBL 로드 단계 실패** 판정.
 VCC 완전 제거(USB-unplug)·SW2/SW3 버튼 안 씀 확인 → [[toggle_free_flash_loop]] §③의 4-byte stuck 경로 완전 배제.
 
+> **이 `'C'` ping의 근본 원인(2026-06-12 해소)**: ROM→SBL 실패의 이유는 flash 프로그래밍이 아니라 **부트모드 스트랩 미스매치**였다 — SW1=`1,1,1,1`(4S Quad)에서 ROM이 `0x6B`+QE를 기대하는데 보드 flash(IS25LX256)는 octal-only라 `0x6B`을 디코드 못 함 → "any failures" → UART fallback `'C'`. SW1=`0,0,1,1`(xSPI 8D SFDP)로 교정하니 같은 flash 내용이 정상 부팅. 정본 [[ospi_boot_mode_strap]]. **triage recipe 자체(C ping = ROM→SBL 실패)는 정확했고, 후속 §3의 원인 귀속만 틀렸었다.**
+
 ---
 
-## 3. 잔여 블로커 — flash 프로그래밍/설정
+## 3. ~~잔여 블로커 — flash 프로그래밍/설정~~ → **해소: 진짜 원인은 부트모드 스트랩 미스매치**
 
-boot stage가 ROM→SBL 실패로 확정됐고 4-byte stuck 경로(warm reset 주소 불일치)가 배제됐으므로, 블로커는 **flash 프로그래밍/설정** 중 하나다.
+> **이 절의 종전 프레이밍 ((a)flash cell 영속성 / (b)QE bit NV)은 2026-06-12 무효 판정.** 보존을 위해 아래 취소선으로 남기되, **재시도 금지**. 진짜 원인과 해소는 [[ospi_boot_mode_strap]] 정본 참조.
 
-### (a) flash cell 영속성
+ROM→SBL 실패의 원인은 flash 프로그래밍이 **아니라** SW1 부트모드 스트랩이 보드 flash 프로토콜과 어긋난 것이었다:
 
-flashwriter(`jtag_flasher.out` = SDK `sbl_jtag_uniflash`)가 OSPI 컨트롤러를 통해 쓴 데이터가 **flash cell에 실제로 NV 커밋됐는가**.
+- 보드 flash = **IS25LX256 = octal-only**(Extended SPI + Octal DDR만; **quad·`0x6B`·QE bit 물리적 부재** — `raw/IS25LX256/` 전 챕터 grep 0건, [[ospi_boot_mode_strap]] §2).
+- SW1=`1,1,1,1`(OSPI 4S Quad)이면 ROM이 `0x6B`(`ch05:749`)+QE NV SET(`ch05:757`)을 기대 → octal 칩이 못 받음 → ROM read 실패 → UART fallback `'C'`.
+- **SW1=`0,0,1,1`(xSPI 8D SFDP)** 로 교정 → ROM이 SFDP에서 read cmd 자동 결정 → **같은 flash 내용이 VCC 전원사이클 후 완전 부팅**(SBL→app→`eta-tx: 8kw-ev-wpt start`).
 
-**readback PASS의 한계**: 굽기 직후 `0x60000000`(SBL magic)·`0x60081000`(ELF magic) readback PASS는 **동일 JTAG 세션의 OSPI 컨트롤러 XIP 뷰**다. JTAG 세션 리셋·전원사이클 후에도 ROM이 같은 주소를 읽어낼 수 있는지(cell 커밋·POR-read 생존)를 **독립 검증하지 않은 상태**.
-→ 구 `verify_ospi_8kw.js`는 Rhino API 의존이라 Node `run.bat`에서 동작 안 함([[jtag_flash_harness]] §1). 세션 독립 readback 검증 수단 미확립.
+따라서 굽힌 이미지·flash cell·QE 설정에는 애초에 문제가 없었다.
 
-### (b) flash NV config·QE bit
+<details><summary>무효가 된 종전 프레이밍 (보존용, 재시도 금지)</summary>
 
-ROM 4S(0x6B Quad Output Fast Read) 실행은 flash **QE(Quad Enable) bit = NV SET** 상태를 기대 (TRM `ch05_initialization.md`:757).
-`flashFixUpOspiBoot()`([[sbl_app_flash_handoff]])가 굽기 세션 중 OSPI 1S 복귀를 수행하는데, 그 과정에서 QE bit NV 보존 여부가 미확인.
+> ### ~~(a) flash cell 영속성~~ — **무효**
+> ~~flashwriter가 쓴 데이터가 flash cell에 NV 커밋됐는가. readback PASS는 동일 JTAG 세션 XIP 뷰라 POR-read 생존 미검증.~~ → strap 교정만으로 같은 flash가 정상 부팅했으므로 cell은 정상 커밋돼 있었다.
+>
+> ### ~~(b) flash NV config·QE bit~~ — **물리적으로 불가**
+> ~~ROM 4S(0x6B)는 QE bit NV SET을 기대(TRM ch05:757).~~ **이 칩에 QE bit 자체가 없다** — 4S 부팅이 애초에 성립하지 않는 칩에 "QE를 SET해야 한다"는 명제는 적용 불가. (TRM ch05:757 인용 자체는 정확하나, "이 보드가 4S 부팅이 맞다"는 전제가 오류였다.)
 
-**다음 검증 방향**: 재전원 후 XDS110 JTAG으로 `0x60000000` 독립 readback — 값이 살아있으면 cell 커밋 ✓(QE 문제로 좁힘), 값이 0xFF면 cell 미커밋.
+</details>
 
 ---
 
@@ -74,34 +82,33 @@ mcu_plus_sdk_am263px_26_00_00_01\tools\boot\sbl_prebuilt\am263px-lp\
 - **실리콘**: `am263px-lp` — 이 보드의 SoC와 일치. ✓
 - **무결성**: 바이트 동일. ✓
 
-**결론**: "SBL 파일이 잘못됐다" 가설 완전 제거. 블로커는 SBL 자체가 아닌 §3 flash 프로그래밍/설정.
+**결론**: "SBL 파일이 잘못됐다" 가설 완전 제거. 블로커는 SBL 자체가 아니었고 — §3대로 **부트모드 스트랩 미스매치**였다([[ospi_boot_mode_strap]]). strap 교정 후 이 동일 SBL이 정상 부팅.
 
 상세(harness 정본): [[jtag_flash_harness]] §8.
 
 ---
 
-## 5. route② `.mcelf` standalone 부팅 — 한 번도 실증 안 됨
+## 5. route② `.mcelf` standalone 부팅 — **실증됨 (2026-06-12)**
 
-2026-06-05 standalone 부팅 banner(`eta-tx: 8kw-ev-wpt v1.0e00`)는 **현재 route② build/.mcelf 이미지와 다른 이전 이미지의 증거**:
+종전(2026-06-05까지)에는 현재 route② build/.mcelf 이미지로 standalone 부팅이 성공한 실적이 **없었다** — 2026-06-05 banner(`eta-tx: 8kw-ev-wpt v1.0e00`)는 다른 이전 이미지였고(`src/main.c`:45 현재 banner는 `"eta-tx: 8kw-ev-wpt start"`).
 
-- 2026-06-05 banner: `eta-tx: 8kw-ev-wpt v1.0e00` ([[jtag_flash_harness]] §4).
-- 현재 `src/main.c`:45: `"eta-tx: 8kw-ev-wpt start"` — banner 문구 다름.
+**2026-06-12 해소**: SW1을 올바른 스트랩(`0,0,1,1` = xSPI 8D SFDP, [[ospi_boot_mode_strap]])으로 두고 VCC 완전 제거 후 재인가 → SBL → `"Image loading done, switching to application"` → app → `eta_pwm_init`(EPWM2/4/7 85 kHz) → **`eta-tx: 8kw-ev-wpt start`**. banner 문구가 현재 `src/main.c`:45와 일치 → **현재 route② 이미지의 standalone 부팅 실증 게이트 통과**.
 
-→ route② build/.mcelf로 standalone 부팅이 성공한 실적은 **아직 없음**. 진짜 VCC 제거 후 SBL boot profile + app banner가 나오는 것이 미실증 게이트.
-
-> ⚠️ 2026-06-05 banner를 현재 이미지의 부팅 실적으로 전용하지 말 것.
+> ⚠️ 2026-06-05 banner(`...v1.0e00`)는 구 이미지. 실증의 근거는 2026-06-12 `...start` banner다.
 
 ---
 
-## 정정 후보 (미수정)
+## 정정 이력
 
-- **[[jtag_flash_harness]] §4 banner 문구**: `eta-tx: 8kw-ev-wpt v1.0e00`는 구 이미지 기준. 현재 `src/main.c`:45는 `"eta-tx: 8kw-ev-wpt start"`.
-- **`tools/gui/gui.py`:553 SW1 라벨**: `"SW1=OSPI (DevBoot 0,1,0,0)"` 표기는 OSPI(4S)=`1,1,1,1`과 DevBoot=`0,1,0,0`을 한 줄에 혼용 — 별개 모드임을 명확히 해야 오해 없음.
+- ✅ **`tools/gui/gui.py`·`tools/jtag_flash/flash_8kw.js` SW1 라벨 (2026-06-12 수정)**: 종전 `"SW1=OSPI (DevBoot 0,1,0,0)"`·`1,1,1,1` 혼용 라벨이 잘못된 mental model을 강화 → **`0,0,1,1`(xSPI 8D SFDP)로 정정**. 근거 [[ospi_boot_mode_strap]].
+- ✅ **[[jtag_flash_harness]] §4 / [[toggle_free_flash_loop]] §③ "1,1,1,1에서 부팅" 기록**: octal-only 칩에서 4S 부팅은 불가 → strap 라벨 오기 추정. 해당 페이지에 모순 표시 완료.
+- **[[jtag_flash_harness]] §4 banner 문구**: `eta-tx: 8kw-ev-wpt v1.0e00`는 구 이미지 기준. 현재 `src/main.c`:45는 `"eta-tx: 8kw-ev-wpt start"`(2026-06-12 실증).
 
 ---
 
 ## 함께 보기
 
+- **부트모드 스트랩 미스매치 = standalone 무부팅 진짜 원인(해소 정본)**: [[ospi_boot_mode_strap]]
 - 토글-프리 루프 전체 맥락: [[toggle_free_flash_loop]]
 - JTAG flash 굽기 정본(SBL provenance §8 포함): [[jtag_flash_harness]]
 - OSPI RESET·QE bit 핸드오프: [[sbl_app_flash_handoff]]

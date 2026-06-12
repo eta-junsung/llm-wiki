@@ -4,6 +4,21 @@
 
 ---
 
+## [2026-06-12] 환원+lint | 8kw-ev-wpt-tx — standalone OSPI 무부팅 해소: 진짜 원인 = 부트모드 핀 스트랩 미스매치
+
+수개월간 "flash 프로그래밍/cell 영속성/QE bit"로 의심하던 standalone 무부팅의 진짜 원인이 **부트모드 핀 스트랩 미스매치**로 확정·해소(실측). 무효가 된 종전 진술 일괄 정정.
+
+- **FACT (해소, 실측)**: 보드 flash IS25LX256 = **octal-only**(Extended SPI + Octal DDR만; quad/`0x6B`/QE bit 물리적 부재 — `raw/IS25LX256/` 전 챕터 grep 0건). SW1=`1,1,1,1`(OSPI 4S Quad)은 ROM이 `0x6B`(TRM ch05:749) + QE NV SET(ch05:757) 기대 → octal 칩이 디코드 못 함 → ROM read 실패 → UART fallback `'C'` ping (= 그동안의 무부팅 증상). **SW1=`0,0,1,1`(xSPI 8D SFDP)로 교정 → VCC 전원사이클 후 완전 부팅**(SBL→`"Image loading done, switching to application"`→app→`eta_pwm_init` 85kHz→`eta-tx: 8kw-ev-wpt start`).
+- **스위치 극성**: UG §2.1.3 Note(`ug:453`) — 스위치 ON = SOP 핀 GND pull = 논리 0. UG Table 2-5(`:463-471`) = TRM Table 5-2(SOP값, `ch05:498-508`)의 비트반전. xSPI 8D SFDP = UG `0,0,1,1`.
+- **신규**: [[ospi_boot_mode_strap]] (8kw concepts) — 해소 정본. TRM Table 5-1(`ch05:138`·Note2 `:139` "4S boot is supported on Flash memories that support 0x6B")·Table 5-2·UG Table 2-5·[[is25lx256_datasheet]]·[[is25lx256_vs_spansion_quirks]] §4 cross-link.
+- **lint 정정 (무효 진술)**:
+  - [[ospi_boot_console_diagnostic]] §3 (a)cell 영속성/(b)QE bit NV 프레이밍 **무효** → strap 미스매치로 정정. §2 triage(C ping=ROM→SBL 실패)는 정확했고 원인 귀속만 틀렸음. §5 route② standalone 부팅 **실증됨**(미실증→해소). gui.py/flash_8kw.js SW1 라벨 `0011` 수정 반영.
+  - [[toggle_free_flash_loop]] §②/§③: 부팅 실패는 잘못된 스트랩 때문(flash 프로그래밍 아님). §③ "4S QE 충족" 전제·"06-05 1,1,1,1 부팅" 기록 무효/모순 표시. 굽기 ✓ + 부팅 ✓로 루프 닫힘.
+  - [[jtag_flash_harness]] §4 "standalone 부팅 4S `1,1,1,1` 실증" → octal-only 칩에 불가, 정답 스트랩 `0,0,1,1`로 정정. §8·빈자리 갱신.
+  - [[flash_open_facts]]·[[sbl_app_flash_handoff]]: **층위 구분** cross-ref만(cc3351 런타임 app `Flash_open()` ≠ standalone 부트 스트랩).
+- **모순(미해소)**: 2026-06-05 "SW1=`1,1,1,1`에서 부팅" 기록은 octal-only 칩에 물리적으로 불가 → 라벨 오기 추정([추정]), 당시 물리 스위치 위치 미확정(모름)으로 표시.
+- **갱신**: index(ospi_boot_console_diagnostic·toggle_free_flash_loop 설명 갱신 + ospi_boot_mode_strap 신규 등록), log. (status/roadmap: standalone 부팅은 8kw status 현황표 항목 외 — 게이트 미해당, 갱신 없음.)
+
 ## [2026-06-12] 환원 | 8kw-ev-wpt-tx — OSPI 부팅 진단 사이클 환원 (부팅 ✗ ROM→SBL 실패 확정 + SBL provenance + flash 블로커)
 
 2026-06-12 진단 세션의 검증된 사실을 wiki에 환원.

@@ -49,6 +49,8 @@ TI **LP-AM263P** LaunchPad에 **BP-CC3351**(Wi-Fi 6 + BLE BoosterPack)을 얹어
 
 **boot flow**: ROM → SBL(`sbl_ospi_am263p.tiimage`) → app @`0x81000`. 부트 플래시는 OSPI **IS25LX256**(ISSI, 32MB, Octal xSPI 8D DDR), base `0x53808000`. BoosterPack과 무관한 AM263P 온보드 플래시.
 
+> ⚠️ **이 보드의 standalone OSPI 부팅 정답 스트랩 = xSPI 8D (SFDP) = SW1 `0,0,1,1`** (2026-06-12 8kw 실측 확정). **OSPI (4S) Quad `1,1,1,1`은 불가** — IS25LX256은 octal-only라 ROM 4S가 기대하는 `0x6B`/QE bit이 칩에 없다. 근거·해소 정본 [[ospi_boot_mode_strap]] (8kw). 종전 "4S `1,1,1,1`에서 부팅" 기록은 라벨 오기 추정.
+
 **리셋/푸시버튼** — 근거: UG Table 2-4(:431), Figure 2-10/2-11(:586–657) · 회로도 sheet 15 `PROC171_Push_Buttons.SchDoc`(버튼 3종 SW2/3/4 = `COSW2/3/4`) + sheet 6 `PROC171_AM263P_2_Clock_Reset_Boot_JTAG.SchDoc`(PORz AND/U4 결합 로직).
 
 | 버튼 | 신호(net) | 성격 | 묶이는 곳 |
