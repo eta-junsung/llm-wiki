@@ -64,6 +64,27 @@ uint32_t cnt = nrf_atomic_u32_fetch_store(&esb_tx_fail_cnt, 0);
 printf("fail=%u/s", cnt);
 ```
 
+## ESB PTX stall 복구 — nrf_esb_disable+init의 한계
+
+`nrf_esb_disable()` + `nrf_esb_init()` 시퀀스는 칩 리셋만큼 완전한 복구가 아니다.
+
+**누락되는 정리 항목:**
+- RADIO 페리를 `TASKS_DISABLE`로 명시 전환하지 않는다
+- `EVENTS_*` 및 `NVIC RADIO_IRQn` pending이 남는다
+
+→ 견고한 소프트 복구에는 RADIO 페리 명시 정리(TASKS_DISABLE → EVENTS 클리어 → NVIC 플러시)가 추가로 필요하다.
+
+**stall 판정 liveness 주의 — write_payload SUCCESS ≠ RF 송신:**
+
+`nrf_esb_write_payload()`가 `NRF_SUCCESS`를 반환하는 것은 **TX FIFO에 큐 적재 성공**을 의미할 뿐, 실제 RF 송신 보장이 아니다. stall 판정은 **ISR 진행(TX_SUCCESS 또는 TX_FAILED 이벤트)** 수신을 liveness 지표로 봐야 한다.
+
+**복구 에스컬레이션:**
+
+| 단계 | 방법 | 비고 |
+|------|------|------|
+| 소프트 복구 | `nrf_esb_disable()` + RADIO 명시 정리 + `nrf_esb_init()` | TASKS_DISABLE·EVENTS 클리어·NVIC 플러시 포함 |
+| 최후 폴백 | `NVIC_SystemReset()` | 03_TX_ble는 무상태 릴레이이므로 리셋 허용 — 재init 후 즉시 정상 운용 복귀 |
+
 ## 관련 페이지
 
 - [[esb_packet_format]] — 11B wire 포맷
