@@ -1,12 +1,14 @@
 ---
-date: 2026-06-11
+date: 2026-06-12
 ---
 
 # oled_tv_software — 구현 현황
 
 ## 다음 시작점
 
-**03 SPIS 재작성 △(e706b53) · 04 더미 △(07fbf1f, CubeIDE 빌드 미수행) — 다음은 ①04 CubeIDE Ctrl+B 빌드(에러 0) ②4보드 플래시 → 03↔04 SPI 링크 검증(CS 10ms·CRC fail 0) ③01→02→ESB→03→04 E2E(`buck 12.00` → 04 raw 1200)**
+**e2e 검증 — 01↔02↔RF↔03↔04 전 체인 연결**: 4보드 모두 플래시·연결 → ① TX status(0x10) 01 UART 모니터 수신 ② E2E Vout Ref(`buck 12.00` → 04 `Tx_Buck_Vout_Ref=1200`) ③ RX status(0x50) 04 UART 수신. (지금까지: 02-03-04 부분 셋업 + 양 끝 STM32 중 하나 미연결 위주 검증 — 전 체인 미검증)**
+
+`6fc8b92`(2026-06-12, 04-tx-control-dummy 브랜치): **02·03 BLE 릴레이 정리 + RX 방향 미연결 견고화**. 02 `protocol_init`에서 forward 버퍼(0x50/51/52)를 valid 헤더+LEN+CRC+zero payload로 seed(approach A RX 방향 대칭, TX 방향은 `e72b86e`에서 03 완료). `pkt_seed_buffers()` _shared 헬퍼 추출, `eta_spi.c/.h` _shared 공용화(02/03 바이트 동일). Monitor_Loop `seen_mask` 출력 게이트 제거 → 6줄 고정 스냅샷. [[app_protocol_module]] "릴레이 헤더 소유 원칙·02/03 통합 범위" 갱신.
 
 `35b94d0`(2026-06-10, 실보드 검증): 01_RX_control UART5 모니터 출력을 **텍스트 printf → 11B 바이너리 패킷 송출**로 전환(`print_packets`가 6헤더를 `pkt_build_*`→`uart_send`). COMM 텍스트 라인(`print_comm_line_on_change`) 삭제 — 링크 health는 0x10 status d0 **bit5(SPI)/bit6(ESB)**로 운반. host 도구 [[pc_uart_gui]](`tools/pc_uart_gui/uart_gui.py`, Python+Tkinter+pyserial): 단일 UART5로 11B HDR 동기+CRC 재동기 파싱, 2컬럼(TX 0x10~12/RX 0x50~52) 뷰, `Link: SPI/ESB [UP/DOWN]`, buck 입력칸→`buck <v>\r` 송신→0x51 `Tx_Buck_Vout_Ref` 확인. [[roadmaps/pc-gui]] G0~G3 완료. (직전 `2f2aa65`: COMM 라인 2인자·이벤트화 — `35b94d0`에서 그 텍스트 라인 자체가 폐기됨.)
 
@@ -71,6 +73,7 @@ date: 2026-06-11
 | 03_TX_ble 모듈 분리 리팩토링 | △ | `1d7f71a`(2026-06-11) `emBuild` 에러 0·경고 0. 실보드 미검증(TX 보드·오실로스코프 연결 필요). 02와 동일 eta_ 모듈 구조(gpio/clock/uart/spi/esb(저수준) + protocol). P0.17/18 = DBG_PIN_TX_ATTEMPT/DONE(ESB TX 오실로용). ([[tx_ble_module]], [[nrf52_module_naming]], [[nrf52_firmware_conventions]]) |
 | 03_TX_ble SPI_Loop SPIS 재작성 | △ | `e706b53`(2026-06-11) 기존 SPIM 코드 폐기 → 02 거울 SPIS(`nrf_drv_spis`, MODE_2, PIN_SPI_* 동일) 전면 재작성. `g_last_ack_by_hdr[3]` round-robin MISO 서빙. `emBuild` ✓. **실보드 미검증**. ([[roadmaps/04-tx-control-dummy]] §4) |
 | 04_tx_control 더미 프로젝트 | △ | `07fbf1f`(2026-06-11) 01_RX_control 복제 → ADC/PWM/CAN/DAC 제거, pkt_print 수신 모니터 추가. SPI2+UART5 잔존. **.ioc 파일명 `RX_control.ioc` 잔류. STM32CubeIDE Ctrl+B 빌드 미수행**. ([[roadmaps/04-tx-control-dummy]]) |
+| 릴레이 양방향 미연결 견고화 | △ | `e72b86e`(TX→RX, 03 seed) + `6fc8b92`(RX→TX, 02 seed, 2026-06-12). `protocol_init`에서 forward 버퍼를 valid 헤더+LEN+CRC+zero payload로 seed — source 미연결 시 hdr=0x00 zero 패킷 forward/드롭 방지. `pkt_seed_buffers()` _shared 헬퍼. 빌드 ✓, **실보드 미검증**. ([[app_protocol_module]] "릴레이 헤더 소유 원칙") |
 | BLE(ESB)_Comm_St presence 판정 | ✓ | `EsbCommSt_Loop()`가 수신 delta(02=`esb_rx_cnt`, 03=`esb_ack_cnt`)로 `ble_comm_st_bit` 판정. `BLE_COMM_ST_WINDOW_MS=200`/`MIN_COUNT=20`(`d2232fe`, 이전 3). 양방향 실보드 검증 (`6cd7e6c`) ([[comm_state_monitoring]]) |
 | BLE_Comm_St bit6 전달·소비 | ✓ | 02가 0x10 bit6(`COMM_ST_BIT_BLE`) 적재(송신 복사본 race-free)→01 `ble_comm` 추출→`esb \| LINK UP/DOWN` edge 콘솔. 03은 자기 LED3 미러만(STM32 전송 없음) |
 | LED3 = ble_comm_st_bit mirror | ✓ | 02·03 모두. 매크로 기본 DK P0.19(active-low), 회사보드 P0.06 주석 ([[tx_ble_module]]) |
@@ -95,6 +98,7 @@ date: 2026-06-11
 
 ## 미결 사항
 
+- **(e2e) 01-02-03-04 전 체인 양방향 검증** — TX status(0x10) 01 수신 + E2E Vout Ref(`buck 12.00` → 04 raw 1200) + RX status(0x50) 04 수신. (이전 검증: 02-03-04 부분 셋업·양 끝 STM32 중 하나 미연결 위주) ([[roadmaps/04-tx-control-dummy]] D2→D3)
 - **(04 더미 D1→D2)** 04 STM32CubeIDE Ctrl+B 빌드 에러 0 확인 → 4보드 플래시 → 03↔04 SPI 링크 검증(CS 10ms Δt·CRC fail 0). ([[roadmaps/04-tx-control-dummy]] D2)
 - **(04 더미 D3)** E2E Vout Ref: 01 `buck 12.00` → 04 UART 모니터 `Tx_Buck_Vout_Ref=1200`(raw, ÷100 없음). ([[roadmaps/04-tx-control-dummy]] D3)
 - **(정리)** 04 `.ioc` 파일명 `RX_control.ioc` → `TX_control.ioc` 개명 여부 결정.

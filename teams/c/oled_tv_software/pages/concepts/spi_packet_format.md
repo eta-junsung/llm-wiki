@@ -14,6 +14,8 @@ subsystem: 01_RX_control, 02_RX_ble
 > **내부 데이터 컨테이너와 구분**: `rx_module_data_t` (**54B**) / `tx_module_data_t` (**43B**)는 STM32·nRF 코드 내 데이터 저장용 구조체이며 SPI wire 포맷이 아니다. 실제 전송 시 이 구조체의 데이터를 11B `oled_tv_packet_t`로 직렬화해 전송한다. **wire 11B는 불변 — 컨테이너 크기(54B/43B)는 내부 저장용만 해당.**
 >
 > **(사실, 코드 `9be1a7a` 기준)** 크기 정본은 `_shared/oled_tv_protocol.h:237-238`의 `_Static_assert(sizeof(rx_module_data_t)==54)` / `(sizeof(tx_module_data_t)==43)` — 빌드 시점에 드리프트를 잡는다. 과거 wiki 표기 **62B/51B·56B/45B는 모두 낡은 드리프트값**(코드 변경으로 어긋남). 일부 source 스냅샷·entity 교차참조에 잔존 가능 → static_assert가 단일 정본.
+>
+> ⚠️ **"SPI 패킷 구조체" 명명 오해 주의**: raw-forward 릴레이 전환 이후 43B/54B 구조체를 "SPI 패킷 구조체"라 부르면 오해를 부른다. **SPI/ESB wire 전송 단위는 항상 11B `oled_tv_packet_t`**이며, 43B/54B는 펌웨어 내부 표현이다. 단, `rx_module_data_t`(54B)는 01_RX_control에서 **CAN으로 통째 전송**되는 예외가 있다 — CAN 전송에서만 54B 구조체가 wire에 그대로 나간다.
 
 ## Wire 패킷 구조 (11 byte 고정)
 
