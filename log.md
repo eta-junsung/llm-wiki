@@ -4,6 +4,14 @@
 
 ---
 
+## [2026-06-12] 환원 | lp-am263p — SW2 PORz 정체 + 버튼 리셋은 flash를 POR 못 함 (회로도·UG)
+
+"LP-AM263P SW2 PORz가 뭐냐" 질의 → 회로도 sheet 6(`PROC171_AM263P_2_Clock_Reset_Boot_JTAG.SchDoc`)·UG Table 2-4·Fig 2-10/2-11 조사.
+
+- **FACT**: SW2 = **PORz 푸시버튼 = SoC Power-On Reset(콜드급) 입력**(UG:431). PORz는 3-입력 AND(3.3V 벅 PG·1.2V 벅 PG·SW2 비눌림)로 생성, PMOS로 TA_PORZ/BP_PORZ도 assert. SoC PORz 입력 + Boot mode State Driver U4 OE(`PORZ_DELAY` RC ~1ms, SOP 핀 tSOP.hold 유지)에 묶임 → 누르면 SW1 부트모드 재래치 + ROM 콜드 재실행. (SW3=RESETz warm reset[Eth PHY·μSD에도 묶임], SW4=INT1.)
+- **루프 직결 FACT**: **SW2 PORz·SW3 RESETz 어느 버튼도 OSPI flash를 POR하지 못한다** — 두 리셋 트리에 flash 3.3V도 flash RESET#(`AM263P_OSPI0_RST`, SoC OSPI_RESET_OUT 구동)도 안 묶임. >128Mb flash 4-byte stuck(TRM §5.4.1:530)은 버튼 리셋으론 안 풀림 → **진짜 VCC 제거만 3-byte 복귀**. [[toggle_free_flash_loop]] ②가름 ⓪을 3-way(a 전원차단/b SW2 PORz/c SW3 RESETz)로 정밀화.
+- **갱신**: [[CLAUDE]] 하드웨어 절 "리셋/푸시버튼" 신설(SW2/3/4 표·PORz 트리·flash 미연결 경고), [[toggle_free_flash_loop]](§② 가름 ⓪ 3-way·§③ 버튼 둘·운영규칙), index, log. (board-common 사실, status/roadmap 무관.)
+
 ## [2026-06-12] 환원 | lp-am263p — 토글-프리 루프 OPEN을 TRM/UG로 조사 (boot 경로 정당 + warm-reset 근본원인 확정)
 
 [[toggle_free_flash_loop]] OPEN을 AM263P TRM §5.4.1·UG·IS25LX256 데이터시트·회로도로 조사(신규 raw 없음 — 기존 ingest 환원). **②의 무토글 관측을 직접 닫지는 못하나, boot 경로 정당성 확정 + "warm-reset chip-state" 근본 메커니즘 닫음.**

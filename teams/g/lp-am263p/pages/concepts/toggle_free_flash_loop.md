@@ -47,7 +47,7 @@ date: 2026-06-12
 - **미진단 분기** — 이 무토글이 둘 중 무엇인지 측정만으로 못 가른다:
   - **(A) 부팅/펌웨어 실패** — 새 이미지가 standalone 부팅 안 됐거나, 부팅해도 PWM이 안 나옴.
   - **(B) 측정 배선 문제** — Logic2 공통 GND 미결선·프로브 접촉 불량. (정적 logic 0은 "진짜 신호 0"과 "GND/프로브 미결선" 둘 다로 나타남 — Logic2가 구분 못 함.)
-- **다음 세션 가름 방법**: ⓪ **이번 "전원사이클"이 진짜 VCC 완전 제거였는지 vs SW3 `RESETz`(warm reset)였는지부터 확정** — 아래 §③ TRM Note 때문에 둘이 결과가 갈린다(warm reset이면 flash가 4-byte로 stuck → boot 실패=A 확정). ① **UART 텔레메트리**(18B 패킷 [[uart5_packet_protocol]])로 **독립 부팅 증거** 확보 — 패킷이 흐르면 부팅·런타임 살아있음 → (B)로 좁힘. ② **GND/프로브 결선 재확인** 후 PWM 재측정. 셋으로 (A)/(B)를 분리.
+- **다음 세션 가름 방법**: ⓪ **이번 "전원사이클"이 (a)진짜 VCC 완전 제거 / (b)SW2 `PORz` 버튼 / (c)SW3 `RESETz` 버튼 중 무엇이었는지부터 확정** — §③ TRM Note 때문에 갈린다. (b)·(c)는 flash를 POR 못 하므로 flash가 4-byte로 stuck이면 boot 실패=A 확정, (a)만 flash 3-byte 복귀를 보장. ① **UART 텔레메트리**(18B 패킷 [[uart5_packet_protocol]])로 **독립 부팅 증거** 확보 — 패킷이 흐르면 부팅·런타임 살아있음 → (B)로 좁힘. ② **GND/프로브 결선 재확인** 후 PWM 재측정. 셋으로 (A)/(B)를 분리.
 
 > ⚠️ **이 무토글 관측을 PWM PASS 실적과 혼동 금지.** PWM 4채널은 별도 세션에서 **Saleae로 의도된 검증을 통과**했다(commit `4014901`, 4-DT sweep PASS, [[pwm_leg2_isoform_report]]·[[status]]). 이번 무토글은 **토글-프리 루프로 flash한 이미지 + 다른 측정 셋업**에서의 별개 관측이며, 위 PASS를 뒤집는 증거가 아니다 — 부팅/측정 어느 쪽이 원인인지 미진단일 뿐.
 
@@ -70,11 +70,12 @@ TRM §5.4.1 Note(`ch05_initialization.md`:530):
 
 우리 케이스에 정확히 적용:
 - IS25LX256 = **256 Mb(>128Mb)**, Octal DDR에서 **주소 4-byte 고정**(`raw/IS25LX256/ch00_frontmatter.md`:161). ROM은 4S/8S에서 3-byte(:735).
-- ⟹ app이 flash를 Octal DDR(4-byte)로 둔 상태에서 **warm reset**(SW3 `RESETz` — UG:432 / WDT 180s warm reset — TRM:2098 / flasher `loadProgram` soft-reset)이 나면 **ROM이 SBL을 못 읽어 boot 실패**. flash RESET# 어서트 또는 **full POR만 해소**.
-- 보드는 flash RESET#을 **실제 배선**: `AM263P_OSPI0_RST`(직렬 R99 22Ω) → SoC OSPI_RESET_OUT 핀(UG GPIO19/20 = OSPI_RESET_OUT0/1). flasher의 `flashFixUpOspiBoot()`가 이 핀을 토글해 1S 복귀([[sbl_app_flash_handoff]]:86). **그러나 ROM은 bare warm reset에선 이 핀을 안 건드린다**(:530 "ROM does not issue a software reset").
+- ⟹ app이 flash를 Octal DDR(4-byte)로 둔 상태에서 **flash를 POR하지 못하는 리셋**(아래 버튼 둘 / WDT 180s warm reset — TRM:2098 / flasher `loadProgram` soft-reset)이 나면 **ROM이 SBL을 못 읽어 boot 실패**. flash RESET# 어서트 또는 **full POR만 해소**.
+- **보드 버튼 둘 다 flash를 POR하지 못한다**(회로도 sheet 6 + UG Fig 2-10/2-11 — 단일 소스 [[CLAUDE]] "리셋/푸시버튼"): **SW2 `PORz`**(콜드급 PORz — UG:431)도 **SW3 `RESETz`**(warm reset — UG:432)도, 그 리셋 트리에 flash 3.3V 전원도 flash RESET#도 묶여 있지 않음. 둘 다 SoC만 리셋·SOP(부트모드) 재래치할 뿐 flash 상태는 그대로 둔다.
+- 보드는 flash RESET#을 **실제 배선**: `AM263P_OSPI0_RST`(직렬 R99 22Ω) → SoC OSPI_RESET_OUT 핀(UG GPIO19/20 = OSPI_RESET_OUT0/1). flasher의 `flashFixUpOspiBoot()`가 이 핀을 토글해 1S 복귀([[sbl_app_flash_handoff]]:86). **그러나 ROM은 bare reset에선 이 핀을 안 건드린다**(:530 "ROM does not issue a software reset").
 - 부수 전제: 4S boot은 flash **QE bit가 NV config에 SET** 필요(TRM:757) — 06-05에 4S로 부팅됐으니 충족된 것으로 보임.
 
-> **루프 운영 규칙(문서 도출):** 반복 사이 reset은 반드시 **진짜 전원 차단(flash VCC 제거 → flash POR → 기본 1S/3-byte 복귀)**이어야 하고, **SW3 `RESETz` warm reset이면 안 된다.** 이것이 [[jtag_flash_harness]] §3 "파워 사이클 필수"의 silicon 근거다. ②의 무토글이 (A)냐 (B)냐는, 그 "전원사이클"이 어느 쪽이었는지에 달림 — §② 가름 ⓪.
+> **루프 운영 규칙(문서 도출):** 반복 사이 reset은 반드시 **진짜 전원 차단(flash VCC 제거 → flash POR → 기본 1S/3-byte 복귀)**이어야 하고, **SW2 `PORz`·SW3 `RESETz` 버튼 어느 것도 안 된다**(둘 다 flash를 POR 못 함, [[CLAUDE]] "리셋/푸시버튼"). 이것이 [[jtag_flash_harness]] §3 "파워 사이클 필수"의 silicon 근거다. ②의 무토글이 (A)냐 (B)냐는, 그 "전원사이클"이 **(a)진짜 전원 차단 / (b)SW2 PORz / (c)SW3 RESETz** 중 무엇이었는지에 달림 — §② 가름 ⓪.
 
 ---
 
