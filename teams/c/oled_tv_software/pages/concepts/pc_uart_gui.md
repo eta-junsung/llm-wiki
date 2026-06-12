@@ -1,7 +1,7 @@
 ---
 tags: [concept, tool, pc-gui, uart, monitor, host]
-source: projects/c/oled_tv_software (esb 35b94d0, tools/pc_uart_gui/uart_gui.py) + 실보드 검증 2026-06-10
-date: 2026-06-10
+source: projects/c/oled_tv_software (esb 35b94d0, tools/pc_uart_gui/uart_gui.py) + 실보드 검증 2026-06-10 + E2E 스크린샷 2026-06-12
+date: 2026-06-12
 subsystem: 01_RX_control, host
 ---
 
@@ -26,24 +26,62 @@ UART5(115200/8N1) 한 포트로 송신(buck 지령)·수신(모니터)을 모두
 - **재동기**: CRC 실패 또는 HDR 불일치 시 **1바이트 슬라이드 후 재시도**. 이 슬라이딩 덕에 command 응답 텍스트(`buck=.. V`) 같은 비-패킷 잡음은 HDR/CRC가 안 맞아 **자연 폐기**된다 — 별도 필터 불필요.
 - **유효 HDR**: TX→RX 0x10/0x11/0x12, RX→TX 0x50/0x51/0x52.
 
-## 레이아웃
+## 레이아웃 — 6패널 2×3 그리드
 
-- **2컬럼 세로 배치**: 좌 = TX 패킷(0x10/0x11/0x12), 우 = RX 패킷(0x50/0x51/0x52).
-- 필드 이름을 **사전 표기**하고 값만 갱신(필드 행이 고정, 값이 in-place 업데이트).
-- **링크 표시**: `Link: SPI [UP/DOWN] ESB [UP/DOWN/-]` — 0x10 status 패킷 d0 **bit5(SPI_Comm_St)/bit6(BLE_Comm_St)**에서 읽는다([[comm_state_monitoring]]). 이게 host가 링크 health를 보는 단일 소스(구 COMM 텍스트 라인 대체).
+**2컬럼 × 3행** 구성. 좌 열 = TX 패킷(01_RX_control 수집), 우 열 = RX 패킷(03_TX_ble→02→01 경유).
+
+```
+┌──────────────────┬──────────────────┐
+│  0x10 TX Status  │  0x50 RX Status  │
+├──────────────────┼──────────────────┤
+│  0x11 TX Input   │  0x51 RX Input   │
+├──────────────────┼──────────────────┤
+│  0x12 TX Output  │  0x52 RX Output  │
+└──────────────────┴──────────────────┘
+```
+
+### 상태 패킷 (0x10 / 0x50)
+
+- **FW 버전 표시**: 패킷 내 FW 버전 필드를 상단에 `FW: XX.YY` 형식으로 표시 (실측: TX 11.22 / RX 33.44).
+- **비트 테이블**: Byte / Bit / Name / Val 4열. **값=1인 행은 굵게** 강조 — 활성 상태를 즉시 식별.
+- TX 0x10 실측 활성 비트: `Tx_Sys_Init_St`·`Tx_Sys_Rdy_St`·`SPI_Comm_St`·`BLE_Comm_St`·`TxVbus_Steady_St`·`TxBuck_RunStop_St` (= 1).
+
+### 입출력 패킷 (0x11/0x12 / 0x51/0x52)
+
+- **Field / Raw / Physical** 3열 테이블.
+- **Physical 변환 구현됨** (스케일 계수 테이블 단일 소스):
+
+| 신호 유형 | 스케일 | 단위 | 예시 |
+|-----------|--------|------|------|
+| 전압 (Vdc_bus, Buck_Vout, Vrect, Tx_Buck_Vout_Ref …) | raw × 0.01 | V | 1200 → 12.00 V |
+| 전류 (Idc_bus, Buck_Iout, Icoil, Irect …) | raw × 0.01 | A | 233 → 2.33 A |
+| 임피던스 (Zin) | raw × 0.01 | Ω | 0 → 0.00 Ω |
+| 온도 (Stack_Temp …) | raw × 0.1 | °C | 450 → 45.00 °C |
+
+### 상단 툴바
+
+- **Port 드롭다운 + Refresh / Disconnect 버튼** — COM 포트 선택·재연결.
+- **Link 상태**: `Link: SPI [UP/DOWN]  ESB [UP/DOWN]` — 0x10 d0 **bit5(SPI_Comm_St)/bit6(BLE_Comm_St)**에서 실시간 갱신([[comm_state_monitoring]]).
 
 ## buck 지령 입력
 
-- 입력칸 2개(정수부 . 소수2자리) → `buck <v>\r`로 UART5 송신.
-- 경로·스케일은 [[buck_vout_ref_command_path]] 그대로: `buck <v>` → 0x51 `DATA[6,7]` = volts×100 (big-endian) → SPI → ESB → 03.
-- **확인**: 텍스트 응답이 아니라 GUI가 파싱한 **0x51 `Tx_Buck_Vout_Ref`(volts×100)**로 (예: 123.34 → 12334).
+- **입력 필드**: 정수부 · 소수2자리, `Tx Buck Converter Vout Ref Set (0.00 ~ 300.00)` 레이블.
+- **전송**: `Send` 버튼 → `buck <v>\r` UART5 송신 → `Sent: buck <v>` 파란 텍스트로 피드백.
+- **확인 경로**: [[buck_vout_ref_command_path]] 그대로 — `buck <v>` → 0x51 `DATA[6,7]` = volts×100 → SPI → ESB → 03 → GUI `0x51 Tx_Buck_Vout_Ref` raw·Physical 갱신.
 - 소수 입력이 깨지지 않으려면 01 빌드에 newlib-nano float scanf가 켜져 있어야 함 — [[cubeide_newlib_nano_float]].
 
 ## 검증
 
-**(사실)** 실보드 검증 완료(2026-06-10, `35b94d0`): 단일 포트 송수신, 11B 파싱·CRC 재동기, 헤더별 값 갱신, buck 송신·0x51 반영 확인.
+**(사실)** 실보드 검증 완료 (2026-06-10, `35b94d0`): COM13(CP210x), 10.067Hz, 301프레임, SEQ드롭 0·CRC에러 0.
 
-- **(검증 항목)** SPI 끊김 시 0x10 d0 bit5가 정확히 0으로 떨어져 `Link: SPI DOWN`이 뜨는지 — 실보드 확인 대상([[comm_state_monitoring]] 보류 절).
+**(사실)** TX Buck Set E2E 실측 확인 (2026-06-12, COM17, 3보드 연결):
+- GUI 입력 `222.22 V` → `Send` → `Sent: buck 222.22` 피드백.
+- 0x51 `Tx_Buck_Vout_Ref`: Raw=22222, Physical=222.22 V.
+- 03_TX_ble SEGGER 디버그 터미널: `Tx_Buck_Vout_Ref=22222` 직접 확인.
+- SPI UP + ESB UP 동시 확인.
+- 검증 스크린샷: `raw/pc_uart_gui/eta-c-oled-monitor.png`, `raw/pc_uart_gui/eta-c-oled-tx-buck-set.png`.
+
+**(검증 대기)** SPI 끊김 시 0x10 d0 bit5가 정확히 0으로 떨어져 `Link: SPI DOWN`이 뜨는지 — 실보드 확인 대상([[comm_state_monitoring]] 보류 절).
 
 ## 관련
 

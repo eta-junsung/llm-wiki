@@ -15,7 +15,7 @@ date: 2026-06-12
 
 | 보고일 | 위치 | 그 주 핵심 | 다음 계획 |
 |--------|------|-----------|-----------|
-| **2026-06-12** | 별트랙 거의 완료 | **① SPI·ESB comm-state 비트 2개 실보드 검증 완료**(bit5 heartbeat / bit6 presence), **② PC UART 바이너리 모니터 + GUI 완성·실보드 검증**, **③ 02 리팩토링·eta_ 전환 ✓ / 03 리팩토링 빌드 ✓ / _shared 다듬기 ✓**, **④ 03 SPIS 재작성 + 04_tx_control 더미 신설(E2E 준비)** | 04 CubeIDE 빌드 → 4보드 플래시 → 03↔04 SPI 링크 검증 → E2E(`buck 12.00`→04 raw 1200) |
+| **2026-06-12** | 별트랙 거의 완료 | **① SPI·ESB comm-state 비트 2개 실보드 검증 완료**(bit5 heartbeat / bit6 presence), **② PC UART 바이너리 모니터 + GUI 완성·실보드 검증**(6패널·Physical 변환·FW 버전 표시), **③ TX Buck Set E2E 실측 확인**(GUI `222.22V` → 03 터미널 `Tx_Buck_Vout_Ref=22222`), **④ 02 리팩토링·eta_ 전환 ✓ / 03 리팩토링 빌드 ✓ / _shared 다듬기 ✓**, **⑤ 03 SPIS 재작성 + 04_tx_control 더미 신설(4보드 E2E 준비)** | 04 CubeIDE 빌드 → 4보드 플래시 → 03↔04 SPI 링크 검증 → E2E(`buck 12.00`→04 raw 1200) |
 
 > **다음주(예정) 보고 포인트**: ① **04 더미 D1·D2 완료**: 04 Ctrl+B 빌드 에러 0 → 4보드 플래시 → 03↔04 SPI CS 10ms Δt + CRC fail 0 검증 ② **D3 E2E**: 01 `buck 12.00` → 04 UART `Tx_Buck_Vout_Ref=1200` ③ **03 실보드 검증**: ESB PTX 동작·P0.17/18 오실로 ④ 02 `ADD_SPI` 전역 전파 점검·실보드 재확인
 
@@ -78,7 +78,7 @@ date: 2026-06-12
 ### 3-1. 진행
 
 1. **comm-state 완성 (6/8)**: 링크 health 비트 2개 — SPI_Comm_St(bit5, 200ms heartbeat) + BLE/ESB_Comm_St(bit6, 200ms 윈도우 내 ESB presence) 모두 실보드 검증 완료. 판정값이 STM32까지 정확히 전달됨.
-2. **PC UART GUI 완성 (6/10)**: 01 UART5 출력을 텍스트 printf에서 **11B 바이너리 패킷**으로 전환. host PC GUI(`uart_gui.py`)로 6헤더 파싱 + SPI/ESB 링크 상태 실시간 표시 + `buck <v>` 명령 입력 가능. 실보드 검증: 10.067Hz, 301프레임, 에러 0.
+2. **PC UART GUI 완성 (6/10) + E2E 실측 (6/12)**: 01 UART5 출력을 텍스트에서 **11B 바이너리 패킷**으로 전환. GUI는 6패널(TX/RX Status·Input·Output), Physical 변환 적용(전압·전류 ×0.01, 온도 ×0.1), FW 버전 표시. 실보드 검증: 10.067Hz, 301프레임, 에러 0. **TX Buck Set E2E 실측 확인**: GUI `222.22V` → 0x51 `Tx_Buck_Vout_Ref=22222` → 03_TX_ble SEGGER 터미널 직접 확인. 스크린샷: `raw/pc_uart_gui/eta-c-oled-monitor.png`, `raw/pc_uart_gui/eta-c-oled-tx-buck-set.png`.
 3. **코드 정리 3종 (6/9~6/11)**:
    - `app_protocol` 적출: SPI 프로토콜을 `common.c`에서 독립 모듈로 추출. STM32 실보드 검증.
    - 02_RX_ble 리팩토링: 618줄 단일 파일 → 6개 모듈 분리, `eta_` 접두사 전환, 실보드 검증.

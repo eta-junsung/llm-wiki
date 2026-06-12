@@ -42,7 +42,7 @@
 - [[trip_zone]] — TIM8 BKIN(PA6) → `HAL_TIMEx_BreakCallback`로 PWM 전체 차단
 - [[uart_command_set]] — `duty`/`freq`/`dt`/`phase`/`start`/`stop`/`reset`/`buck` (UART5, 115200/8N1, PC12/PD2). ISR 구동 수신·prefix 매칭 파싱. ⚠️ command 채널(host→01)은 텍스트, 반대 모니터(01→host)는 `35b94d0`부터 바이너리
 - [[buck_vout_ref_command_path]] — `buck <v>` = RF 링크 건너는 유일한 UART 지령. 01 UART5 → 0x51 DATA[6,7](volts×100) → 03. 검증 `buck 123.34`→`12334`. `35b94d0`: host 확인은 바이너리 0x51 파싱([[pc_uart_gui]]). 새 tx 지령 추가 패턴
-- [[pc_uart_gui]] — **host PC GUI**(`tools/pc_uart_gui/uart_gui.py`, Python+Tkinter+pyserial, `35b94d0` ✓실보드). 단일 UART5, 11B HDR 동기+CRC 재동기 리더, 2컬럼 TX/RX 뷰, `Link: SPI/ESB [UP/DOWN]`(0x10 d0 bit5/6), buck 입력 송신
+- [[pc_uart_gui]] — **host PC GUI**(`tools/pc_uart_gui/uart_gui.py`, Python+Tkinter+pyserial, `35b94d0` ✓실보드). 단일 UART5, 11B HDR 동기+CRC 재동기, **6패널 2×3**(TX/RX Status·Input·Output), Physical 변환 적용(V·A ×0.01/°C ×0.1), FW 버전 표시, 활성 비트 굵게, `Link: SPI/ESB [UP/DOWN]`, buck 송신. **TX Buck Set E2E 실측 ✓(2026-06-12, COM17, 3보드, `Tx_Buck_Vout_Ref=22222`)**. 스크린샷 [[pc_uart_gui_verification_260612]]
 - [[cubeide_newlib_nano_float]] — CubeIDE newlib-nano float 함정(`nanoprintffloat`/`nanoscanffloat`). scanf float 꺼지면 `buck 15.5` 소수 깨짐. 구성별 독립·Release 재확인
 - [[cubeide_cli_build_trap]] — CubeIDE **CLI 빌드 불가**(`stm32cubeidec.exe` GUI 서브시스템·즉종료) → IDE **Ctrl+B** 직접 빌드. CubeMX 재생성 금지
 - [[adc_channel_map]] — ADC1 6채널 핀맵(PA0~PA3, PC4/PC5) + TEMP1/TEMP2 라벨 swap 함정 + 평가보드 시험 가이드
@@ -63,6 +63,7 @@
 
 ### Sources
 
+- [[pc_uart_gui_verification_260612]] — PC UART GUI 실보드 검증 스크린샷 (2026-06-12, 3보드 COM17, TX Buck Set E2E `222.22V→22222`, 6패널 Physical 변환 실측). 원본 이미지 `raw/pc_uart_gui/`
 - [[spi_10ms_diagnosis_report_260601]] — SPI 10ms 폴링 진단 보고서 (미달 반증·관측 도구 한계·✓ 확정, 2026-06-01)
 - [[spi_debug_log_report_260529]] — 양방향 ESB 데이터 경로 검증 리포트 (시나리오 A/B, 2026-05-29)
 - [[spi_heartbeat_report_260529]] — SPI heartbeat 작업 보고서 (heartbeat 200ms 실보드 검증, 10ms/9MHz 미달, 2026-05-29)

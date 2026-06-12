@@ -4,6 +4,17 @@
 
 ---
 
+## [2026-06-12] 환원 | oled_tv_software — PC UART GUI 스크린샷 실보드 검증 (6패널·Physical 변환·TX Buck Set E2E)
+
+스크린샷 2종(`eta-c-oled-monitor.png`, `eta-c-oled-tx-buck-set.png`)에서 확인된 사실 환원:
+
+- **GUI 레이아웃 정정**: "2컬럼" 설명을 **6패널 2×3 그리드**(TX/RX Status·Input·Output)로 명확화.
+- **Physical 변환 구현됨** (기존 wiki에 미기재): 전압·전류 raw×0.01, 온도 raw×0.1. 실측 — Buck_Vout 1200→12.00V, Stack_Temp 450→45.00°C.
+- **FW 버전 표시 확인**: TX Status 상단 "FW: 11.22", RX Status "FW: 33.44".
+- **활성 비트 굵게 표시**: Tx_Sys_Init_St·Tx_Sys_Rdy_St·SPI_Comm_St·BLE_Comm_St·TxVbus_Steady_St·TxBuck_RunStop_St = 1 확인.
+- **TX Buck Set E2E 실측 확인**: GUI `222.22V` → `Sent: buck 222.22` → 0x51 Tx_Buck_Vout_Ref=22222(raw)/222.22V(Physical) → 03_TX_ble SEGGER 터미널 `Tx_Buck_Vout_Ref=22222` 직접 확인. 3보드(COM17), SPI UP + ESB UP.
+- **신규 raw**: `raw/pc_uart_gui/` (이미지 2종). **신규 [[pc_uart_gui_verification_260612]]** (Sources). **갱신**: [[pc_uart_gui]](레이아웃·Physical·FW·E2E·날짜), [[team_briefing_oled]](스냅샷·2-2절), 외부 `업무보고_2026-06-12.md`(스크린샷 절 추가), index(pc_uart_gui·sources 1행), log.
+
 ## [2026-06-12] briefing | C팀 oled_tv_software — 주간 업무보고 2026-06-12 (6/5~6/11)
 
 - **신규 [[team_briefing_oled]]**: C팀 oled_tv_software 업무보고 living-doc 신설 (G팀 선례 동일 패턴).
