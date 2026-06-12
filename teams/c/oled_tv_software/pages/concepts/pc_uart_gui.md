@@ -74,6 +74,10 @@ UART5(115200/8N1) 한 포트로 송신(buck 지령)·수신(모니터)을 모두
 
 **(사실)** 실보드 검증 완료 (2026-06-10, `35b94d0`): COM13(CP210x), 10.067Hz, 301프레임, SEQ드롭 0·CRC에러 0.
 
+**(사실)** SPI DOWN / ESB DOWN 표시 동작 확인 (2026-06-12): 각 링크 단절 시 상단 링크 표시가 붉은색 DOWN으로 전환됨. 스크린샷: `raw/pc_uart_gui/eta-c-oled-spi-down.png`, `raw/pc_uart_gui/eta-c-oled-esb-down.png`.
+
+> ⚠️ **더미 데이터**: 위 스크린샷의 수치(Physical 값·FW 버전)는 **펌웨어 더미 데이터** — Physical 변환 로직(스케일 계수)은 구현 완료됐으나 실제 센서값 아님. 실 데이터는 향후 센서 캘리브레이션 단계에서 교체.
+
 **(사실)** TX Buck Set E2E 실측 확인 (2026-06-12, COM17, 3보드 연결):
 - GUI 입력 `222.22 V` → `Send` → `Sent: buck 222.22` 피드백.
 - 0x51 `Tx_Buck_Vout_Ref`: Raw=22222, Physical=222.22 V.

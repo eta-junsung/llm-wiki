@@ -7,9 +7,11 @@ subsystem: 01_RX_control, 02_RX_ble, 03_TX_ble, host
 
 # PC UART GUI 실보드 검증 스크린샷 (2026-06-12)
 
-> 원본 이미지: `raw/pc_uart_gui/eta-c-oled-monitor.png`, `raw/pc_uart_gui/eta-c-oled-tx-buck-set.png`
+> 원본 이미지: `raw/pc_uart_gui/` (총 4종)
 
-3보드 연결(01 STM32 + 02 nRF52 RX + 03 nRF52 TX) 상태에서 GUI 전체 동작 및 TX Buck Set E2E를 실측 확인한 스크린샷 2종.
+3보드 연결(01 STM32 + 02 nRF52 RX + 03 nRF52 TX) 상태에서 GUI 전체 동작, TX Buck Set E2E, SPI/ESB 링크 DOWN 표시를 확인한 스크린샷 4종.
+
+> ⚠️ **더미 데이터 주의**: 이 스크린샷의 수치(Physical 값, FW 버전)는 **펌웨어 더미 데이터**. 물리량 변환 로직(스케일 계수)은 구현 완료됐으나 실제 센서 측정값이 아님. 실 데이터 교체는 향후 센서 캘리브레이션 단계.
 
 ---
 
@@ -110,6 +112,20 @@ GUI 입력: 222.22 V
 - GUI → UART5 → STM32 → SPI → ESB → 03_TX_ble **E2E 경로 정상 동작**.
 - `buck <v>` 명령 소수 2자리 정확 전달 (`222.22` → 22222 raw, 오차 없음).
 - 실보드 3개(01/02/03) 동시 연결 상태에서 SPI UP + ESB UP 유지.
+
+---
+
+---
+
+## 스크린샷 3 — SPI DOWN 표시 (`eta-c-oled-spi-down.png`)
+
+SPI 링크 단절 시 `Link: SPI DOWN  ESB UP` 표시 동작 확인. 02_RX_ble SEGGER 디버깅 세션 병행.
+
+---
+
+## 스크린샷 4 — ESB DOWN 표시 (`eta-c-oled-esb-down.png`)
+
+ESB 링크 단절 시 `Link: SPI UP  ESB DOWN` 표시 동작 확인. 03_TX_ble SEGGER 디버깅 세션 병행.
 
 ---
 

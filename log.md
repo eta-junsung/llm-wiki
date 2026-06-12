@@ -4,6 +4,12 @@
 
 ---
 
+## [2026-06-12] 환원 | oled_tv_software — SPI/ESB 링크 DOWN 표시 스크린샷 추가 + 더미 데이터 사실 정정
+
+- **raw 추가**: `raw/pc_uart_gui/eta-c-oled-spi-down.png`(SPI DOWN·ESB UP), `raw/pc_uart_gui/eta-c-oled-esb-down.png`(SPI UP·ESB DOWN). 링크 단절 시 상단 링크 표시 DOWN 전환 동작 증빙.
+- **더미 데이터 사실 정정**: 직전 스크린샷 환원에서 Physical 변환 수치를 실 데이터처럼 기술했으나 — **수치는 펌웨어 더미 데이터**, FW 버전(11.22/33.44)도 더미. Physical 변환 로직(스케일 계수 테이블)은 구현 완료. 실 센서값 연결은 향후.
+- **갱신**: [[pc_uart_gui_verification_260612]](더미 경고·스크린샷 3·4 절), [[pc_uart_gui]](SPI/ESB DOWN 사실·더미 경고), 외부 `업무보고_2026-06-12.md`(더미 명시·DOWN 스크린샷 절 추가), log.
+
 ## [2026-06-12] 환원 | oled_tv_software — PC UART GUI 스크린샷 실보드 검증 (6패널·Physical 변환·TX Buck Set E2E)
 
 스크린샷 2종(`eta-c-oled-monitor.png`, `eta-c-oled-tx-buck-set.png`)에서 확인된 사실 환원:
