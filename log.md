@@ -4,6 +4,15 @@
 
 ---
 
+## [2026-06-12] 환원 | lp-am263p — 토글-프리 루프 OPEN을 TRM/UG로 조사 (boot 경로 정당 + warm-reset 근본원인 확정)
+
+[[toggle_free_flash_loop]] OPEN을 AM263P TRM §5.4.1·UG·IS25LX256 데이터시트·회로도로 조사(신규 raw 없음 — 기존 ingest 환원). **②의 무토글 관측을 직접 닫지는 못하나, boot 경로 정당성 확정 + "warm-reset chip-state" 근본 메커니즘 닫음.**
+
+- **FACT (boot 경로 정당)**: ① BOOTMODE 핀은 매 POR/reset release 재샘플링(TRM §5.1.1:111·§5.3:480) → SW1=`1,1,1,1` 고정으로 매 전원사이클이 OSPI(4S) 재진입, DevBoot 토글 불요. ② OSPI(4S)는 non-XIP(§5.4.1.3.1.1:761) → ROM이 매 부팅 flash→RAM 새로 복사 → 재flash 이미지가 다음 전원사이클에 반영. ⟹ 토글-프리 루프는 아키텍처상 성립.
+- **FACT (warm-reset 근본원인)**: TRM §5.4.1 Note(:530) — >128Mb flash는 warm reset 시 ROM(3-byte)/flash(4-byte) 주소 불일치로 boot 실패, flash RESET#/full POR만 해소, ROM은 SW reset 안 냄. IS25LX256=256Mb·Octal DDR 4-byte 고정(데이터시트:161). 보드는 flash RESET#(`AM263P_OSPI0_RST` R99)을 SoC OSPI_RESET_OUT에 배선하나 ROM은 bare warm reset서 안 건드림. **⟹ 루프 reset은 진짜 VCC 제거(flash POR)여야 하고 SW3 `RESETz` warm reset이면 안 됨** — [[jtag_flash_harness]] §3 "파워 사이클 필수"의 silicon 근거.
+- **진단 영향**: ②의 (A)/(B) 가름에 ⓪번 스텝 추가 — 그 "전원사이클"이 VCC 완전 제거였는지 vs SW3 warm reset였는지부터 확정(warm이면 4-byte stuck → A 확정).
+- **갱신**: [[toggle_free_flash_loop]](frontmatter source·§② 가름 ⓪·§③ 신설·미확정·함께보기), log. (status/roadmap 게이트 미통과 — 갱신 없음.)
+
 ## [2026-06-12] ingest | lp-am263p / 8kw-ev-wpt-tx — OSPI 부트모드 굽기 "토글-프리" 실측 (굽기 ✓ / 부팅 OPEN)
 
 dead-time 반복 워크플로(빌드→flash→전원사이클)에서 SW1 부트모드 토글을 피하는 루프가 서는가. **굽는 절반은 확정, 부팅 절반은 미확정**으로 정직하게 분리 기록.
