@@ -4,6 +4,17 @@
 
 ---
 
+## [2026-06-12] 환원 | 8kw-ev-wpt-tx — OSPI 부팅 진단 사이클 환원 (부팅 ✗ ROM→SBL 실패 확정 + SBL provenance + flash 블로커)
+
+2026-06-12 진단 세션의 검증된 사실을 wiki에 환원.
+
+- **FACT (부팅 실패 확정)**: COM4(= SoC UART0 콘솔 "XDS110 Class Application/User UART") 115200/8N1 캡처 — `'C'`(0x43) XMODEM ping + ID 블롭(`"AM263PX"/cdab=0xABCD`) 반복·SBL banner·app banner 전무. **판정: ROM→SBL 로드 단계 실패** (TRM ch05:877·:133 — `'C'` ping = ROM만 송신, ROM이 SBL 점프 성공 후에는 ROM 레벨 fallback 없음). 전원사이클 = USB-unplug VCC 완전 제거·SW2/SW3 버튼 안 씀 확인 → §③ 4-byte stuck 경로 완전 배제.
+- **FACT (SBL provenance 확정)**: `C:/ti/sbl_ospi_am263p.tiimage`(307005B) = SDK `sbl_ospi_multicore_elf.release.tiimage`와 바이트 동일. 변종(multicore_elf)·실리콘(am263px-lp)·무결성 전부 정합. "SBL 파일 잘못됐다" 가설 완전 제거.
+- **잔여 블로커**: flash cell 영속성(readback은 동일 세션 XIP 뷰라 POR 생존 증거 아님) + flash NV config·QE bit 상태 미확인.
+- **정정 후보(미수정)**: [[jtag_flash_harness]] §4 banner `eta-tx: 8kw-ev-wpt v1.0e00`는 구 이미지 기준 — 현 `src/main.c`:45는 `"eta-tx: 8kw-ev-wpt start"`. `tools/gui/gui.py`:553 SW1 라벨이 OSPI(4S)=`1,1,1,1`과 DevBoot=`0,1,0,0`을 한 줄에 혼용.
+- **신규**: [[ospi_boot_console_diagnostic]] (8kw-ev-wpt-tx concepts).
+- **갱신**: [[toggle_free_flash_loop]](source·title·header·§②실패확정·§③VCC확정주석·미확정·함께보기), [[jtag_flash_harness]](§4 banner주석·§8 SBL provenance·빈자리), index, log.
+
 ## [2026-06-12] 환원 | lp-am263p — SW3 RESETz(WARMRESETn) 상세 보강 (회로도·UG)
 
 "SW3(RESETn)이 뭐냐" 질의 → UG Fig 2-11·Table 2-4 + 회로도 push-button sheet 조사. [[CLAUDE]] "리셋/푸시버튼" 절을 SW3 중심으로 보강.

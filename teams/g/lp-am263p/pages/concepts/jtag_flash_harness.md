@@ -67,7 +67,7 @@ AM263P OSPI JTAG flash 자동화는 **① run.bat Node.js(`runAsynch`) 하네스
 | Boot Media Clock | 16.667 MHz |
 | Boot Image Size | 30 KB |
 | SBL Total | ~28967 µs |
-| banner | `eta-tx: 8kw-ev-wpt v1.0e00` |
+| banner | `eta-tx: 8kw-ev-wpt v1.0e00` ⚠️ **구 이미지 기준** — 현재 `src/main.c`:45 배너는 `"eta-tx: 8kw-ev-wpt start"`([[ospi_boot_console_diagnostic]] §5) |
 
 **SW1 부트모드** (정정본, 근거 LP-AM263P UG SPRUJ85B Table 2-5 — 단일 소스는 [[CLAUDE]] "하드웨어" 절):
 - **DevBoot = `0,1,0,0`** (SW1.3만 ON, "No SBL") — 개발 편의용. **굽기에 필수는 아님**(굽기는 OSPI(4S)=`1,1,1,1`에서도 성공, 2026-06-12 실측 — 아래 §7).
@@ -115,9 +115,17 @@ AM263P OSPI JTAG flash 자동화는 **① run.bat Node.js(`runAsynch`) 하네스
 
 ---
 
+## 8. SBL provenance — 파일 무결성 확정 (2026-06-12)
+
+`flash_node_8kw.js`가 굽는 `C:/ti/sbl_ospi_am263p.tiimage`(307005B, SHA256 `735D12EB...58108B7`)는 SDK 공식 프리빌트 `mcu_plus_sdk_am263px_26_00_00_01/.../sbl_ospi_multicore_elf.release.tiimage`와 **바이트 동일**. 파일명 `am263p`는 공식 rename. SBL 변종(multicore_elf)·실리콘(am263px-lp)·무결성 전부 정합.
+
+**결론**: "SBL 파일이 잘못됐다" 가설 완전 제거. 잔여 블로커는 SBL 자체가 아닌 flash 프로그래밍/설정. 상세: [[ospi_boot_console_diagnostic]] §4.
+
+---
+
 ## 빈자리 (미검증)
 
-- **토글-프리 루프 *부팅* 절반 미확정** — 굽기는 OSPI 모드에서 성공(§7)이나, 같은 SW1 위치에서 전원사이클만으로 새 이미지가 부팅·구동되는지는 미확정. 2026-06-12 무토글 PWM 관측의 부팅 vs 측정환경 분기는 [[toggle_free_flash_loop]].
+- ~~토글-프리 루프 부팅 절반 미확정~~ — **✅ (A) 부팅 실패 확정 (2026-06-12)**: COM4(UART0 콘솔) `'C'` ping 반복·VCC 완전 제거 확인 → ROM→SBL 로드 단계 실패. 잔여 블로커: flash 프로그래밍/설정([[ospi_boot_console_diagnostic]] §3). 전체 맥락: [[toggle_free_flash_loop]] §②.
 - **OSPI 독립 readback 미검증** — 이번 세션에서 굽기 검증은 **standalone 부팅(§4)으로 대체**했다. 하네스/MCP를 통한 별도 flash 독립 read-back 검증은 수행하지 않음.
 - §1 `Error 0x400000`이 R5 free-run + TCM 접근 조합 외 다른 영역(외부 OSPI 매핑)에서도 동일하게 거부되는지 — 미확인(필요시 추가 측정).
 
