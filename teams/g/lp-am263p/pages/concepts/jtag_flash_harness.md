@@ -1,7 +1,7 @@
 ---
 tags: [concept, flash, jtag, ospi, am263p, tooling, harness, boot, gotcha]
-source: 실측 (2026-06-05, 8kw-ev-wpt-tx 실보드 JTAG flash 세션)
-date: 2026-06-05
+source: 실측 (2026-06-05 + 2026-06-12, 8kw-ev-wpt-tx 실보드 JTAG flash 세션)
+date: 2026-06-12
 ---
 
 # AM263P JTAG flash 자동화 하네스 + 굽기 운영 규율
@@ -70,7 +70,7 @@ AM263P OSPI JTAG flash 자동화는 **① run.bat Node.js(`runAsynch`) 하네스
 | banner | `eta-tx: 8kw-ev-wpt v1.0e00` |
 
 **SW1 부트모드** (정정본, 근거 LP-AM263P UG SPRUJ85B Table 2-5 — 단일 소스는 [[CLAUDE]] "하드웨어" 절):
-- **굽기용 DevBoot = `0,1,0,0`** (SW1.3만 ON, "No SBL").
+- **DevBoot = `0,1,0,0`** (SW1.3만 ON, "No SBL") — 개발 편의용. **굽기에 필수는 아님**(굽기는 OSPI(4S)=`1,1,1,1`에서도 성공, 2026-06-12 실측 — 아래 §7).
 - **standalone 부팅 OSPI(4S) Quad Read = `1,1,1,1`** — 이번에 `sbl_ospi_am263p.tiimage`로 실증.
 - ※ 과거 cc3351 노트의 `DevBoot=1,1,0,0`은 **오기**(`1,1,0,0`은 OSPI 8S Octal Read 값) — [[CLAUDE]]에서 2026-06-05 정정 완료.
 
@@ -102,8 +102,22 @@ AM263P OSPI JTAG flash 자동화는 **① run.bat Node.js(`runAsynch`) 하네스
 
 ---
 
+## 7. 굽기 부트모드 — DevBoot는 필수 아닌 편의 (FACT, 2026-06-12)
+
+**JTAG flash는 SW1=OSPI(4S)=`1,1,1,1`(DevBoot 아님)에서도 성공한다 → 굽기에 DevBoot는 필수가 아니라 편의.**
+
+- **근거(실측 2026-06-12)**: SW1=`1,1,1,1` 고정(보드가 OSPI에서 standalone 부팅돼 **app이 실행 중**인 상태) + CCS IDE 완전 종료(§2 클린 호스트) 상태에서 `run_flash_node_8kw.ps1` → **3/3 OK, 프로세스 EXIT 0**.
+- **메커니즘 — `loadProgram` soft-reset**: 하네스 로그에 매 OP의 `loadProgram`마다 `"CPU reset (soft reset) has been issued through GEL on program load"` 출력. 즉 flasher가 flashwriter `.out`을 RAM에 로드할 때 코어를 **soft-reset**해, **부팅돼 돌던 app으로부터 코어 점유를 깨끗이 인수**한다. → SW1이 OSPI 부팅 모드여서 app이 돌고 있어도 굽기 진입에 지장 없음.
+  - **flashFixUpOspiBoot의 chip 1S 리셋과 별개**: 그쪽은 OSPI chip 상태를 1S로 되돌리는 것이고, 여기서 새로 관측된 건 **코어 점유(running app) 문제도 `loadProgram` soft-reset로 해소**된다는 점.
+- **이로써 미해결 질문 "DevBoot가 flash에 필수냐 편의냐" 중 굽기 단계 = '편의'로 확정.** DevBoot의 "No SBL"은 굽기 안정성/속도 편의일 뿐, OSPI 부팅 모드에서도 굽힌다.
+
+> ⚠️ **굽기만 확정 — "토글-프리 루프 전체"는 미확정.** 위는 *굽는 절반*만이다. "SW1=`1,1,1,1` 고정한 채 전원사이클만으로 **새 이미지가 standalone 부팅**되는가"(= dead-time 반복 워크플로의 부팅 절반)는 이번에 확정 못 함 → [[toggle_free_flash_loop]]에 OPEN으로 분리 기록.
+
+---
+
 ## 빈자리 (미검증)
 
+- **토글-프리 루프 *부팅* 절반 미확정** — 굽기는 OSPI 모드에서 성공(§7)이나, 같은 SW1 위치에서 전원사이클만으로 새 이미지가 부팅·구동되는지는 미확정. 2026-06-12 무토글 PWM 관측의 부팅 vs 측정환경 분기는 [[toggle_free_flash_loop]].
 - **OSPI 독립 readback 미검증** — 이번 세션에서 굽기 검증은 **standalone 부팅(§4)으로 대체**했다. 하네스/MCP를 통한 별도 flash 독립 read-back 검증은 수행하지 않음.
 - §1 `Error 0x400000`이 R5 free-run + TCM 접근 조합 외 다른 영역(외부 OSPI 매핑)에서도 동일하게 거부되는지 — 미확인(필요시 추가 측정).
 
@@ -111,6 +125,7 @@ AM263P OSPI JTAG flash 자동화는 **① run.bat Node.js(`runAsynch`) 하네스
 
 ## 함께 보기
 
+- 토글-프리 dead-time 반복 루프(굽기 ✓ + 부팅 OPEN): [[toggle_free_flash_loop]]
 - 클린 호스트 deep-dive(8kw 첫 ingest): [[jtag_flash_clean_host]]
 - 런타임 `Flash_open()` 블로커(층위 다름): [[flash_open_facts]] · [[flash_open_diagnostic_log]] · [[sbl_app_flash_handoff]] · [[flash_open_sequence]]
 - 부트 흐름·SW1 부트모드·플래시 base: [[CLAUDE]] "하드웨어 — 부트 모드 / boot flow" 절

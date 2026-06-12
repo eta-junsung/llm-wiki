@@ -4,6 +4,15 @@
 
 ---
 
+## [2026-06-12] ingest | lp-am263p / 8kw-ev-wpt-tx — OSPI 부트모드 굽기 "토글-프리" 실측 (굽기 ✓ / 부팅 OPEN)
+
+dead-time 반복 워크플로(빌드→flash→전원사이클)에서 SW1 부트모드 토글을 피하는 루프가 서는가. **굽는 절반은 확정, 부팅 절반은 미확정**으로 정직하게 분리 기록.
+
+- **FACT (굽기)**: JTAG flash는 SW1=OSPI(4S)=`1,1,1,1`(DevBoot 아님)에서도 성공 → **굽기에 DevBoot는 필수 아닌 편의**. 근거: SW1=`1,1,1,1`(app 부팅돼 돌던 상태)+CCS IDE 종료에서 run_flash_node_8kw 3/3 OK·EXIT 0. 메커니즘: 매 OP `loadProgram`마다 `"CPU reset (soft reset) ... on program load"` — flasher가 코어 soft-reset해 돌던 app서 점유 인수(flashFixUpOspiBoot chip 1S 리셋과 별개, 코어 점유 해소가 이번 신규 관측). → [[jtag_flash_harness]] §7 신설.
+- **OPEN (부팅)**: 굽기 직후 SW1=`1,1,1,1` 유지 전원사이클 → Logic2 PWM 4ch 정적 logic 0·무토글(캡처길이 아티팩트 배제). 미진단 분기 (A)부팅/펌웨어 실패 vs (B)측정 배선(GND 공통·프로브 접촉) — 측정만으론 "신호 0"과 "미결선" 구분 불가. 다음: UART 텔레메트리(독립 부팅 증거)+GND 확인으로 가름. **신규 [[toggle_free_flash_loop]]** (lp-am263p concepts, board-common).
+- **정직 표기**: warm-reset 후 chip-state·OSPI 부팅 후 PWM 미관측 근본원인 = 미확정(추론 금지). 2026-06-05 banner는 다른 이미지·세션 증거라 이번 루프 부팅 증거로 전용 금지. 이번 무토글을 commit `4014901` Saleae PWM PASS와 혼동 금지(별개 세션·셋업).
+- **갱신**: [[jtag_flash_harness]](frontmatter date·§4 부트모드 주석·§7 신설·빈자리·함께보기), **신규 [[toggle_free_flash_loop]]**, index(harness 1행 §7 추가 + 신규 1행), log.
+
 ## [2026-06-12] 환원 | oled_tv_software — SPI/ESB 링크 DOWN 표시 스크린샷 추가 + 더미 데이터 사실 정정
 
 - **raw 추가**: `raw/pc_uart_gui/eta-c-oled-spi-down.png`(SPI DOWN·ESB UP), `raw/pc_uart_gui/eta-c-oled-esb-down.png`(SPI UP·ESB DOWN). 링크 단절 시 상단 링크 표시 DOWN 전환 동작 증빙.
