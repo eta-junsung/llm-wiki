@@ -1,7 +1,7 @@
 ---
 tags: [entity, pwm, 8kw-ev-wpt-tx, pinmap]
-source: 사용자 제공 + [[lp_am263p_ug]] Table 2-30 교차확인 (2026-06-09) — PWM 핀맵·스펙. net/채널 분리 정정(J6.52=EPWM4_A, HS2 실측). EPWM0 fan-out + isoform (2026-06-11, 4014901)
-date: 2026-06-11
+source: 사용자 제공 + [[lp_am263p_ug]] Table 2-30 교차확인 (2026-06-09) — PWM 핀맵·스펙. net/채널 분리 정정(J6.52=EPWM4_A, HS2 실측). EPWM0 fan-out + isoform (2026-06-11, 4014901). dead-time knob flash+boot 검증 (2026-06-12)
+date: 2026-06-12
 ---
 
 # pwm_pinmap — 8kW WPT TX 보드 PWM 핀맵
@@ -58,8 +58,9 @@ date: 2026-06-11
 
 - **토폴로지**: 풀브리지 인버터 (4스위치, 2레그). WPT 공진 탱크 구동(LCC 탱크는 [[adc_pinmap]] `I_LCC_SEN` 단서 — 가설 유지).
 - **스위칭 주파수**: **85 kHz 고정 — 구현·실측 확정**(`d01fc0a`, **Saleae 85.032 kHz** 측정, `TBPRD=1176`/`cmpA=588`/`EPWM7 CMPB=558`). 런타임 가변 아님. (브링업 임시 100 kHz에서 전환.)
-- **Dead-time**: **이것만 가변.** **리얼타임 변경 불필요** — 값 바꿔 **재빌드**(build-per-change). **조정 범위 100~400 ns**(`#error` 범위가드), 실험 후 최종값 고정 예정(현재 150 ns 베이스라인). 두 레그 단일소스 **`ETA_DEADTIME_NS`(`src/eta_bsp/eta_tuning.h`)** — 패턴 정본 [[am263p_epwm_module_sync_deadtime]]. 주파수·dead-time 모두 `eta_pwm_init()` 런타임 override → SysConfig 재생성 면역.
-- **레그2 dead-time 비대칭** — **✅ ±2 ns 이하로 감소** (`4014901`, EPWM0 fan-out + isoform). 구 토폴로지 ~22 ns 비대칭 → 현재 ±2 ns(5 ns 양자화 바닥). 100 ns 설정 시 최소 갭 = 100−2 = 98 ns. 상세 [[pwm]] §EPWM0 fan-out·[[am263p_epwm_module_sync_deadtime]].
+- **Dead-time**: **이것만 가변.** **리얼타임 변경 불필요** — 값 바꿔 **재빌드**(build-per-change). **조정 범위 100~400 ns**(`#error` 범위가드), 실험 후 최종값 고정 예정(**production 기본값 150 ns 확정 2026-06-12**). 두 레그 단일소스 **`ETA_DEADTIME_NS`(`src/eta_bsp/eta_tuning.h`)** — 패턴 정본 [[am263p_epwm_module_sync_deadtime]]. 주파수·dead-time 모두 `eta_pwm_init()` 런타임 override → SysConfig 재생성 면역.
+  - ✅ **flash+boot knob silicon 검증 완료 (2026-06-12)**: `ETA_DEADTIME_NS` → flash → VCC 전원사이클 → silicon 핀에서 100~400 ns 전 범위 ≤2 ns 정확도 추종 실측. 상세 [[pwm_deadtime_knob_verify]].
+- **레그2 dead-time 비대칭** — **✅ ±2 ns 이하로 감소** (`4014901`, EPWM0 fan-out + isoform). 구 토폴로지 ~22 ns 비대칭 → 현재 방향 비대칭 ~+3 ns 고정(EPWM7 위상 trim=0, `SE_TRIM_COUNTS` 조정 여지). 100 ns 설정 시 최소 갭 = 99 ns. 상세 [[pwm]] §EPWM0 fan-out·[[am263p_epwm_module_sync_deadtime]]·[[pwm_deadtime_knob_verify]] §6.
 - **제어**: (현재 범위 밖) 추후 ADC 피드백 제어루프.
 
 ---

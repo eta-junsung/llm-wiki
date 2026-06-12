@@ -156,3 +156,4 @@
 ### Sources
 
 - [[pwm_leg2_isoform_report]] — PWM 레그2 dead-time 정밀화 + 레그1 동형화 검증 리포트 (branch pwm-deadtime, commit 4014901, 2026-06-11). EPWM0 fan-out + isoform. 4-DT sweep(100/150/250/400 ns) 전 항목 PASS. 원본 데이터 `raw/pwm_leg2_isoform/`
+- [[pwm_deadtime_knob_verify]] — `ETA_DEADTIME_NS` knob flash+boot silicon 검증 리포트 (v1_0e00, 2026-06-12). 100/150/250/400 ns 4점 16/16 PASS(≤2 ns, shoot-through 0). production 150 ns 확정. 원본 데이터 `raw/pwm_deadtime_knob_verify/`

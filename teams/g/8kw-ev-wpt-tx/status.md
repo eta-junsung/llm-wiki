@@ -1,5 +1,5 @@
 ---
-date: 2026-06-11
+date: 2026-06-12
 ---
 
 # 8kw-ev-wpt-tx — 구현 현황
@@ -79,6 +79,7 @@ P1·P2(150/300ns 단일소스) 위에 **주파수 확정값(85 kHz) 반영 + 튜
   - shoot-through: **양 레그 전 주기 0건**. 최소 DT 89 ns로 양수 마진.
   - **판정: PASS.**
 - ✅ **EPWM0 fan-out + 레그2 동형화 (`4014901`)**: output-less EPWM0(SysConfig 인스턴스) → EPWM2/4/7 전부 1-hop. 비대칭 ~22 ns → **±2 ns**. isoform: HS2 CMPA=TBPRD/2+DT / LS2 CMPA=TBPRD/2−DT(양방향 DT). 4-DT sweep(100/150/250/400 ns) 전 항목 PASS, 4에지 시차 ≤2 ns, shoot-through 0. 리포트 [[pwm_leg2_isoform_report]].
+- ✅ **dead-time knob flash+boot silicon 검증 (2026-06-12)**: `ETA_DEADTIME_NS` → flash → VCC 전원사이클 → silicon 핀. 100/150/250/400 ns 4점 **16/16 PASS** (최대 오차 1.98 ns, shoot-through 0). production 기본값 **150 ns 확정**. 리포트 [[pwm_deadtime_knob_verify]].
 
 ✅ **레그2 두 모듈 SYNC 상보·dead-time 해결**(플랫폼 정본 [[am263p_epwm_module_sync_deadtime]]): EPWM4 syncout(ON_CNTR_ZERO)→EPWM7 syncin·phaseShift=0 위상정렬 + EPWM7_B AQ 반전 + **CMPB 오프셋(`CMPB=TBPRD/2−DT`, 부호 `−` 엄수 — +면 shoot-through)**. 레그1(dead-band)과 비대칭.
 
@@ -114,7 +115,7 @@ P1·P2(150/300ns 단일소스) 위에 **주파수 확정값(85 kHz) 반영 + 튜
 | **UART5 PC 텔레메트리 (바이너리 패킷 + GUI)** | ✓ | branch uart5(ba241fa·979699d). 18B 패킷(SOF/LEN/TYPE/SEQ/raw×6/CRC-16) RTI2 10Hz + PC GUI(`tools/gui/gui.py`). 실보드 COM13 10.067Hz·301프레임·0드롭/0CRC. 정본 [[uart5_packet_protocol]]·[[pc_monitor_gui]] |
 | UART5 차동 송신 (RS-485) | △ | 단독 루프백 PASS(TCA6416 P00/P14=LOW, J1.4↔J1.3, 2026-06-10). Phase 2(8kw 보드 결합 RS-485, `EN_485`=GPIO91) 잔여 |
 | 실보드 교차검증 (A4) | ✗ | 멀티미터 기준값 교차 (A3 후) |
-| **PWM 전력제어 (P0~P4)** | ✓ (P1 4/4·P2 **완전 완료**) | [[pwm]]. **4핀 HS1/LS1/HS2/LS2 ✓실보드 검증**. P2: `ETA_DEADTIME_NS` 단일소스(`8046744`). `d01fc0a`: 85kHz 고정(85.032kHz)·config 분리. **`4014901`: EPWM0 fan-out + isoform — 비대칭 ~22 ns→±2 ns, 4-DT sweep 100/150/250/400 ns PASS(shoot-through 0·4에지 ≤2 ns·high-time 4ch 일치)**. 다음 P3 보호. 핀맵 [[pwm_pinmap]]. 리포트 [[pwm_leg2_isoform_report]] |
+| **PWM 전력제어 (P0~P4)** | ✓ (P1 4/4·P2 **완전 완료**·knob flash검증 ✓) | [[pwm]]. **4핀 HS1/LS1/HS2/LS2 ✓실보드 검증**. P2: `ETA_DEADTIME_NS` 단일소스(`8046744`). `d01fc0a`: 85kHz 고정(85.032kHz)·config 분리. **`4014901`: EPWM0 fan-out + isoform — ±2 ns, 4-DT sweep PASS**. **knob flash+boot silicon 검증(2026-06-12): 16/16 ≤2 ns, production 150 ns 확정**. 다음 P3 보호. 핀맵 [[pwm_pinmap]]. 리포트 [[pwm_leg2_isoform_report]]·[[pwm_deadtime_knob_verify]] |
 
 상태 기호: `✓` 구현+검증 / `△` 구현됨·미검증 / `?` 추가 정보 필요 / `✗` 미구현
 
@@ -128,7 +129,7 @@ P1·P2(150/300ns 단일소스) 위에 **주파수 확정값(85 kHz) 반영 + 튜
 - ~~UART 출력 채널 하드코딩~~ — ✅ **해소(branch uart5)**: 구 `eta_uart5.c` 채널별 `DebugP_log` 텍스트 라인 → `eta_packet.c` 채널 루프 직렬화로 대체. ADC 채널 추가 시 출력 라인 수동 추가 불요(eta_adc.c 테이블과 동일하게 자동 추종).
 - ~~PWM 레그1 dead-time 단일소스 통일~~ — ✅ **해결(`8046744`)**: 두 레그 모두 `ETA_DEADTIME_NS` 하나로 수렴. 레그1=`eta_pwm_init()`이 `EPWM_setRisingEdgeDelayCount`/`setFallingEdgeDelayCount`로 RED/FED(=ETA_DEADTIME_COUNTS, SysConfig 기본 override), 레그2=CMPB 오프셋. 150/300ns 4ch 실측(레그1 150.3→300.4·레그2 150.0→300.0ns, shoot-through 0). 상세 [[pwm]] §dead-time 단일소스. (`d01fc0a`에서 단일소스 위치를 `eta_tuning.h`로 이전.)
 - ~~PWM 주파수 85 kHz 고정 / dead-time config 분리~~ — ✅ **완료(`d01fc0a`)**: 85.032 kHz 실측, dead-time 100/150/400 ns 스윕 PASS(shoot-through 0). 단일소스 `eta_tuning.h ETA_DEADTIME_NS`(100~400 ns `#error` 가드), 주파수·dead-time 모두 `eta_pwm_init()` 런타임 override로 SysConfig 면역.
-- **PWM dead-time 최종값 미고정 (미결 유지)**: 현재 **150 ns 베이스라인으로 커밋**(`d01fc0a`). 메커니즘·스윕 인프라(100~400 ns)는 완료. **전력단 브링업 때 100~400 ns 중 최종값 확정 예정.**
+- ~~PWM dead-time 최종값 미고정~~ — **✅ 해결(2026-06-12)**: flash+boot silicon 검증 완료 후 **`ETA_DEADTIME_NS = 150U` production 기본값 확정**. 100~400 ns 전 범위 실측 PASS([[pwm_deadtime_knob_verify]]). 전력단 브링업에서 재조정 가능하나 현재 정본은 150 ns.
 - ~~PWM 레그2 dead-time 비대칭~~ — **✅ 해결(`4014901`)**: EPWM0 fan-out + isoform으로 ~22 ns → **±2 ns**. 최소 갭 ≥ 98 ns. 보드 단계 단일모듈화는 여전히 미래 개선 후보([[pwm_pinmap]] §향후). ([[am263p_epwm_module_sync_deadtime]])
 - **빌드 환경 주의 (HW 엔지니어 워크플로우)**: CCS 생성 makefile(`Release/subdir_rules.mk`)이 **절대경로**(`C:/ti/...`, `C:/Users/echog/...`)를 박고 있고, 빌드 시 `Release/syscfg`를 `example.syscfg`에서 재생성한다. **다른 노트북에서 git clone 후엔 CCS로 프로젝트 import**(=makefile 로컬 경로 재생성)해서 빌드. 단 **`eta_tuning.h` 변경은 순수 C 컴파일로 반영**되어 syscfg 재생성 불요 — 이것이 런타임 override 방식의 이점.
 - **PWM 회로도 net 라벨 함정 (정본 기록 유지)**: 회로도 net 라벨("EPWM4_B"/"EPWM7_A")과 silicon 채널(EPWM4_A/EPWM7_B) suffix **반대** — 펌웨어 정본=silicon 채널(UG Mode0·pinmux.csv 교차확인). 라벨에 끌려가지 말 것([[pwm_pinmap]]).
