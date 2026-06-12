@@ -49,15 +49,17 @@ TI **LP-AM263P** LaunchPad에 **BP-CC3351**(Wi-Fi 6 + BLE BoosterPack)을 얹어
 
 **boot flow**: ROM → SBL(`sbl_ospi_am263p.tiimage`) → app @`0x81000`. 부트 플래시는 OSPI **IS25LX256**(ISSI, 32MB, Octal xSPI 8D DDR), base `0x53808000`. BoosterPack과 무관한 AM263P 온보드 플래시.
 
-**리셋/푸시버튼** — 근거: UG Table 2-4(:431), Figure 2-10/2-11(:586–657) · 회로도 sheet 6 `PROC171_AM263P_2_Clock_Reset_Boot_JTAG.SchDoc`.
+**리셋/푸시버튼** — 근거: UG Table 2-4(:431), Figure 2-10/2-11(:586–657) · 회로도 sheet 15 `PROC171_Push_Buttons.SchDoc`(버튼 3종 SW2/3/4 = `COSW2/3/4`) + sheet 6 `PROC171_AM263P_2_Clock_Reset_Boot_JTAG.SchDoc`(PORz AND/U4 결합 로직).
 
-| 버튼 | 신호 | 성격 | 묶이는 곳 |
+| 버튼 | 신호(net) | 성격 | 묶이는 곳 |
 |---|---|---|---|
-| **SW2** | **PORz** | **Power-On Reset(콜드급)** — SoC MAIN 도메인 | SoC PORz 입력 + Boot mode State Driver **U4** OE(`PORZ_DELAY` RC ~1ms로 SOP 핀 `tSOP.hold` 유지) |
-| SW3 | RESETz / WARMRESETn | warm reset | SoC WARMRESETN + **양 Ethernet PHY reset** + μSD load switch(GPIO122 AND) |
-| SW4 | INT1 | user interrupt | — |
+| **SW2** | PORz (`AM263P_PORZ_PB`) | **Power-On Reset(콜드급)** — SoC MAIN 도메인 | SoC PORz 입력 + Boot mode State Driver **U4** OE(`PORZ_DELAY` RC ~1ms로 SOP 핀 `tSOP.hold` 유지) |
+| **SW3** | RESETz / WARMRESETn (`AM263P_RESETN_PB`) | **warm reset** — SoC MAIN 도메인 | SoC WARMRESETN + **양 Ethernet PHY reset** + μSD load switch(SoC `GPIO122` 2-입력 AND) |
+| SW4 | INT1 (`AM263P_INT1_PB_GPIO123`) | user interrupt → SoC `GPIO123` | — (TA `TA_GPIO1`로도 assert) |
 
 PORz는 **3-입력 AND**(3.3V 벅 PG `PG_VSYS_3V3` · 1.2V 벅 PG `PG_VDD_1V2` · SW2 비눌림)로 생성, PMOS 풀다운으로 `TA_PORZ`(테스트자동화)·`BP_PORZ`(BoosterPack)도 assert 가능. SW2 PORz를 누르면 SOP 핀(SW1 부트모드) 재래치 + ROM 콜드 재실행.
+
+**WARMRESETn(SW3)** 은 SW3 비눌림 OR `TA_RESETz`(테스트자동화 헤더 PMOS 풀다운)로 assert. PORz와 달리 U4 SOP 드라이버 OE에 묶이지 않음(SOP 재래치는 PORz 몫). ROM 관점에선 **cold reset과 warm reset이 boot flow상 동일**(TRM `ch05_initialization.md`:2098 — 부트모드 핀 재샘플·ROM 재실행). 단 warm reset은 SoC만 리셋하고 **OSPI flash·Eth PHY 외 보드 전원은 그대로** — flash가 4-byte stuck이면 ROM(3-byte) 부팅이 안 풀린다(아래 ⚠️).
 
 > ⚠️ **SW2 PORz·SW3 RESETz 어느 버튼도 OSPI flash를 POR하지 못한다** — PORz/WARMRESETn 트리에 flash 3.3V 전원도 flash RESET#(`AM263P_OSPI0_RST`, SoC OSPI_RESET_OUT가 SW 구동)도 묶여 있지 않음. >128Mb flash가 4-byte stuck이면 버튼 리셋으론 ROM(3-byte) 부팅이 안 풀린다 → **진짜 VCC 제거(flash POR)만이 3-byte 기본값 복귀**. 근거·맥락 [[toggle_free_flash_loop]] §③, TRM §5.4.1 Note.
 

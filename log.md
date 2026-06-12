@@ -4,6 +4,15 @@
 
 ---
 
+## [2026-06-12] 환원 | lp-am263p — SW3 RESETz(WARMRESETn) 상세 보강 (회로도·UG)
+
+"SW3(RESETn)이 뭐냐" 질의 → UG Fig 2-11·Table 2-4 + 회로도 push-button sheet 조사. [[CLAUDE]] "리셋/푸시버튼" 절을 SW3 중심으로 보강.
+
+- **FACT**: SW3 = **RESETz 푸시버튼 = SoC warm reset(WARMRESETn) 입력**(UG:432, net `AM263P_RESETN_PB`). assert 소스: SW3 비눌림 OR `TA_RESETz`(테스트자동화 헤더 PMOS). 묶이는 곳: SoC WARMRESETN 출력 + **양 Ethernet PHY reset** + μSD load switch(SoC `GPIO122` 2-입력 AND)(UG Fig 2-11:642–656). PORz와 달리 U4 SOP 드라이버 OE엔 안 묶임(SOP 재래치는 PORz 몫).
+- **boot 의미**: ROM 관점 cold==warm(TRM:2098, 부트모드 재샘플·ROM 재실행). 단 warm reset은 SoC만 리셋하고 **flash를 POR 못 함**(전 항 SW2와 동일) → 4-byte stuck시 부팅 안 풀림.
+- **회로도 위치 추가**: 버튼 3종 SW2/3/4(`COSW2/3/4`)는 sheet 15 `PROC171_Push_Buttons.SchDoc`, PORz 결합로직(AND/U4)은 sheet 6. SW4=INT1=SoC `GPIO123`(net `AM263P_INT1_PB_GPIO123`, TA_GPIO1로도 assert) 보강.
+- **갱신**: [[CLAUDE]] "리셋/푸시버튼" 절(SW3 net·assert 소스·warm-reset boot 의미·SW4 GPIO123·push-button sheet 추가), log. (board-common, status/roadmap 무관.)
+
 ## [2026-06-12] 환원 | lp-am263p — SW2 PORz 정체 + 버튼 리셋은 flash를 POR 못 함 (회로도·UG)
 
 "LP-AM263P SW2 PORz가 뭐냐" 질의 → 회로도 sheet 6(`PROC171_AM263P_2_Clock_Reset_Boot_JTAG.SchDoc`)·UG Table 2-4·Fig 2-10/2-11 조사.
