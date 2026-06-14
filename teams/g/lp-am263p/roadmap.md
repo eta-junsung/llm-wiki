@@ -1,6 +1,6 @@
 ---
 tags: [roadmap, lp-am263p, living-doc]
-date: 2026-06-01
+date: 2026-06-14
 ---
 
 # lp-am263p — 프로젝트 로드맵
@@ -22,7 +22,7 @@ date: 2026-06-01
 
 | task | 범위 | 호 | 상태 |
 |------|------|----|------|
-| **porting** | AM243→AM263P 마이그레이션 + CC33xx bring-up | S0~S8 → [[porting]] | S6 막힘 (SPI link-up 무응답 R32) |
+| **porting** | AM243→AM263P 마이그레이션 + CC33xx bring-up | S0~S8 → [[porting]] | S6 막힘 (NP 코어 미실행, 1순위 XTAL — R38) |
 
 단계 spine·완료 기준 표·남은 일정은 작업 로드맵 [[porting]]에 둔다 — 여기서 병렬로 재서술하지 않는다(divergence 방지). 후속 작업(예: 안정화·제품화)이 생기면 `roadmaps/<task>.md`로 추가하고 위 표에 한 행 더한다.
 
@@ -30,11 +30,11 @@ date: 2026-06-01
 
 ## 2. 현재 위치
 
-- **전략 단계**: S6 (SPI/IRQ link-up) 막힘 — `SPI not responsive!` / `CMD_ERR_TIMEOUT` (R32). S5 △(`Hardware init DONE!` 도달). 단계 상세는 [[porting]].
-- **전술(다음 시작점·기능별 현황)**: [[status]] 단일 소스 (현재 다음 시작점 = SPI 전송 링크 진단).
+- **전략 단계**: S6 (SPI/IRQ link-up) 막힘 — `SPI not responsive!` / `CMD_ERR_TIMEOUT`. R38 라인레벨로 **"NP 코어 미실행"** 판정(마스터 SPI·전원·리셋·level-shifter 배제), 1순위 = 40MHz XTAL(Y1) 미발진. S5 △(`Hardware init DONE!` 도달). 단계 상세는 [[porting]].
+- **전술(다음 시작점·기능별 현황)**: [[status]] 단일 소스 (현재 다음 시작점 = R39 오실로스코프로 Y1 발진 실측).
 
 ---
 
 ## 3. 남은 일정 / 환원 후보
 
-→ [[porting]] §남은 일정 (S3 해소가 첫 게이트, S4~S8은 통과 후 재추정) · §환원 후보.
+→ [[porting]] §남은 일정 (R39 Y1 발진 실측이 첫 게이트 — NP 기동, S6~S8은 통과 후 재추정) · §환원 후보.

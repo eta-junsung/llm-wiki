@@ -96,14 +96,14 @@
 ### Living docs
 
 - [roadmap.md](teams/g/lp-am263p/roadmap.md) — 프로젝트 로드맵(목표·작업 호 인덱스·현재 위치). 단계 spine은 작업 로드맵 위임
-- [roadmaps/porting.md](teams/g/lp-am263p/roadmaps/porting.md) — `porting` 작업 호(S0~S8 단계 spine·완료 기준 표·현재 S3 블로커·남은 일정). 디테일은 concept 백링크
+- [roadmaps/porting.md](teams/g/lp-am263p/roadmaps/porting.md) — `porting` 작업 호(S0~S8 단계 spine·완료 기준 표·현재 S6 막힘(NP 코어 미실행, R38)·남은 일정). 디테일은 concept 백링크
 - [status.md](teams/g/lp-am263p/status.md) — 기능별 구현 현황표·다음 시작점 (파이프라인이 커밋마다 갱신)
 
 ### Concepts
 
 - [[team_briefing]] — **팀 업무보고 참고 자료(lp-am263p)**: 주차별 보고 스냅샷 이력(6/2·6/9 diff)·로드맵·S6 현재 위치(R35~R38 원인 좁힘, R39 예정)·비유표. 보고 직전 열어서 참고
 - [[flash_open_facts]] — **S3 블로커 사실 원장**: 확정 사실 + 폐기 가설(재시도 금지) + 현재 최유력 가설. 라운드마다 제자리 수정 (맥락유실 방지 핵심)
-- [[flash_open_diagnostic_log]] — **S3 블로커 진단 라운드 로그** (append-only): R7~R27 가설→변경→관찰→결론 + R28 계획
+- [[flash_open_diagnostic_log]] — **진단 라운드 로그** (append-only): R7~R38 가설→변경→관찰→결론. S3 블로커(R7~R28b 해소)부터 S6 블로커(R32~R38, NP 코어 미실행·1순위 XTAL)까지 시간순 history
 - [[xspi_dummy_cycles]] — IS25LX256 Octal DDR(8D-8D-8D) dummy cycle vs 클럭 주파수 표 + 자주 쓰는 값 (16.67/33.33/50/100/133 MHz)
 - [[is25lx256_vs_spansion_quirks]] — bp-3351→AM263P 포팅 시 Spansion 분기 제거 체크리스트 (UNHYSA 부재, RDAR/WRAR 부재, set888mode=0x81 정정, AM243 Quad/AM263P Octal 라인 차이)
 - [[flash_open_sequence]] — `Flash_norOspiOpen` 단계별 시퀀스 + 종료 시 OSPI 컨트롤러/chip 상태 표

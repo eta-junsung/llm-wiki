@@ -6,7 +6,7 @@ TI **LP-AM263P** LaunchPad에 **BP-CC3351**(Wi-Fi 6 + BLE BoosterPack)을 얹어
 
 원본 예제의 타겟은 **LP-AM243**이며, CC33XX SDK(R8.1)는 AM263P용 공식 예제·targetConfig·syscfg를 제공하지 않는다 → **이 포팅은 TI 공식 지원 밖(비공식)**. syscfg·드라이버·플래시 정합성을 직접 맞춰야 한다.
 
-현재 상태: **S3 블로커** — 부팅 직후 app의 `Flash_open()`(AM263P 부트 플래시 IS25LX256)이 NULL 반환하는 단계에서 27+ 라운드째 막혀 있음. 전체 그림은 [[roadmap]], 지금/다음은 [[status]].
+현재 상태: **S6 블로커** — S3(Flash_open, R28b)·S4(Board_open, R31) 통과 후, host↔CC33xx SPI/IRQ link-up이 무응답인 단계에서 막혀 있음. R38 라인레벨 추적으로 "NP 코어 미실행"까지 좁혀졌고 1순위 의심 = 40MHz XTAL(Y1) 미발진(R39 오실로스코프 측정 예정). 라이브 상태·다음 시작점은 [[status]]가 단일 소스, 전체 그림은 [[roadmap]].
 
 코드 repo: `~/eta/projects/g/lp-am263p/bp-3351/` (이 wiki와 별개).
 
