@@ -4,6 +4,15 @@
 
 ---
 
+## [2026-06-14] lint | g팀 전반 — lp-am263p 단계 staleness 정정 (S3→S6 reconcile)
+
+g팀 3개 프로젝트(8kw-ev-wpt-tx·bp-cc3351·lp-am263p) lint.
+
+- **기계적 점검 무결**: index↔파일 1:1(orphan 0). "broken link"으로 잡힌 것은 전부 의도된 것 — source의 "파생 페이지 후보(lazy ingest)" 미생성 마커, living-doc/스키마 참조 컨벤션(`[[adc]]`·`[[CLAUDE]]` 등), 실재 동일-페이지 앵커.
+- **8kw·bp-cc3351**: 모순·staleness 없음.
+- **lp-am263p 결함 정정**: 프로젝트가 S3→S6로 전진(R28b에서 S3 통과, 현재 R38 "NP 코어 미실행"·1순위 XTAL)했는데 CLAUDE.md·index·porting.md·roadmap.md가 옛 단계(S3 블로커) 또는 모순 스냅샷(S7 도달 중)에 정지. 단일 진실 [[status]](R39 Y1 발진 실측 예정)에 5개 문서를 정렬. 해소된 S3 history(facts/log 제목·porting §1 배경)는 보존. flash_open_facts의 S6 내용 증류는 범위 밖(후속 후보).
+- 커밋 `63c167d`.
+
 ## [2026-06-12] 환원+lint | 8kw-ev-wpt-tx — standalone OSPI 무부팅 해소: 진짜 원인 = 부트모드 핀 스트랩 미스매치
 
 수개월간 "flash 프로그래밍/cell 영속성/QE bit"로 의심하던 standalone 무부팅의 진짜 원인이 **부트모드 핀 스트랩 미스매치**로 확정·해소(실측). 무효가 된 종전 진술 일괄 정정.
