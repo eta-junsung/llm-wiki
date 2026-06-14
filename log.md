@@ -4,6 +4,15 @@
 
 ---
 
+## [2026-06-14] lint | c팀 oled_tv_software — 역순 alias broken link·index 누락·TX SPI staleness 정정
+
+c팀 `oled_tv_software` lint. 기계 점검(index↔파일·broken-link·backlink orphan) + 내용 점검(status/code 대비 staleness). orphan 0, status(2026-06-12)는 코드 대비 최신. 실 결함 3건 정정:
+
+- **broken link (역순 alias, 2곳)**: `[[플래싱 가이드|st_link_nrf52_flash]]` — Obsidian `[[타겟|표시]]` 순서가 뒤집혀 없는 페이지 `플래싱 가이드`를 가리킴 → `[[st_link_nrf52_flash|플래싱 가이드]]`로 교정. [[rx_ble_module]]·[[schematic_ble_module_board_v01e00]].
+- **index 누락**: [[esb_timing_measurements]](backlink 5)가 index.md에 미등록 → Concepts ESB 절에 등록.
+- **TX SPI staleness (모순, 5곳)**: `e706b53`(2026-06-11)이 03_TX_ble `SPI_Loop`를 SPIS로 전면 재작성(△ 실보드 미검증)했고 status.md·[[tx_ble_module]] 표 행엔 반영됐으나, 같은 entity 서술문 4곳 + index tx_ble_module 설명이 옛 "미구현"에 정지 → 동일 페이지 내 모순. 단일 진실(status.md:74)에 정렬. line 30 "비활성 보존"은 1d7f71a 시점 서술이라 시점 정확성 보존 + e706b53 cross-note 추가.
+- `roadmaps/<task>` path-style 링크 3건은 false positive(파일 실재) 확인.
+
 ## [2026-06-14] distill | lp-am263p — flash_open_facts S6까지 증류 (63c167d 후속 후보 해소)
 
 6/14 g팀 lint(`63c167d`)이 후속 후보로 남긴 "flash_open_facts S6 내용 증류"를 처리. 3-레이어 규약 ②(확정/폐기를 facts에 반영)가 frontmatter·제목·게이트 섹션에서 S3에 멈춰 있던 것을 S6까지 정렬. (확정 사실 표 자체는 라운드별 inline 갱신으로 이미 R38까지 반영돼 있었음 — 메타·프레이밍만 stale.)

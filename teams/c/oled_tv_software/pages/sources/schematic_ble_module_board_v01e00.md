@@ -75,7 +75,7 @@ ADC 가용 핀: P0.02/AIN0, P0.03/AIN1, P0.04/AIN2, P0.05/AIN3, P0.28/AIN4, P0.2
 - D1 (SMD220PL-TP/SOD-123FL): nRST 라인 보호 다이오드
 - SW1 (ITS-1107/SMD): 시스템 리셋 버튼 (BLE_GND로 풀다운)
 
-**ST-LINK V2 연결 방법**: SWDIO → ST-LINK 핀7, SWDCLK → ST-LINK 핀9, GND → ST-LINK 핀8, nRST → ST-LINK 핀15(선택). VCC는 보드 자체 전원 사용 시 연결 불요. [[플래싱 가이드|st_link_nrf52_flash]] 참고.
+**ST-LINK V2 연결 방법**: SWDIO → ST-LINK 핀7, SWDCLK → ST-LINK 핀9, GND → ST-LINK 핀8, nRST → ST-LINK 핀15(선택). VCC는 보드 자체 전원 사용 시 연결 불요. [[st_link_nrf52_flash|플래싱 가이드]] 참고.
 
 ---
 

@@ -7,14 +7,14 @@ subsystem: 03_TX_ble
 
 # TX BLE 모듈 (03_TX_ble, ESB PTX)
 
-TX 보드 측 무선 모듈. nRF52832 기반, ESB PTX로 동작. TX 보드와 SPI로 연결될 예정이나 현재 미구현.
+TX 보드 측 무선 모듈. nRF52832 기반, ESB PTX로 동작. TX 보드와의 SPI는 `e706b53`에서 SPIS로 전면 재작성됨(△ 구현됨·실보드 미검증).
 
 ## 역할
 
 - ESB PTX (Primary Transmitter): 10ms 주기로 ESB 패킷 전송 개시
 - RX측([[rx_ble_module]], PRX)으로부터 ACK payload로 RX 데이터 수신
 - HDR round-robin 송신: TX_STATUS`0x10` → TX_INPUT`0x11` → TX_OUTPUT`0x12`
-- ACK에 실려 온 RX 데이터(0x50/0x51/0x52)를 TX 보드로 SPI 전달 (미구현)
+- ACK에 실려 온 RX 데이터(0x50/0x51/0x52)를 TX 보드로 SPI 전달 (SPIS 재작성 `e706b53`, 실보드 미검증)
 
 ## 펌웨어 현황
 
@@ -27,7 +27,7 @@ TX 보드 측 무선 모듈. nRF52832 기반, ESB PTX로 동작. TX 보드와 SP
 | LED 인디케이터 (LED1 점등 / LED2=spi_comm_st mirror / LED3=ble_comm_st mirror) | ✓ 구현+검증 (LED2 `e5e3efc`·LED3 `6cd7e6c`, 2026-06-08 실보드) |
 | 보드 분기 (BOARD_CUSTOM + custom_board.h) | ✓ 구현+검증 |
 | while(1) 구조 정리 | △ 구현됨·미검증 |
-| 03_TX_ble 모듈 분리 리팩토링 | △ 구현됨·미검증 | `1d7f71a`(2026-06-11) emBuild 에러 0·경고 0. 실보드 미검증. eta_ 모듈 구조 6개. SPI_Loop 비활성 보존. [[nrf52_firmware_conventions]] |
+| 03_TX_ble 모듈 분리 리팩토링 | △ 구현됨·미검증 | `1d7f71a`(2026-06-11) emBuild 에러 0·경고 0. 실보드 미검증. eta_ 모듈 구조 6개. SPI_Loop는 이 시점엔 비활성 보존(이후 `e706b53`서 SPIS로 재작성·활성화, line 26). [[nrf52_firmware_conventions]] |
 | GPIO P0.17/P0.18 (`DBG_PIN_TX_ATTEMPT`/`DBG_PIN_TX_DONE`) | △ | ESB TX 시도·완료 오실로스코프 측정용. 타이밍 검증 목적(TX~920µs 실측). **03 한정 핀** — 02에서 동일 핀은 DK LED임([[rx_ble_module]]) |
 | TX_FAILED 1초 윈도우 카운터 | △ 구현됨·미검증 |
 | TX UART 모니터 출력 포맷 개선 | △ 구현됨·미검증 |
@@ -89,7 +89,7 @@ ESB tx=0x000C3E fail=0/s | ACK rx=0x000C3D [0x50 0x51 0x52]
 ## 통신 인터페이스
 
 - **ESB RF**: [[rx_ble_module]](PRX)과 2.4GHz 링크. 파라미터 → [[esb_link_layer]]
-- **TX 보드 SPI**: 미구현. 구현 후 entity 갱신 필요.
+- **TX 보드 SPI**: `e706b53`에서 SPIS(`nrf_drv_spis`, 02 거울)로 전면 재작성 — △ 구현됨·실보드 미검증. 검증 후 entity 갱신 필요.
 
 ## 출처
 
