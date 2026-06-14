@@ -4,6 +4,16 @@
 
 ---
 
+## [2026-06-14] distill | lp-am263p — flash_open_facts S6까지 증류 (63c167d 후속 후보 해소)
+
+6/14 g팀 lint(`63c167d`)이 후속 후보로 남긴 "flash_open_facts S6 내용 증류"를 처리. 3-레이어 규약 ②(확정/폐기를 facts에 반영)가 frontmatter·제목·게이트 섹션에서 S3에 멈춰 있던 것을 S6까지 정렬. (확정 사실 표 자체는 라운드별 inline 갱신으로 이미 R38까지 반영돼 있었음 — 메타·프레이밍만 stale.)
+
+- **frontmatter**: tag `s3-blocker`→`s6-blocker`, source에 `(R7~R38)` 추가, date 2026-06-14.
+- **제목**: "Flash_open S3 블로커"→"S3→S6 블로커" + 원장 스코프(S3~S6, 현재 블로커 S6) 블록쿼트 명시. S3 history 보존.
+- **게이트 섹션** 재프레이밍: "현재 블로커 (R29)"→"게이트 진행 (S3 해소→S6 블로커)". 옛 "R36 현황"(R37 조사 예정) 줄을 S6 현재 서사로 교체 — R36 마스터 정상→R37 H1 확정→R38 "NP 코어 미실행"·전원/리셋/level-shifter/master SPI 배제→현재 최유력 40MHz XTAL(Y1) 미발진(추론)→R39 오실로스코프 실측.
+- log/status 교차검증: 확정 사실·폐기 가설은 [[flash_open_diagnostic_log]](R32/R36/R37/R38)·[[status]](R39 Y1 측정 예정)와 정합 확인. CS 프레이밍 정합은 status 미결로 open 유지(폐기 아님).
+- index.md flash_open_facts 설명 갱신("S3→S6 블로커 사실 원장").
+
 ## [2026-06-14] lint | g팀 전반 — lp-am263p 단계 staleness 정정 (S3→S6 reconcile)
 
 g팀 3개 프로젝트(8kw-ev-wpt-tx·bp-cc3351·lp-am263p) lint.

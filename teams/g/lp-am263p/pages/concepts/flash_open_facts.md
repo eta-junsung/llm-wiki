@@ -1,10 +1,12 @@
 ---
-tags: [concept, flash, ospi, facts, diagnosis, am263p, s3-blocker]
-source: [[flash_open_diagnostic_log]] + report.md (R19~R27)
-date: 2026-06-01
+tags: [concept, flash, ospi, facts, diagnosis, am263p, s6-blocker]
+source: [[flash_open_diagnostic_log]] (R7~R38) + report.md (R19~R27)
+date: 2026-06-14
 ---
 
-# Flash_open S3 블로커 — 사실 원장
+# Flash_open S3→S6 블로커 — 사실 원장
+
+> **원장 스코프 = S3~S6.** S3(Flash_open)·S4(Board_open)는 해소되어 history로 보존하고, 현재 블로커는 **S6**(host↔CC33xx SPI/IRQ link-up — R38 "NP 코어 미실행" 판정). 게이트별 진행은 §"게이트 진행" 절.
 
 > **증류된 "현재 진실".** 라운드별 시간순 서사는 [[flash_open_diagnostic_log]]에 있고, 여기는 그로부터 확정/폐기된 것만 짧게 모은다. 라운드마다 **제자리 수정**한다.
 > 새 라운드 결과 반영 순서: ① log에 append → ② 여기 facts 갱신 → ③ [[status]] 위임 갱신(게이트 통과 시 [[porting]]/[[roadmap]]).
@@ -90,15 +92,21 @@ CLK/DQS/D4/D6는 양쪽 일치. **주의: D4-D7은 native OSPI pad가 아니라 
 
 ---
 
-## S3 해소 (R28b 확정) / 현재 블로커 (R29)
+## 게이트 진행 (S3 해소 → S6 블로커) / 현재 위치
 
-**S3 해소** — R28b: cc3351 `example.syscfg` OSPI pinmux를 `$assign`(hard lock)으로 교정하자 RDID = `9D 5A 19` (정상), `Flash_open OK`. main.c 변경 없음.
+**S3 해소 (R28b)** — cc3351 `example.syscfg` OSPI pinmux를 `$assign`(hard lock)으로 교정하자 RDID = `9D 5A 19` (정상), `Flash_open OK`. main.c 변경 없음.
 
 R7~R27에서 쌓인 SBL-핸드오프/skipHwInit/DQS/RDCAP-tuning 귀인은 전부 "pinmux 정상"이라는 잘못된 전제 위에 쌓인 것 → 폐기 (위 표). "DQ1-only RDID"는 8D-PHY 문제(가지 γ)가 아니라 핀 스크램블 증상이었음.
 
 **S4 해소 (R31)** — `ti_board_open_close.c` 전역에 in-place 패치(`quirksFxn=NULL`, `skipHwInit=TRUE`, `dummyClksCmd=8`) + freertos_main 원본 구조 복원 → `Board_driversOpen` 완주, CLI 프롬프트 도달. ★ 표준 Board_flashOpen 단독 동작 최초 실측 검증.
 
-**R36 현황**: MCSPI 정상(8회 ALL_SUCCESS, SCLK~16 MHz). S6 블로커 = NP(CC33xx) SPI 비응답. R37: Saleae ≥50 MS/s로 물리 SCLK 확정 + NP 비응답 원인(WLAN_IRQ/2nd-loader/NP 부팅) 조사.
+**S6 블로커 (R32~R38, 현재)** — `wlan_start` heap 증설(R32, 256KB)로 `Hardware init DONE!` 도달했으나 host↔CC33xx SPI/IRQ link-up 무응답(`SPI not responsive`/`CMD_ERR_TIMEOUT`). 진단 무게중심이 **마스터 → NP로** 이동:
+
+- **R36**: MCSPI 마스터 정상(device-info 8회 ALL_SUCCESS, SCLK~16 MHz 물리 확정). R35 "CLK 0클럭"은 Saleae 12.5 MS/s 샘플링 아티팩트로 반증.
+- **R37**: H1(마스터 정상·NP 침묵) 확정 — R36 단일 로그가 이미 입증(재측정은 재발견). 마스터측 원인 배제 완료.
+- **R38**: Saleae 라인레벨로 NP 전 출력핀(MISO·IRQ_WL·IRQ_BLE·LOGGER) 침묵 → **"NP 코어 미실행" 판정**. 전원(3.266V/1.794V)·nRESET 해제·level-shifter·master SPI 전부 배제.
+
+**현재 최유력 가설**: 40MHz XTAL(Y1) 미발진 — 단 **추론(미측정)**. **다음 (R39)**: 오실로스코프로 Y1 발진 실측 → 미발진 확정 시 추론→사실 승격. 다음 시작점·프로브 가이드는 [[status]] 단일 소스.
 
 ---
 
