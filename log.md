@@ -4,6 +4,13 @@
 
 ---
 
+## [2026-06-15] 환원 | CN1 전원 핀 사실 — schematic_rx_regulator_control_board _CN 절
+
+- 계기: 사용자가 OSC 발진 확인용으로 CN1.1=3.3V/CN1.27=GND 주입 중 — 핀배치 검증 요청
+- 회로도 p.5(Board_to_Board) vision 판독(450 DPI 크롭): **CN1 = HEADER_2.0mm/28P (TMM-114-06-T-D-SM), @Rx Power Board**. 핀1·2=PD3V3, 핀27·28=DGND 확정 → 사용자 주입점 정확.
+- _CN 절에 CN1 커넥터 블록 추가(종전 `*_CN` 신호 목록만, 커넥터 자체·전원/그라운드 핀 미기록). 페이지02 `CON1`(ST-LINK)과 별개 부품 주의 명시.
+- 측정 결론: 전원 경로는 맞으나 HSE 발진엔 펌웨어 HSEON 필요(OSC Clock 절 함의 cross-ref).
+
 ## [2026-06-15] ingest | OSC Clock (8MHz) HSE 크리스탈 회로 — schematic_rx_regulator_control_board 보완
 
 - 소스: 회로도 PDF p.2 "OSC Clock (8MHz)" 서브블록 (`raw/Rx_OLED_Regulator_Control_Board_260327.pdf`, Sheet 2 of 2, Rev 0.1E00, 2026-03-27)
