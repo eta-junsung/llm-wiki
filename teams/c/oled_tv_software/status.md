@@ -6,7 +6,23 @@ date: 2026-06-15
 
 ## 다음 시작점
 
-**01 정본 코드베이스 UART/ESB 링크 실측**: 2026-06-15 정본(Sean 전력제어 중심 + ESB/SPI relay·UART 모니터 이식) 빌드 통과·실보드 flash 완료. → ① 01↔PC UART5 링크 정상 여부(11B 바이너리 모니터 수신, [[pc_uart_gui]]) ② ESB 링크 비트5/6 상태 확인. 이후 e2e 검증 — 01↔02↔RF↔03↔04 전 체인 연결 (TX status(0x10) 수신, E2E Vout Ref, RX status(0x50) 수신).
+**[STEP 1] STM32 DK 보드 재검증 (정본 HSI 기준)**
+
+HSI 전환으로 SYSCLK·APB 클럭이 바뀌었으므로, 실보드 전에 DK 보드에서 정상 동작 확인.
+- 목표: 정본 코드(Sean + ESB/SPI relay·UART 이식)가 코드 합치기 전 dev 버전과 동일하게 동작하는지 확인
+- 체크 항목: ① UART5 모니터 수신([[pc_uart_gui]] 11B 바이너리) ② SPI heartbeat bit5 토글 ③ ESB bit6 상태 ④ PWM 100kHz 출력(PC6, [[gpio_verification_pinmap]])
+- DK 보드 전원: USB 또는 ST-Link — COMM_P5V 별도 공급 없이 동작 확인 가능 범위까지
+
+**[STEP 2] 실보드 UART 검증 (DK 확인 후)**
+
+실보드 세팅([[gpio_verification_pinmap]] "UART5 검증 세팅" 절 참조):
+- 전원: 3.3V → CN1.1/CN1.27, 5V → CON2.1(COMM_P5V)
+- 옵션 A: USB-to-RS232 → CON2.2/3 | 옵션 B: 5V-tolerant USB-to-TTL → TP17(TX)/TP15(RX)
+- 확인: [[pc_uart_gui]] 11B 바이너리 수신 정상 여부
+
+**[STEP 3] 이후 — ESB·e2e (UART 확인 후)**
+
+01↔02↔RF↔03↔04 전 체인: TX status(0x10) 수신 → E2E Vout Ref(`buck 12.00` → `Tx_Buck_Vout_Ref=1200`) → RX status(0x50) 수신.
 
 `6fc8b92`(2026-06-12, 04-tx-control-dummy 브랜치): **02·03 BLE 릴레이 정리 + RX 방향 미연결 견고화**. 02 `protocol_init`에서 forward 버퍼(0x50/51/52)를 valid 헤더+LEN+CRC+zero payload로 seed(approach A RX 방향 대칭, TX 방향은 `e72b86e`에서 03 완료). `pkt_seed_buffers()` _shared 헬퍼 추출, `eta_spi.c/.h` _shared 공용화(02/03 바이트 동일). Monitor_Loop `seen_mask` 출력 게이트 제거 → 6줄 고정 스냅샷. [[app_protocol_module]] "릴레이 헤더 소유 원칙·02/03 통합 범위" 갱신.
 
