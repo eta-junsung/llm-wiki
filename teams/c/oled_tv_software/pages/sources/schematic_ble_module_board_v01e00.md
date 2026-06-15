@@ -47,6 +47,8 @@ subsystem: 02_RX_ble, 03_TX_ble
 
 ADC 가용 핀: P0.02/AIN0, P0.03/AIN1, P0.04/AIN2, P0.05/AIN3, P0.28/AIN4, P0.29/AIN5, P0.30/AIN6, P0.31/AIN7
 
+> **물리 개체 식별 (2026-06-15 실측)**: 02·03은 이 설계의 **별개 물리 보드 2대**다. FICR DEVICEID[0](`0x10000060`)로 1:1 구분 — **02_RX_ble = `0x5FE168DA`, 03_TX_ble = `0xE9775EC9`**. 둘 다 외부 **J-Link V9.3 Plus**(S/N 69730359)를 CON1(SWD)에 물려 flash 실측 통과(Bank0@0 57344 B, exit 0). 프로브·절차 → [[st_link_nrf52_flash]] / [[instruments]].
+
 ---
 
 ## 커넥터 전체 목록

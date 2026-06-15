@@ -60,7 +60,7 @@
 - [[nrf52_firmware_conventions]] — **nRF52 코딩 관습**(b92835c→e85839c 확정): ISR printf 금지(HardFault 실증)·오류 카운터 패턴(1초 윈도우 append)·init/배너 printf 금지·NRF_LOG 초기화 잔재(호출 0건) 인지
 - [[ses_build_conventions]] — SES `.emProject` 함정: ①파일 목록 하드코딩(와일드카드 없음) ②nRF5 SDK 헤더 충돌(→`eta_` 접두사로 해소·[[nrf52_module_naming]]) ③`ADD_SPI` 전역 전파 주의 ④`<folder>` 는 가상 그룹·빌드 무영향
 - [[gpio_verification_pinmap]] — 검증 핀맵: 기능 → 프로브 핀 → 기대값 (SPI CS PB12·PWM PC6~9·ESB P0.17/18·ADC). planner가 검증 경로에 인용. 미확인 핀은 "확인 필요"로 호명
-- [[st_link_nrf52_flash]] — 3-MCU 플래싱 정본 (01 ST-Link V2 네이티브 / 02·03 nRF = **J-Link V9.3 Plus SN69730359** 외부 SWD, 02 flash 2026-06-15 실측 통과). 프로브 식별 ShowEmuList 규율·JLink connect 트러블슈팅(VTref↔데이터선)·pyOCD 폴백 강등. 종전 J-Link OB SN1050329071 정정
+- [[st_link_nrf52_flash]] — 3-MCU 플래싱 정본 (01 ST-Link V2 네이티브 / 02·03 nRF = 커스텀보드 + **J-Link V9.3 Plus SN69730359** 외부 SWD, **02·03 둘 다 flash 2026-06-15 실측 통과**). 프로브 식별 ShowEmuList 규율·DEVICEID 보드 식별 게이트(02=0x5FE168DA/03=0xE9775EC9)·JLink connect 트러블슈팅(VTref↔데이터선)·pyOCD 폴백 강등. 종전 J-Link OB SN1050329071·02 DK 오기록 정정
 
 ### Sources
 

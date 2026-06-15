@@ -55,7 +55,7 @@ subsystem: 01_RX_control, 02_RX_ble, 03_TX_ble
 
 추론 금지 — 아래는 보드 자료를 보고 채운다:
 
-1. ✓ (2026-06-01 해소) **P0.17 중복**: 02_RX_ble·03_TX_ble가 별개 PCA10040 보드 2대 → 핀번호 겹침은 충돌 아님. 위 ESB 표 주석 참조.
+1. ✓ (2026-06-01 해소) **P0.17 중복**: 02_RX_ble·03_TX_ble가 **별개 커스텀보드 2대**([[schematic_ble_module_board_v01e00]], UTO-NBL-52 기반 — DK/PCA10040 아님; FICR DEVICEID 02=`0x5FE168DA`/03=`0xE9775EC9`) → 핀번호 겹침은 충돌 아님. 위 ESB 표 주석 참조.
 2. **01_RX_control 추가 디지털 신호 핀번호** (미정): FAULT_RST / LATCH_FAULT / nSYS_RDY / DBG_LED1·2·3 / TEST_MODE1·2 / LSG1·2 — **사용자 확인(2026-06-01): 아직 핀 미정**. 확정 시 [[schematic_rx_regulator_control_board]] 넷리스트/좌표 또는 사용자 호명으로 채움.
 3. ✓ (2026-06-01) **기대값**: 현 단계는 위 표의 "~" 근사치로 충분 (사용자 확인). PRD 목표값/실측 확정 시 갱신.
 

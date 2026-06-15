@@ -4,6 +4,15 @@
 
 ---
 
+## [2026-06-15] 환원+lint | 03 flash 실측 추가 + 보드 정정(02·03=커스텀보드, DK 아님) + DEVICEID 게이트
+
+앞 프로브 정정(386b9fd) 후속 — 새 사실만 반영. 근거: JLink V9.3 Plus(69730359) CLI 실측.
+
+- **03_TX_ble flash 실측 통과**(종전 "추후"): TX_BLE.hex 151,225 B(6fc8b92, SHA256 D5A0A29B…651936), VTref 3.261 V, FICR `0xE9775EC9`, Bank0@0 57344 B, exit 0. (02=RX_BLE.hex 151,209 B, FICR `0x5FE168DA`.) → 분담표 02·03 모두 "실측 통과".
+- **★보드 오기록 정정(A)**: 종전 "02_RX_ble = nRF52 DK(PCA10040) 온보드 J-Link / 외부 프로브 불요"는 틀림. 02·03은 **DK가 아니라 같은 커스텀보드 설계 [[schematic_ble_module_board_v01e00]](UTO-NBL-52)의 별개 물리 개체**, 외부 J-Link(69730359)를 CON1(SWD)에 물려 flash. instruments·flash·index·rx_ble_module 정정. (firmware의 BOARD_PCA10040↔BOARD_CUSTOM 빌드토글은 별개 축이라 미수정.)
+- **DEVICEID 보드 식별 게이트**: 02·03 외형 동일 → flash 전 FICR DEVICEID[0](`0x10000060`) 확인으로 칩 1:1 가름(02=0x5FE168DA/03=0xE9775EC9). flash 트러블슈팅·board 페이지·gpio_verification_pinmap에 기록.
+- lint: gpio_verification_pinmap "별개 PCA10040 보드 2대"(line 48 "커스텀보드"와 자기모순) → "커스텀보드 2대"로 정정. DEVICEID 사실은 board 페이지(MCU 모듈 절)에 정본.
+
 ## [2026-06-15] 환원+lint | 프로브 인벤토리 정정(신규 J-Link V9.3 Plus·1050329071 강등) + 식별 규율
 
 근거: 실보드 CLI 실측 (JLink.exe ShowEmuList V9.48, pyocd list, Get-PnpDevice). 대상 [[instruments]]·[[st_link_nrf52_flash]]·index.
