@@ -4,6 +4,28 @@
 
 ---
 
+## [2026-06-15] 환원 | UART5 보드단독 검증 세팅 + Korlan/RS485 사용 가능성 정리
+
+근거: 회로도 p.4·p.5 분석 (2026-06-15 대화). 대상: [[gpio_verification_pinmap]].
+
+- **UART5 보드단독 검증 세팅** gpio_verification_pinmap 추가:
+  - 필수 전원 2개: **3.3V → CN1.1** (MCU) + **5V → CON2.1** (COMM_P5V, ISOL2 통신측·MAX232). DGND(CN1.27) ↔ COMM_GND는 B3(SHH-1M2012-221) One Point 결합 → 공통 GND 사용 가능.
+  - **옵션 A (CON2 RS232)**: USB-to-RS232 → CON2.2(RX)/CON2.3(TX). MAX232 정식 경로. USB-to-TTL 직접 불가(레벨 불일치).
+  - **옵션 B (TP17/TP15 TTL)**: 5V-tolerant USB-to-TTL → TP17(SCIB_TX)/TP15(SCIB_RX). MAX232 우회, 5V 신호. COMM_P5V 공급 시에만 신호 유효.
+- **Korlan USB2CAN**: CANH/CANL → CON2.4/5 (CANA_H_CN/CANA_L_CN). CAN 비트레이트 탐색(125/250/500/1000 kbps 순차 시도)으로 APB1=32MHz 기준 비트레이트 미결사항 해소 가능. 선결: 정본 펌웨어 CAN 초기화 여부 확인 + R33 DNP → 온보드 종단 없음(Korlan 내장 termination ON 필요).
+- **USB-to-RS485**: 이 보드에 RS485 인터페이스 없음 — UART는 RS232(MAX232), 차동 버스는 CAN. 적용 불가.
+- SPI 속도 오기 정정: gpio_verification_pinmap PB13 항목 9.0 Mbps → **8.0 Mbps** (PCLK1=32 MHz, HSI 기준).
+
+## [2026-06-15] 환원 | COMM_P5V=5V 정정·CN2 추가·TP15/TP17 절 추가
+
+근거: 회로도 p.4·p.5 vision 판독 + 사용자 정정(COMM_PSV는 오독, 정확한 표기는 COMM_P5V). 대상: [[schematic_rx_regulator_control_board]].
+
+- **COMM_PSV → COMM_P5V 정정**: vision 오독 확인. wiki 내부(ble_module·rx_ble_module)는 이미 COMM_P5V 표기 사용 중 — 이번 live 대화에서만 오독 발생.
+- **CN2(@Rx Power Board, COMM_P5V 측) 절 추가**: 종전 CN1만 기록, CN2 누락. p.5 우측 상단 HEADER_2.0mm/28P(TMM-114-06-T-D-SM). 핀27·28=COMM_P5V, 디커플링 C44/C45, 파워 인디케이터 LED5+R54. **이 보드에 COMM_P5V 생성 회로 없음** — CN2 경유 Power Board에서 전원 수신.
+- **COMM_P5V = 5V 확정**: P5V이므로 TP15/TP17 신호는 5V 레벨 — 3.3V UART 직접 검증 불가.
+- **TP15/TP17 절 추가** (p.4 UI_Comm): TP15=SCIB_RX(외부→MCU), TP17=SCIB_TX(MCU→외부), 둘 다 COMM_P5V(5V) 레벨·MAX232 이전. 3.3V MCU 직접 검증은 ISOL2 MCU측/PC12·PD2 권장.
+- 페이지 구성표 04·05 설명 보강(TP15/TP17, CN2, Test Pins 내용 추가).
+
 ## [2026-06-15] 환원 | 01_RX_control HSI 전환·정본 코드베이스 교체·SPI 속도 정정
 
 근거: 2026-06-15 실보드 확인. 대상: rx_control·schematic_rx_regulator_control_board·spi_link_reliability·status·index + 신규 sysclk_hsi_transition.
