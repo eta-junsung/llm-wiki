@@ -4,6 +4,17 @@
 
 ---
 
+## [2026-06-15] ingest | OSC Clock (8MHz) HSE 크리스탈 회로 — schematic_rx_regulator_control_board 보완
+
+- 소스: 회로도 PDF p.2 "OSC Clock (8MHz)" 서브블록 (`raw/Rx_OLED_Regulator_Control_Board_260327.pdf`, Sheet 2 of 2, Rev 0.1E00, 2026-03-27)
+- 대상 페이지: [[schematic_rx_regulator_control_board]] (기존 source 페이지 환원 — raw 신규 아님)
+- 채운 빈자리: 종전 OSC를 신호명 2개(OSC_IN_uC/OSC_OUT_uC)로만 기록 → 회로 방식·부품 추가
+  - **방식**: 수동 크리스탈 Pierce 발진(능동 오실레이터 아님). X1 8MHz/5032, C2=C3=22pF(220J/1608), R10 1MΩ(피드백/병렬), R11 0Ω(OSC_OUT 직렬). OSC_IN=핀5/OSC_OUT=핀6. "MCU 가장 근접 배치" 주석.
+  - **함의**: 수동 크리스탈 ⟹ RCC_HSE_ON(구동)이 정답, RCC_HSE_BYPASS 아님. HSE 8MHz×PLL=SYSCLK(64MHz, [[pwm_system]] 정합).
+- 갱신: 페이지 구성표 p.02에 OSC Clock 서브블록명 보완(종전 "MCU_Peripheral_Section"만), 주요 컴포넌트 표(X1/C2/C3/R10/R11), 신호 인벤토리 OSC_IN/OUT 행(핀5/6·근거). index.md 설명.
+- 근거 수준 명시: 전 항목 **회로도 p.2 vision 판독**(400 DPI 렌더 크롭 확인). 부품 정수=실크 마킹, **OrCAD XML 미교차검증**. 결선도 PDF 이미지라 vision 수준. RCC 함의는 회로방식 연역(펌웨어 코드 미확인).
+- 판독 노트: 저해상도 1차 판독에서 C2/C3 패키지를 "3216"으로 오독 → 400 DPI 크롭 재확인 시 "1608" 확정(요청 사실과 일치).
+
 ## [2026-06-14] lint | c팀 oled_tv_software — 역순 alias broken link·index 누락·TX SPI staleness 정정
 
 c팀 `oled_tv_software` lint. 기계 점검(index↔파일·broken-link·backlink orphan) + 내용 점검(status/code 대비 staleness). orphan 0, status(2026-06-12)는 코드 대비 최신. 실 결함 3건 정정:

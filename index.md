@@ -73,7 +73,7 @@
 - [[spi_protocol_manual_260513]] — OLED TV 프로토콜 매뉴얼 (2026-05-13). ESB wire 포맷(11B) 정의 문서
 - [[prd]] — 시스템 PRD v1.0 (2026-05-26). 인수 시점 이해 스냅샷, 펌웨어 현황·미해결 의문점 일람
 - [[schematic_stm32_mini_pro_v10]] — STM32 mini-pro v10 회로도 (이미지 PDF, SPI 수동 추출). STM32↔nRF52832 PCA10040 배선표 포함
-- [[schematic_rx_regulator_control_board]] — Rx OLED Regulator Control Board 회로도 (OrCAD Design XML + PDF). MCU 전체 핀맵·39개 신호 인벤토리·TEMP swap 회로도 확인
+- [[schematic_rx_regulator_control_board]] — Rx OLED Regulator Control Board 회로도 (OrCAD Design XML + PDF). MCU 전체 핀맵·39개 신호 인벤토리·TEMP swap 회로도 확인·OSC Clock(8MHz HSE 수동 크리스탈 X1+C2/C3+R10/R11, RCC_HSE_ON 함의)
 - [[schematic_ble_module_board_v01e00]] — BLE Module Board Ver0.1E00 회로도 (02_RX_ble/03_TX_ble 공용 nRF52832 모듈). 커넥터 핀맵(CON1/CN1/CN2) 확정·전원 아키텍처 교정(PD3V3→필터→BLE_P3V3)·System Reset·안테나. raw PDF 사본 보유 (2026-06-05 재독)
 
 ---
