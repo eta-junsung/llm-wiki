@@ -4,6 +4,17 @@
 
 ---
 
+## [2026-06-15] 환원 | 01_RX_control HSI 전환·정본 코드베이스 교체·SPI 속도 정정
+
+근거: 2026-06-15 실보드 확인. 대상: rx_control·schematic_rx_regulator_control_board·spi_link_reliability·status·index + 신규 sysclk_hsi_transition.
+
+- **HSE 발진 실패 → HSI 전환 확정**: HSERDY 100ms 타임아웃, 부팅 Error_Handler 무한루프 확인. HSI 경로(HSI/2 × PLL×16 = 64MHz) 채택. 72MHz는 물리적 불가. 확정 클럭 트리 (HCLK 64 / APB1 32 / APB2 32 / 타이머클럭 64 / ADCCLK 8 MHz, Flash latency 2) → 신규 [[sysclk_hsi_transition]] 페이지.
+- **SPI2 속도 정정**: rx_control "9.0 Mbps (PCLK1=36 MHz)" → **8.0 Mbps (PCLK1=32 MHz, prescaler=/4)** (정본 기준). 구 dev revert 이후 /8 → 4 Mbps. spi_link_reliability "현재 4.5 MHz" 표기도 갱신.
+- **CAN 비트레이트 미결 추가**: APB1 36→32 MHz 변경 파급 — 설계 목표 비트레이트 32MHz 기준 재계산·실측 필요. rx_control·status 미결 추가.
+- **01 정본 코드베이스 교체**: 팀원(Sean) 전력제어 중심 정본(AppSequence/AppCtrl/Soft MHz, main.c 통합형) 채택. ESB/SPI relay·UART 모니터 발췌 이식. 빌드 통과·실보드 flash 완료(2026-06-15). UART/ESB 실측 미완(△). status 행 추가·다음시작점 갱신.
+- **SPI master/slave**: rx_control SPI section은 이미 Master 기술 — 추가 정정 불요. index rx_ble_module 설명에 "STM32 Master 확정" 명기.
+- schematic_rx_regulator_control_board RCC 함의 절: HSE 발진 실패 실보드 확인 경고 추가.
+
 ## [2026-06-15] 환원+lint | 03 flash 실측 추가 + 보드 정정(02·03=커스텀보드, DK 아님) + DEVICEID 게이트
 
 앞 프로브 정정(386b9fd) 후속 — 새 사실만 반영. 근거: JLink V9.3 Plus(69730359) CLI 실측.

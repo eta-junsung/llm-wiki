@@ -1,12 +1,12 @@
 ---
-date: 2026-06-12
+date: 2026-06-15
 ---
 
 # oled_tv_software — 구현 현황
 
 ## 다음 시작점
 
-**e2e 검증 — 01↔02↔RF↔03↔04 전 체인 연결**: 4보드 모두 플래시·연결 → ① TX status(0x10) 01 UART 모니터 수신 ② E2E Vout Ref(`buck 12.00` → 04 `Tx_Buck_Vout_Ref=1200`) ③ RX status(0x50) 04 UART 수신. (지금까지: 02-03-04 부분 셋업 + 양 끝 STM32 중 하나 미연결 위주 검증 — 전 체인 미검증)**
+**01 정본 코드베이스 UART/ESB 링크 실측**: 2026-06-15 정본(Sean 전력제어 중심 + ESB/SPI relay·UART 모니터 이식) 빌드 통과·실보드 flash 완료. → ① 01↔PC UART5 링크 정상 여부(11B 바이너리 모니터 수신, [[pc_uart_gui]]) ② ESB 링크 비트5/6 상태 확인. 이후 e2e 검증 — 01↔02↔RF↔03↔04 전 체인 연결 (TX status(0x10) 수신, E2E Vout Ref, RX status(0x50) 수신).
 
 `6fc8b92`(2026-06-12, 04-tx-control-dummy 브랜치): **02·03 BLE 릴레이 정리 + RX 방향 미연결 견고화**. 02 `protocol_init`에서 forward 버퍼(0x50/51/52)를 valid 헤더+LEN+CRC+zero payload로 seed(approach A RX 방향 대칭, TX 방향은 `e72b86e`에서 03 완료). `pkt_seed_buffers()` _shared 헬퍼 추출, `eta_spi.c/.h` _shared 공용화(02/03 바이트 동일). Monitor_Loop `seen_mask` 출력 게이트 제거 → 6줄 고정 스냅샷. [[app_protocol_module]] "릴레이 헤더 소유 원칙·02/03 통합 범위" 갱신.
 
@@ -54,6 +54,7 @@ date: 2026-06-12
 | ~~SPI 단절/복구 UART 경고 (LINK DOWN/UP)~~ | 제거 | `fe5bf14`에 구현(실보드 확인)됐으나 `9be1a7a`에서 **출력 제거** — COMM 라인 `SPI:%c`와 값 중복이라. 링크 상태는 이제 COMM 라인(edge 출력, `2f2aa65`)으로 |
 | SPI_FAIL 응답 — Warning/Fault 플래그·PWM 차단 | ✗ | 미구현. `rx_status.warning/.fault` 죽은 필드(항상 0). 상태 머신·pwm_stop 미연결 |
 | STM32 SPI 클럭 9MHz 상향 | ✗ | (보류 M4, 2026-06-09) 시도 후 revert(`7143f55`). 재개 시 nRF52832 SPIS 최대 SCK datasheet 선결 ([[roadmap]] §4) |
+| **01 정본 코드베이스 전환 (HSI 64MHz)** | △ | 2026-06-15. 팀원(Sean) 작성 전력제어 중심 정본(AppSequence/AppCtrl/Soft MHz, main.c 통합형)으로 교체. ESB/SPI relay·UART 모니터 함수 이식. STM32CubeIDE 2.1.1 빌드 통과·실보드 flash 완료. UART 링크·ESB 실측 미완. ([[sysclk_hsi_transition]] — HSI SYSCLK 64MHz 확정, PCLK1=32MHz, SPI 8Mbps) |
 
 ### 프로토콜·모니터 (tasks/monitor-formatting, 2026-06-01)
 
@@ -105,6 +106,7 @@ date: 2026-06-12
 - (02 리팩토링) `ADD_SPI` 전역 전파 점검 — 원래 `main.c` 로컬 `#define` → `.emProject` `c_preprocessor_definitions` 전역 이동. 의도치 않은 TU 전파 여부 확인 필요. ([[ses_build_conventions]]) *(헤더명 이슈는 eta_ 전환(b92835c)으로 해소)*
 - (03 리팩토링) 실보드 미검증 — `1d7f71a` 빌드 통과(에러 0), ESB PTX 동작·Monitor 출력·P0.17/18 오실로 확인 미수행. TX 보드·오실로스코프 연결 필요. ([[tx_ble_module]])
 - 0x51 Zin·Tx Buck Vout Ref: 코드 Type 재확인 (매뉴얼 Uint16 vs 코드 i16 잔여 차이)
+- **(01 정본) CAN 비트레이트 재확인**: HSI 전환으로 PCLK1 36→32 MHz 변경. 설계 목표 비트레이트(미확인)를 32MHz 기준으로 재계산·실측 필요 ([[sysclk_hsi_transition]])
 - (보류 M4) nRF52832 SPIS 최대 SCK 클럭 datasheet 미ingest — 9MHz 상향 재개 시 선결 ([[roadmap]] §4)
 - SPI_FAIL/ESB_FAIL 응답 — Warning/Fault 플래그·PWM 차단·상태 머신 미구현 ([[comm_state_monitoring]])
 - BLE_Comm_St `N=20` 실측 검증 — 실 RF 수신율 대비 적정성 미확인(`d2232fe`로 3→20 설정됨). STM32 모니터 rx 카운트가 `LOG_EN` 게이트로 미관측 (필요 시 임시 활성)

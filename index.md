@@ -31,12 +31,13 @@
 - [[rx_control]] — STM32F103RCT6 보드, PWM 채널 매핑·BKIN 핀·SPI Master
 - [[tim8]] — Advanced Timer, PWM1(CH1/CH2) + BKIN(PA6)
 - [[tim3]] — General Timer, PWM2(CH3/CH4). BDTR 없음
-- [[rx_ble_module]] — 02_RX_ble, nRF52832 ESB PRX. SPI Slave 9Mbps. BLE 시절 명칭 잔류
+- [[rx_ble_module]] — 02_RX_ble, nRF52832 ESB PRX. SPI Slave(STM32 Master 확정). BLE 시절 명칭 잔류
 - [[tx_ble_module]] — 03_TX_ble, nRF52832 ESB PTX. LED(LED1 P0.09·LED2 P0.08=spi_comm_st mirror·LED3=ble_comm_st mirror, 기본 DK P0.19/회사 P0.06 매크로)·DK↔회사 보드 분기(custom_board.h). TX 보드 SPI=SPIS 재작성(△ 미검증, `e706b53`)
 
 ### Concepts
 
 - [[team_briefing_oled]] — C팀 oled_tv_software 주간 업무보고 참고 자료 (보고 스냅샷 이력·작업 호 현황·진행/문제·다음계획 living-doc)
+- [[sysclk_hsi_transition]] — HSE 발진 실패(HSERDY 100ms 타임아웃) → HSI 전환. 확정 클럭 트리(HCLK 64/APB 32/타이머 64/ADC 8 MHz). SPI 8Mbps·CAN 비트레이트 재계산 필요. (2026-06-15)
 - [[pwm_system]] — TIM8/TIM3 64MHz·100kHz·120도 위상, `pwm_init`/`set_duty`/`pwm_set_freq`
 - [[dead_time]] — SW CCR offset 방식. TIM3에 BDTR 없어 두 타이머 통일
 - [[trip_zone]] — TIM8 BKIN(PA6) → `HAL_TIMEx_BreakCallback`로 PWM 전체 차단
@@ -73,7 +74,7 @@
 - [[spi_protocol_manual_260513]] — OLED TV 프로토콜 매뉴얼 (2026-05-13). ESB wire 포맷(11B) 정의 문서
 - [[prd]] — 시스템 PRD v1.0 (2026-05-26). 인수 시점 이해 스냅샷, 펌웨어 현황·미해결 의문점 일람
 - [[schematic_stm32_mini_pro_v10]] — STM32 mini-pro v10 회로도 (이미지 PDF, SPI 수동 추출). STM32↔nRF52832 PCA10040 배선표 포함
-- [[schematic_rx_regulator_control_board]] — Rx OLED Regulator Control Board 회로도 (OrCAD Design XML + PDF). MCU 전체 핀맵·39개 신호 인벤토리·TEMP swap 회로도 확인·OSC Clock(8MHz HSE 수동 크리스탈 X1+C2/C3+R10/R11, RCC_HSE_ON 함의)
+- [[schematic_rx_regulator_control_board]] — Rx OLED Regulator Control Board 회로도 (OrCAD Design XML + PDF). MCU 전체 핀맵·39개 신호 인벤토리·TEMP swap 회로도 확인·OSC Clock(8MHz HSE 수동 크리스탈 X1+C2/C3+R10/R11, RCC_HSE_ON 함의). **⚠️ 실보드 HSE 발진 실패 — 현재 HSI 동작([[sysclk_hsi_transition]])**
 - [[schematic_ble_module_board_v01e00]] — BLE Module Board Ver0.1E00 회로도 (02_RX_ble/03_TX_ble 공용 nRF52832 모듈). 커넥터 핀맵(CON1/CN1/CN2) 확정·전원 아키텍처 교정(PD3V3→필터→BLE_P3V3)·System Reset·안테나. raw PDF 사본 보유 (2026-06-05 재독)
 
 ---

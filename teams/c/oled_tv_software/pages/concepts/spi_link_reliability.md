@@ -53,7 +53,8 @@ subsystem: 01_RX_control, 02_RX_ble
 
 ## 미달 — STM32 SPI 9MHz 클럭 상향 (✗)
 
-- 시도 후 revert(`7143f55`). 현재 SPI는 사양 9.0Mbps([[spi_packet_format]])에 미달한 클럭으로 동작.
+- 시도 후 revert(`7143f55`). 프로토콜 매뉴얼 사양 9.0Mbps([[spi_packet_format]])에 미달.
+- **현재 실동작 속도**: **8.0 Mbps** — 정본 코드베이스 prescaler=/4, PCLK1=32 MHz(HSI 64MHz 기반 APB1). 구 dev revert 이후는 prescaler=/8 → 4 Mbps였음. → [[sysclk_hsi_transition]]
 - **선결**: nRF52832 SPIS 최대 SCK 클럭 datasheet ingest 후 재시도.
 
 ## 관련
