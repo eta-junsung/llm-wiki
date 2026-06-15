@@ -1,7 +1,7 @@
 ---
 tags: [concept, gpio, verification, pinmap]
 source: 기존 wiki 사실 종합 (rx_control, esb_timing_measurements, spi_link_reliability, adc_channel_map) + conversation-2026-06-01
-date: 2026-06-01
+date: 2026-06-15
 subsystem: 01_RX_control, 02_RX_ble, 03_TX_ble
 ---
 
@@ -20,7 +20,7 @@ subsystem: 01_RX_control, 02_RX_ble, 03_TX_ble
 | 검증 대상 (기능) | 프로브 핀 | 신호명 | 트리거 / 기대값 | 근거 |
 |---|---|---|---|---|
 | SPI CS 폴링 주기 (10ms 검증) | **PB12** | SPI nCS (`SPI_nCS`, SW 토글) | CS low 주기 측정 — 목표 10 ms. **현재 미동작**(다음 시작점 검증 대상) | [[rx_control]], [[spi_link_reliability]] |
-| SPI 클럭 활성 | **PB13** | SPI2_SCK | 전송 중 SCK 버스트, 9.0 Mbps(`/4`) | [[rx_control]] |
+| SPI 클럭 활성 | **PB13** | SPI2_SCK | 전송 중 SCK 버스트, **8.0 Mbps**(`/4`, PCLK1=32 MHz, HSI 기준) | [[rx_control]], [[sysclk_hsi_transition]] |
 | PWM1 출력 | **PC6 / PC7** | PWM1_P / PWM1_N ([[tim8]] CH1/CH2) | 100 kHz 구형파, 듀티 가변 | [[rx_control]], [[pwm_system]] |
 | PWM2 출력 | **PC8 / PC9** | PWM2_P / PWM2_N ([[tim3]] CH3/CH4) | 100 kHz, PWM1 대비 120° 위상지연(=3 µs) | [[pwm_system]] |
 | Trip Zone 차단 | **PA6** | BKIN (active high) | PA6 high → PWM 전출력 차단 확인 | [[trip_zone]] |
@@ -31,6 +31,57 @@ subsystem: 01_RX_control, 02_RX_ble, 03_TX_ble
 | DBG_LED1/2/3 | `?` | DBG_LED*_uC | `?` | [[rx_control]] |
 | TEST_MODE1/2 | `?` | TEST_MODE*_uC | `?` | [[rx_control]] |
 | LSG1/2 게이트 | `?` | LSG*_OP_SEL_uC | `?` | [[rx_control]] |
+
+## 01_RX_control UART5 검증 세팅 (보드 단독)
+
+이 보드만으로 UART5(PC12/PD2)를 검증하려면 **두 전원 도메인을 별도 공급**해야 한다. COMM_P5V(5V)는 ISOL2 통신측·MAX232 전원 — 없으면 TP17/TP15 신호 미출력.
+
+### 필수 전원
+
+| 공급 | 진입점 | GND | 용도 |
+|---|---|---|---|
+| **3.3V** | CN1.1 또는 CN1.2 | CN1.27 또는 CN1.28 (DGND) | MCU(STM32) + ISOL2 MCU측 |
+| **5V** | CON2.1 (COMM_P5V) | CN1.27 공용 가능 (※) | ISOL2 통신측 + MAX232 |
+
+> ※ p.4 B3(SHH-1M2012-221 페라이트 비드) One Point 결합: DGND ↔ COMM_GND가 DC 기준 공유됨 → CN1.27 GND 한 선으로 두 전원 GND를 묶어도 됨.
+
+### 옵션 A — CON2 경유 (RS232, 설계 의도 경로)
+
+```
+STM32 TX → ISOL2 → MAX232 T1IN → T1OUT → CON2.3 (SCIB_TXD232_CN)
+STM32 RX ← ISOL2 ← MAX232 R1OUT ← R1IN ← CON2.2 (SCIB_RXD232_CN)
+```
+
+| 항목 | 내용 |
+|---|---|
+| 필요 어댑터 | **USB-to-RS232** (USB-to-TTL 직접 연결 불가 — RS232 레벨) |
+| PC RX (STM32→PC) | **CON2.3** (SCIB_TXD232_CN) |
+| PC TX (PC→STM32) | **CON2.2** (SCIB_RXD232_CN) |
+
+### 옵션 B — TP17/TP15 경유 (5V TTL, MAX232 우회)
+
+```
+STM32 TX → ISOL2 → TP17 (SCIB_TX, 5V TTL) ── 직접 프로브
+STM32 RX ← ISOL2 ← TP15 (SCIB_RX, 5V TTL) ── 직접 프로브
+```
+
+| 항목 | 내용 |
+|---|---|
+| 필요 어댑터 | **5V 허용 USB-to-TTL** (3.3V 전용 어댑터는 5V 신호로 손상 위험) |
+| PC RX (STM32→PC) | **TP17** (SCIB_TX, p.4 ISOL2 B2 출력) |
+| PC TX (PC→STM32) | **TP15** (SCIB_RX, p.4 ISOL2 B1 출력) |
+| GND | COMM_GND (CN1.27과 B3 결합, 공통 GND 사용 가능) |
+
+### 옵션 비교
+
+| | A (CON2 RS232) | B (TP17/TP15 TTL) |
+|---|---|---|
+| 어댑터 | USB-to-RS232 필요 | 5V-tolerant USB-to-TTL |
+| 납땜 | 불필요 (커넥터 있음) | TP에 핀헤더/와이어 납땜 필요 |
+| 신호 레벨 | RS232 (±V) | 5V TTL |
+| COMM_P5V 필요 | ✓ (MAX232 전원) | ✓ (ISOL2 통신측 전원) |
+
+---
 
 ## 02_RX_ble / 03_TX_ble (nRF52832, ESB)
 
