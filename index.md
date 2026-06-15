@@ -12,7 +12,7 @@
 
 ### Reference
 
-- [[instruments]] — 회사 공통 계측 장비 + 프로그래밍/디버그 프로브 인벤토리 (Keysight MSOX3104T·Saleae Logic Pro 16 / ST-Link V2·J-Link OB SN1050329071·SAM-ICE SN24012600). planner가 검증 경로에 인용
+- [[instruments]] — 회사 공통 계측 장비 + 프로그래밍/디버그 프로브 인벤토리 (Keysight MSOX3104T·Saleae Logic Pro 16 / ST-Link V2·**J-Link V9.3 Plus SN69730359**(nRF 정본)·SAM-ICE SN24012600). **2026-06-15 §정정: J-Link OB SN1050329071 현존 미확인·프로브 식별은 ShowEmuList 실측 규율**. planner가 검증 경로에 인용
 
 ---
 
@@ -60,7 +60,7 @@
 - [[nrf52_firmware_conventions]] — **nRF52 코딩 관습**(b92835c→e85839c 확정): ISR printf 금지(HardFault 실증)·오류 카운터 패턴(1초 윈도우 append)·init/배너 printf 금지·NRF_LOG 초기화 잔재(호출 0건) 인지
 - [[ses_build_conventions]] — SES `.emProject` 함정: ①파일 목록 하드코딩(와일드카드 없음) ②nRF5 SDK 헤더 충돌(→`eta_` 접두사로 해소·[[nrf52_module_naming]]) ③`ADD_SPI` 전역 전파 주의 ④`<folder>` 는 가상 그룹·빌드 무영향
 - [[gpio_verification_pinmap]] — 검증 핀맵: 기능 → 프로브 핀 → 기대값 (SPI CS PB12·PWM PC6~9·ESB P0.17/18·ADC). planner가 검증 경로에 인용. 미확인 핀은 "확인 필요"로 호명
-- [[st_link_nrf52_flash]] — 3-MCU 플래싱 정본 (듀얼 프로브: 01 ST-Link 네이티브 / 03 J-Link OB / 02 DK 온보드). SN 고정 함정·CLI 실측·pyOCD 폴백 강등 (2026-06-05)
+- [[st_link_nrf52_flash]] — 3-MCU 플래싱 정본 (01 ST-Link V2 네이티브 / 02·03 nRF = **J-Link V9.3 Plus SN69730359** 외부 SWD, 02 flash 2026-06-15 실측 통과). 프로브 식별 ShowEmuList 규율·JLink connect 트러블슈팅(VTref↔데이터선)·pyOCD 폴백 강등. 종전 J-Link OB SN1050329071 정정
 
 ### Sources
 

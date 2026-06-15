@@ -4,6 +4,20 @@
 
 ---
 
+## [2026-06-15] 환원+lint | 프로브 인벤토리 정정(신규 J-Link V9.3 Plus·1050329071 강등) + 식별 규율
+
+근거: 실보드 CLI 실측 (JLink.exe ShowEmuList V9.48, pyocd list, Get-PnpDevice). 대상 [[instruments]]·[[st_link_nrf52_flash]]·index.
+
+- **신규 프로브**: J-Link V9.3 Plus (ProductName "J-Link CE", S/N **69730359**, HW V9.70, FW Dec 13 2022, RDI/FlashBP/FlashDL/JFlash/GDB, VID_1366 PID_0105). **02_RX_ble flash 실측 통과**(Bank0@0 57344 B, FICR 0x5FE168DA, exit 0, dev HEAD 6fc8b92 빌드 SHA256 일치). 03_TX_ble 절차 동치(실측 추후). → nRF52832 정본 프로브로 등재.
+- **★정정(모순 강등)**: 종전 인벤토리의 (a) "J-OB v2 = J-Link OB-nRF5340-NordicSemi / S/N 1050329071", (b) "SAM-ICE 24012600은 별개 제3프로브", (c) "둘 공존→SN 충돌→SelectEmuBySN 1050329071 필수"가 2026-06-15 실측과 정면 모순:
+  - 1050329071은 ShowEmuList·Get-PnpDevice 미enumerate → **현존 미확인**으로 강등.
+  - "J-OB v2" 동글 단독 연결 시 **SAM-ICE/24012600**으로 보고 → 별개 2프로브 전제 재현 불가(같은 유닛 이중기록 추정).
+  - "2프로브 공존→SN 충돌" 함정은 전제 미성립 → 강등(단 ≥2 present 시 SelectEmuBySN은 여전히 권장, SN은 실측값 사용).
+- **lint 규율 추가**: 프로브 정체·S/N은 메모가 아니라 **매 세션 ShowEmuList(J-Link)/pyocd list(ST-Link) 실측**으로 확정. 사람 별명("J-OB v2") ↔ 펌웨어 정체(ProductName/S/N) 분리 표기. instruments 머리에 명시.
+- **트러블슈팅 룰**(JLink): VTref 읽히나 attach 실패 = SWDIO/SWDCLK 스왑·미접촉(속도 무관) / 0바이트 30초 hang = 무전원·미배선(VTref 자체 부재). 두 증상 원인 다름.
+- 분담 갱신: 01=ST-Link V2 네이티브 / 02·03 nRF=J-Link V9.3 Plus(69730359). ST-Link+pyocd 폴백은 강등 유지(UID 40004100040000433539594E, 02 FICR read 정상).
+- index 2줄(instruments·st_link_nrf52_flash) 설명 동기화. 2026-06-05 history 로그(line 546~)는 append-only라 미수정.
+
 ## [2026-06-15] 환원 | CN1 전원 핀 사실 — schematic_rx_regulator_control_board _CN 절
 
 - 계기: 사용자가 OSC 발진 확인용으로 CN1.1=3.3V/CN1.27=GND 주입 중 — 핀배치 검증 요청
