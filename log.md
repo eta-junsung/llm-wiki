@@ -14,6 +14,13 @@
 - **uart5_packet_protocol.md 갱신**: UART5 RX 1바이트 함정 링크([[uart5_rx_polled_1byte]]). TYPE=0x10 왕복 검증 완료 표시.
 - **status.md 갱신**: UART5 양방향 △→✓. 다음 시작점 = branch gpio 커밋 → PWM P3 보호 착수. 미결 "GUI 왕복 검증 잔여" 해소.
 
+## [2026-06-16] 환원 | 04_tx_control Nucleo 포팅 작업 항목 기록
+
+근거: tx-dummy 브랜치 탐색 세션 (2026-06-16). 대상: [[roadmaps/04-tx-control-dummy]], [[status]].
+
+- **roadmaps/04-tx-control-dummy.md §7 추가**: NUCLEO-F103RB(F103RBT6) 포팅 작업 항목(N1~N4), 미결 게이트(①CubeMX 재생성 정책 / ②Nucleo HSE 크리스탈 실장 여부), 핀 호환성 탐색 결과(SPI2·UART5 동일 핀, PC13=USER 버튼 공유 무해).
+- **status.md**: Nucleo 포팅 미결 항목 추가, D1→D2를 포팅 완료 후 선결로 순서 조정.
+
 ## [2026-06-16] 환원 | buck 지령 바이너리화 완료·0x51 전파 검증
 
 근거: 2026-06-16 브랜치 merge 세션. 대상: [[uart_command_set]], [[buck_vout_ref_command_path]], [[status]].

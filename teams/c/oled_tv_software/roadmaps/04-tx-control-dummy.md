@@ -1,6 +1,6 @@
 ---
 tags: [roadmap, oled_tv_software, 04_tx_control, living-doc]
-date: 2026-06-11
+date: 2026-06-16
 ---
 
 # 04_tx_control 더미 프로젝트 — 작업 로드맵
@@ -212,6 +212,51 @@ wiki (`~/eta/wiki/teams/c/oled_tv_software/`):
 
 - ADC 실 센싱, PWM/제어 로직, 04 UART 명령 파싱 — 불필요
 - CubeMX 재생성, `git add -A`, `git commit --amend` — 금지
+
+---
+
+## 7. Nucleo 포팅 — NUCLEO-F103RB (브랜치 `tx-dummy`, 2026-06-16)
+
+### 배경
+
+STM32 NUCLEO-F103RB(STM32F103RBT6) 보드 확보. 04_tx_control을 이 보드에 올려 TX 대역으로 삼아 통신 체인 더미 검증 예정. 목표: 04(Nucleo) → 03(nRF52) → ESB → 02 → 01 체인 동작 확인.
+
+### 04_tx_control 현재 상태 (탐색 완료, 2026-06-16)
+
+- 타겟 MCU: STM32F103**RC**T6 (256KB/48KB, LQFP64)
+- App 코드(Application/Src/*.c)는 SPI2+DMA, UART5, GPIO만 사용 — DAC/TIM5/TIM8/ADC/CAN은 .ioc 메타에만 잔재, 코드·init 호출 없음
+- 실 flash 사용량: **~44KB / 128KB** → STM32F103RBT6(128KB/20KB)에 충분히 수용
+- App 코드 수정 불필요 — 포팅은 메타데이터·빌드 파일 교체만
+
+### 포팅 작업 항목 (N1~N4)
+
+| 단계 | 작업 | 상태 |
+|------|------|------|
+| **N1** | `.ioc` MCU 교체: `STM32F103RCT6` → `STM32F103RBT6` | ✗ |
+| **N2** | 링커 스크립트 교체: `STM32F103RCTX_FLASH.ld` → `STM32F103RBTX_FLASH.ld` (128K/20K) | ✗ |
+| **N3** | startup 파일 교체: `startup_stm32f103rctx.s` → `startup_stm32f103rbtx.s` | ✗ |
+| **N4** | 빌드 심볼 교체: `STM32F103xE` → `STM32F103xB` | ✗ |
+| (조건부) | HSE → HSI 클럭 재설정 — 게이트 ② 결과에 따라 | ? |
+
+### 미결 게이트 (작업 시작 전 결정 필요)
+
+**① CubeMX 재생성 정책 vs MCU 교체**
+
+MCU 교체는 통상 CubeMX 재생성을 요구. 그러나 CLAUDE.md "CubeMX Generate 금지" 규칙과 상충. 두 선택지:
+- **선택지 A**: `.ioc`/`.ld`/startup/define 수동 교체 (재생성 없음) — 규칙 준수, 수작업 위험
+- **선택지 B**: CubeMX로 MCU 교체 재생성 후, 생성된 `Core/Src/*.c`와 기존 `Application/` 중복 수동 삭제
+
+**② NUCLEO-F103RB 클럭 소스**
+
+04 현재: HSE 기반 PLL(`TX_control.ioc` / `main.c:113`). NUCLEO-F103RB는 온보드 HSE 크리스탈이 **미실장일 가능성**이 있음.
+- 확인 방법: 보드 X3 위치 크리스탈 실장 여부 육안 확인
+- HSE 없으면 `SystemClock_Config`를 HSI 기반으로 수정 필요 ([[sysclk_hsi_transition]] 참조 — SYSCLK 64MHz 상한, SPI prescaler 재계산)
+
+### 핀 호환성 (탐색 완료)
+
+- `SPI2`(PB12/13/14/15), `UART5`(PC12/PD2): LQFP64 동일 패키지 → 핀 번호 그대로
+- `PC13`(DBG_LED1): Nucleo USER 버튼과 공유 — 디버그 LED 기능 손실만, 통신에 무해
+- Nucleo morpho 커넥터에서 SPI2/UART5 핀 물리 인출 가용성: 작업 시 확인
 
 ---
 
