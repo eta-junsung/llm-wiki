@@ -1,5 +1,5 @@
 ---
-date: 2026-06-12
+date: 2026-06-16
 ---
 
 # 8kw-ev-wpt-tx — 구현 현황
@@ -51,9 +51,9 @@ UART5로 ADC 6채널을 PC에 송출하는 **18B 고정 바이너리 패킷** + 
 - ⚠️ **선례 차이 명기**: oled([[pc_uart_gui]])는 XOR 체크섬·다중 HDR·양방향, 8kw는 CRC-16·단일 패킷·**단방향 텔레메트리**.
 - ✅ **A1.5 UART 출력 채널 하드코딩 미결 해소**: 구 `eta_uart5.c` 채널별 `DebugP_log` 텍스트 라인 → `eta_packet.c` 채널 루프 직렬화로 대체. 채널 추가 시 출력 라인 수동 추가 불요.
 
-## 다음 작업: PWM 전력제어 착수(신규 트랙) / ADC 잔여(A3·A4) / UART5 Phase 2(RS-485, 잔여)
+## 다음 작업: GPIO 출력 구현(신규 트랙) / PWM P3 보호 / ADC 잔여(A3·A4) / UART5 Phase 2(RS-485, 잔여)
 
-ADC 계측(A2)은 완료. ADC 잔여는 스펙·HW 대기로 막혀 있어, **다음 활성 트랙은 PWM**이다.
+ADC 계측(A2)은 완료, PWM P2까지 완료. ADC 잔여는 스펙·HW 대기로 막혀 있어, **다음 활성 트랙은 GPIO 출력**이다.
 
 ### 다음 활성 트랙 — PWM 전력제어 (작업 호 [[pwm]], **P1 ✓ + P2 완전 완료** — 단일소스·스윕·85kHz·EPWM0 fan-out+isoform·4-DT sweep PASS)
 
@@ -116,11 +116,13 @@ P1·P2(150/300ns 단일소스) 위에 **주파수 확정값(85 kHz) 반영 + 튜
 | UART5 차동 송신 (RS-485) | △ | 단독 루프백 PASS(TCA6416 P00/P14=LOW, J1.4↔J1.3, 2026-06-10). Phase 2(8kw 보드 결합 RS-485, `EN_485`=GPIO91) 잔여 |
 | 실보드 교차검증 (A4) | ✗ | 멀티미터 기준값 교차 (A3 후) |
 | **PWM 전력제어 (P0~P4)** | ✓ (P1 4/4·P2 **완전 완료**·knob flash검증 ✓) | [[pwm]]. **4핀 HS1/LS1/HS2/LS2 ✓실보드 검증**. P2: `ETA_DEADTIME_NS` 단일소스(`8046744`). `d01fc0a`: 85kHz 고정(85.032kHz)·config 분리. **`4014901`: EPWM0 fan-out + isoform — ±2 ns, 4-DT sweep PASS**. **knob flash+boot silicon 검증(2026-06-12): 16/16 ≤2 ns, production 150 ns 확정**. 다음 P3 보호. 핀맵 [[pwm_pinmap]]. 리포트 [[pwm_leg2_isoform_report]]·[[pwm_deadtime_knob_verify]] |
+| **GPIO 출력 (485_EN·GD_EN_seed)** | ✗ | `eta_gpio.{c,h}` 미구현. 핀맵 [[gpio_pinmap]]: 485_EN=GPIO91=J5.48, GD_EN_seed=GPIO93=J4.33. 다음 활성 트랙. |
 
 상태 기호: `✓` 구현+검증 / `△` 구현됨·미검증 / `?` 추가 정보 필요 / `✗` 미구현
 
 ## 미결 사항
 
+- **GPIO 출력 미구현 (다음 활성 트랙)**: `eta_gpio.{c,h}` 미존재. 485_EN(GPIO91=J5.48)·GD_EN_seed(GPIO93=J4.33) 두 핀 output 초기화·제어 API 구현 필요. 핀맵 [[gpio_pinmap]]. GD_EN_seed 극성(active-high 가정)·485_EN 초기값 타이밍 회로도 확인 잔여.
 - **A3 센서 스펙 미입수 (블로커 유지)**: mV→물리량(°C/V/A) 변환 코드 전무. `eta_adc_loop`은 raw·mV까지만. Temp_Module1/2 출력 특성(V/°C), GA_Vin 분압비, I_LCC_SEN·I_COIL_SEN·GA_Iin_SEN 감도(mV/A)·오프셋 모두 미입수.
 - **UART5 송신 논블로킹화 (신규 잔여)**: 현재 패킷 송신이 **polled blocking**(`eta_uart5.c`). 제어루프와 병행하려면 콜백/DMA 논블로킹 전환 필요. ([[uart5_packet_protocol]] §전송)
 - **UART5 Phase 2 — 8kw 보드 결합 RS-485 차동 (잔여)**: 단독 루프백(2026-06-10)·PC 텔레메트리(2026-06-11, 18B 패킷+GUI) PASS. 잔여 = 8kw 보드 결합 시 THVD1400 U13 DE(`EN_485`=GPIO91=J5.48) 구현·검증. 정본 [[lp_am263p_uart_epwm_mux]]·[[uart5_packet_protocol]]. (**DE 핀**: THVD1400 U13 → LP-AM263P J5.48 = **GPIO91**, 코드 식별자 `EN_485`.)
