@@ -4,6 +4,14 @@
 
 ---
 
+## [2026-06-16] 환원 | DK 검증 완료·SPI 배선 핀맵 신설·SpiCommSt DOWN 진단 경로
+
+근거: DK 보드(STM32 Mini Pro + PCA10040) 검증 세션 (2026-06-16). 대상: [[status]], [[spi_pin_mapping]](신설), [[comm_state_monitoring]].
+
+- **status.md** "01 정본 코드베이스 전환 (HSI 64MHz)" △→✓. DK 검증일 2026-06-16, 정본 경로 `OLED_TV_Rx_Module/` (브랜치 merge) 기록.
+- **spi_pin_mapping.md 신설**: STM32↔nRF52 SPI 물리 배선 핀 대응표 (SCK PB13↔P0.27 / MOSI PB15↔P0.25 / MISO PB14↔P0.26 / CS PB12↔P0.22). MISO 미연결 증상(spi_rx_pkt 전부 0xFF → 체크섬 불일치 패킷 드롭 → SpiCommSt DOWN) 기술.
+- **comm_state_monitoring.md** "SpiCommSt DOWN 진단 경로" 소절 추가: MISO 배선 → spi_rx_pkt 0xFF 확인 → 나머지 배선 → 구조적 결합 순 진단 흐름.
+
 ## [2026-06-15] 환원 | UART5 보드단독 검증 세팅 + Korlan/RS485 사용 가능성 정리
 
 근거: 회로도 p.4·p.5 분석 (2026-06-15 대화). 대상: [[gpio_verification_pinmap]].

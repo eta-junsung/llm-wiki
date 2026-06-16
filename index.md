@@ -48,6 +48,7 @@
 - [[cubeide_cli_build_trap]] — CubeIDE **CLI 빌드 불가**(`stm32cubeidec.exe` GUI 서브시스템·즉종료) → IDE **Ctrl+B** 직접 빌드. CubeMX 재생성 금지
 - [[adc_channel_map]] — ADC1 6채널 핀맵(PA0~PA3, PC4/PC5) + TEMP1/TEMP2 라벨 swap 함정 + 평가보드 시험 가이드
 - [[spi_packet_format]] — STM32-nRF 내부 SPI wire 포맷 (11B 고정, HDR 0x10~0x12/0x50~0x52). ESB와 동일 패킷 구조
+- [[spi_pin_mapping]] — STM32↔nRF52 SPI 물리 배선 핀맵 (SCK PB13↔P0.27 / MOSI PB15↔P0.25 / **MISO PB14↔P0.26** / CS PB12↔P0.22). MISO 미연결 시 spi_rx_pkt 전부 0xFF → SpiCommSt DOWN. (DK 실측 2026-06-16)
 - [[esb_packet_format]] — ESB wire 포맷 (11B, HDR round-robin 0x10-0x12/0x50-0x52, `ESB_TX_INTERVAL_MS=1ms`, ACK with payload, CRC-valid only 콜백)
 - [[esb_link_layer]] — ESB 링크 파라미터 (`ESB_TX_INTERVAL_MS=1ms`, ACK with payload, NRF_ESB_MAX_PAYLOAD_LENGTH=64) + 미결 파라미터
 - [[esb_timing_measurements]] — ESB 실측 타이밍(오실로): TX→ACK ~470µs / TX 주기 ~920µs / ACK 주기 ~940µs. P0.17/18 GPIO 프로브, 03_TX_esb esb 브랜치
