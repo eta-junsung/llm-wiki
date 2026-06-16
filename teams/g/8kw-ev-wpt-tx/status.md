@@ -10,7 +10,7 @@ date: 2026-06-16
 ## 소스 레이아웃
 
 - BSP 디렉토리는 **`src/eta_bsp/`** (eta_ 접두가 디렉토리명까지 적용). eta_bsp 레이어 도입 (commit a655de4, edddc31).
-- 파일: `src/main.c`, `src/eta_bsp/eta_adc.{c,h}`, `src/eta_bsp/eta_uart5.{c,h}`, **`src/eta_bsp/eta_pwm.{c,h}`**, **`src/eta_bsp/eta_tuning.h`**(신설 — 컴파일타임 튜닝 knob, `ETA_DEADTIME_NS` 단일소스).
+- 파일: `src/main.c`, `src/eta_bsp/eta_adc.{c,h}`, `src/eta_bsp/eta_uart5.{c,h}`, **`src/eta_bsp/eta_pwm.{c,h}`**, **`src/eta_bsp/eta_gpio.{c,h}`**(신설 — GPIO 출력 2핀), **`src/eta_bsp/eta_tuning.h`**(신설 — 컴파일타임 튜닝 knob, `ETA_DEADTIME_NS` 단일소스).
 - 컨벤션: **eta_ 접두 + _loop 접미** (`eta_adc_loop`, `eta_uart5_loop` — ISR이 flag만 세우고 main 루프 함수가 소비).
 - **튜닝 knob 분리(`eta_tuning.h`)**: dead-time 등 HW 엔지니어가 만지는 컴파일타임 상수를 한 파일에 모음. 한 줄만 바꿔 재빌드(**build-per-change**)하면 파생값 자동 추종. `eta_pwm_init()`이 런타임 override라 **SysConfig 재생성에 면역**(아래 §빌드 환경).
 
@@ -51,9 +51,47 @@ UART5로 ADC 6채널을 PC에 송출하는 **18B 고정 바이너리 패킷** + 
 - ⚠️ **선례 차이 명기**: oled([[pc_uart_gui]])는 XOR 체크섬·다중 HDR·양방향, 8kw는 CRC-16·단일 패킷·**단방향 텔레메트리**.
 - ✅ **A1.5 UART 출력 채널 하드코딩 미결 해소**: 구 `eta_uart5.c` 채널별 `DebugP_log` 텍스트 라인 → `eta_packet.c` 채널 루프 직렬화로 대체. 채널 추가 시 출력 라인 수동 추가 불요.
 
-## 다음 작업: GPIO 출력 구현(신규 트랙) / PWM P3 보호 / ADC 잔여(A3·A4) / UART5 Phase 2(RS-485, 잔여)
+## 직전 완료 — GPIO 출력 구현 + UART5 양방향 확장 (branch gpio, 실보드 검증 2026-06-16)
 
-ADC 계측(A2)은 완료, PWM P2까지 완료. ADC 잔여는 스펙·HW 대기로 막혀 있어, **다음 활성 트랙은 GPIO 출력**이다.
+GPIO 출력 2핀 브링업과 UART5 양방향 확장(GPIO 커맨드 RX + 상태 TX)을 완료. 정본 [[gpio_impl]].
+
+### GPIO 출력 (`eta_gpio.{c,h}` 신설)
+
+| 신호 | GPIO | 커넥터 핀 | 초기값 | 실측 |
+|------|------|-----------|--------|------|
+| 485_EN | 91 | J5.48 | LOW | 10 Hz 펄스 (UART5 DE 토글) 확인 |
+| GD_EN_seed | 93 | J4.33 | LOW | HIGH 확인 |
+
+- **PADCONFIG 런타임 mux** (`PIN_MODE(7)`) — `eta_gpio_init()`이 런타임 직접 설정. `example.syscfg` 불변.
+- **TCA6416A U54 PRU_MUX_SEL 헤더 라우팅**: I2C1(0x20) P07=HIGH로 GPIO93(J4.33) 헤더 라우팅 활성화.
+- API: `eta_gpio_set_485_en(bool)` / `eta_gpio_set_gd_en(bool)` — 헤더 extern 공개(UART5 연동용).
+
+### UART5 양방향 확장
+
+- **TX 방향 자동 토글**: `UART_write` 전 `eta_gpio_set_485_en(true)`, 후 `false`. **485_EN 자동 DE 구현 완료.**
+- **TYPE=0x10 GPIO 커맨드 RX**: PC→MCU. `CMD_ID=0x01`(GD_EN_seed), `VALUE=0/1`. `eta_uart5.c`에 파서 추가.
+- **TYPE=0x02 GPIO 상태 TX**: MCU→PC. 7B 이벤트 패킷 — init·set_gd_en 시 자동 송신. `bit0=485_EN, bit1=GD_EN_seed`.
+
+### PC GUI GPIO Control 섹션 (`tools/gui/gui.py`)
+
+- 485_EN: 상태 표시 라벨(읽기 전용).
+- GD_EN_seed: ON/OFF 토글 버튼 + 상태 라벨.
+- `send_gpio_cmd()`: TYPE=0x10 커맨드 전송, Lock 포함, CRC-16 적용.
+
+### 빌드 시스템 정리
+
+- CCS IDE `build/` Exclude from Build 적용 (makefile 중복 심볼 해소).
+- `flash_node_8kw.js` 경로: `build/` → `Release/`.
+- `build/makefile FILES_common`에 `eta_gpio.c` 추가.
+- `.theia/launch.json`: 단일 project-based launch만 유지.
+
+---
+
+## 다음 작업: GUI 연동 검증 → 커밋 / PWM P3 보호 / ADC 잔여(A3·A4) / UART5 Phase 2(RS-485)
+
+**다음 시작점**: GUI GPIO Control 섹션으로 TYPE=0x10 커맨드 전송 → TYPE=0x02 응답 왕복 검증 완료 후 branch gpio 커밋.
+
+ADC 잔여는 스펙·HW 대기로 막혀 있어, **GPIO 검증 완료 후 다음 활성 트랙은 PWM P3 보호**.
 
 ### 다음 활성 트랙 — PWM 전력제어 (작업 호 [[pwm]], **P1 ✓ + P2 완전 완료** — 단일소스·스윕·85kHz·EPWM0 fan-out+isoform·4-DT sweep PASS)
 
@@ -113,19 +151,21 @@ P1·P2(150/300ns 단일소스) 위에 **주파수 확정값(85 kHz) 반영 + 튜
 | eta_adc.c 테이블 주도 리팩토링 | ✓ | ISR/init/loop 통합, 332→232줄, 동작 불변 (c512e3b) |
 | 신호별 스케일링 (A3) | ? | 센서 스펙 미입수 — 블로커 |
 | **UART5 PC 텔레메트리 (바이너리 패킷 + GUI)** | ✓ | branch uart5(ba241fa·979699d). 18B 패킷(SOF/LEN/TYPE/SEQ/raw×6/CRC-16) RTI2 10Hz + PC GUI(`tools/gui/gui.py`). 실보드 COM13 10.067Hz·301프레임·0드롭/0CRC. 정본 [[uart5_packet_protocol]]·[[pc_monitor_gui]] |
-| UART5 차동 송신 (RS-485) | △ | 단독 루프백 PASS(TCA6416 P00/P14=LOW, J1.4↔J1.3, 2026-06-10). Phase 2(8kw 보드 결합 RS-485, `EN_485`=GPIO91) 잔여 |
+| UART5 차동 송신 (RS-485) | △ | 단독 루프백 PASS(TCA6416 P00/P14=LOW, J1.4↔J1.3, 2026-06-10). **485_EN DE 자동 토글 구현 완료(branch gpio)**. 잔여 = 8kw 보드 결합 RS-485 차동 검증 |
+| **UART5 양방향 확장 (TYPE=0x02·0x10)** | △ | GPIO 상태 TX(TYPE=0x02 7B)·GPIO 커맨드 RX(TYPE=0x10 8B) 구현. GUI GPIO Control 섹션 구현. 실보드 GUI 왕복 검증 잔여. 정본 [[uart5_packet_protocol]]·[[gpio_impl]] |
 | 실보드 교차검증 (A4) | ✗ | 멀티미터 기준값 교차 (A3 후) |
 | **PWM 전력제어 (P0~P4)** | ✓ (P1 4/4·P2 **완전 완료**·knob flash검증 ✓) | [[pwm]]. **4핀 HS1/LS1/HS2/LS2 ✓실보드 검증**. P2: `ETA_DEADTIME_NS` 단일소스(`8046744`). `d01fc0a`: 85kHz 고정(85.032kHz)·config 분리. **`4014901`: EPWM0 fan-out + isoform — ±2 ns, 4-DT sweep PASS**. **knob flash+boot silicon 검증(2026-06-12): 16/16 ≤2 ns, production 150 ns 확정**. 다음 P3 보호. 핀맵 [[pwm_pinmap]]. 리포트 [[pwm_leg2_isoform_report]]·[[pwm_deadtime_knob_verify]] |
-| **GPIO 출력 (485_EN·GD_EN_seed)** | ✗ | `eta_gpio.{c,h}` 미구현. 핀맵 [[gpio_pinmap]]: 485_EN=GPIO91=J5.48, GD_EN_seed=GPIO93=J4.33. 다음 활성 트랙. |
+| **GPIO 출력 (485_EN·GD_EN_seed)** | ✓ | `eta_gpio.{c,h}` 구현·실보드 검증(2026-06-16). GPIO91(J5.48) 10Hz 펄스·GPIO93(J4.33) HIGH 확인. PADCONFIG 런타임 mux + TCA6416A PRU_MUX_SEL. 핀맵 [[gpio_pinmap]], 구현 [[gpio_impl]] |
 
 상태 기호: `✓` 구현+검증 / `△` 구현됨·미검증 / `?` 추가 정보 필요 / `✗` 미구현
 
 ## 미결 사항
 
-- **GPIO 출력 미구현 (다음 활성 트랙)**: `eta_gpio.{c,h}` 미존재. 485_EN(GPIO91=J5.48)·GD_EN_seed(GPIO93=J4.33) 두 핀 output 초기화·제어 API 구현 필요. 핀맵 [[gpio_pinmap]]. GD_EN_seed 극성(active-high 가정)·485_EN 초기값 타이밍 회로도 확인 잔여.
+- ~~GPIO 출력 미구현~~ — ✅ **완료(2026-06-16, branch gpio)**: `eta_gpio.{c,h}` 구현. GPIO91(J5.48) 10Hz 펄스·GPIO93(J4.33) HIGH 실보드 확인. PADCONFIG 런타임 mux + TCA6416A PRU_MUX_SEL. 상세 [[gpio_impl]].
+- **GUI GPIO Control 왕복 검증 잔여**: TYPE=0x10 커맨드 PC→MCU·TYPE=0x02 응답 MCU→PC 왕복 미검증. 완료 후 branch gpio 커밋.
 - **A3 센서 스펙 미입수 (블로커 유지)**: mV→물리량(°C/V/A) 변환 코드 전무. `eta_adc_loop`은 raw·mV까지만. Temp_Module1/2 출력 특성(V/°C), GA_Vin 분압비, I_LCC_SEN·I_COIL_SEN·GA_Iin_SEN 감도(mV/A)·오프셋 모두 미입수.
 - **UART5 송신 논블로킹화 (신규 잔여)**: 현재 패킷 송신이 **polled blocking**(`eta_uart5.c`). 제어루프와 병행하려면 콜백/DMA 논블로킹 전환 필요. ([[uart5_packet_protocol]] §전송)
-- **UART5 Phase 2 — 8kw 보드 결합 RS-485 차동 (잔여)**: 단독 루프백(2026-06-10)·PC 텔레메트리(2026-06-11, 18B 패킷+GUI) PASS. 잔여 = 8kw 보드 결합 시 THVD1400 U13 DE(`EN_485`=GPIO91=J5.48) 구현·검증. 정본 [[lp_am263p_uart_epwm_mux]]·[[uart5_packet_protocol]]. (**DE 핀**: THVD1400 U13 → LP-AM263P J5.48 = **GPIO91**, 코드 식별자 `EN_485`.)
+- **UART5 Phase 2 — 8kw 보드 결합 RS-485 차동 (잔여)**: 단독 루프백(2026-06-10)·PC 텔레메트리(2026-06-11) PASS. **DE 자동 토글(`EN_485`=GPIO91) 구현 완료(2026-06-16)**. 잔여 = 8kw 보드 결합 시 THVD1400 U13 차동 라인 실물 검증. 정본 [[lp_am263p_uart_epwm_mux]]·[[uart5_packet_protocol]]·[[gpio_impl]].
 - **UART5 PC 도달 경로 제약 (참조)**: UART5는 온보드 XDS110 가상 COM에 안 실리고 **외부 CP210x(COM13, J1.4→THVD1400→J24)로만** PC 도달. ([[pc_monitor_gui]])
 - **물리량 변환 계수 미입수 (GUI Physical placeholder)**: A3 센서 스펙과 동일 블로커. GUI Physical 컬럼은 계수 테이블 단일 소스라 입수 시 한 곳만 수정(GA_Vin `— V`·전류 3채널 `— A`·온도 `—`). ([[pc_monitor_gui]]·[[adc_pinmap]])
 - ~~UART 출력 채널 하드코딩~~ — ✅ **해소(branch uart5)**: 구 `eta_uart5.c` 채널별 `DebugP_log` 텍스트 라인 → `eta_packet.c` 채널 루프 직렬화로 대체. ADC 채널 추가 시 출력 라인 수동 추가 불요(eta_adc.c 테이블과 동일하게 자동 추종).

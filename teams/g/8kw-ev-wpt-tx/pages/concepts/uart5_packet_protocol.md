@@ -1,29 +1,71 @@
 ---
 tags: [concept, uart5, packet, protocol, telemetry, 8kw-ev-wpt-tx]
-source: 펌웨어 repo branch uart5 (commit ba241fa·979699d) + 실보드 검증 2026-06-11. src/eta_bsp/eta_packet.{c,h}, eta_uart5.{c,h}
-date: 2026-06-11
+source: 펌웨어 repo branch uart5 (commit ba241fa·979699d) + 실보드 검증 2026-06-11. branch gpio GPIO 양방향 확장 2026-06-16. src/eta_bsp/eta_packet.{c,h}, eta_uart5.{c,h}
+date: 2026-06-16
 subsystem: 8kw-ev-wpt-tx
 ---
 
 # UART5 텔레메트리 패킷 프로토콜 — 펌웨어 ↔ PC 공통 계약
 
-LP-AM263P 8kW WPT TX 보드가 UART5로 PC에 ADC 6채널을 송출하는 **18B 고정 바이너리 프레임**. 펌웨어와 호스트([[pc_monitor_gui]])가 공유하는 wire 계약이다. 단방향(보드→PC) 텔레메트리. branch `uart5`(commit `ba241fa`·`979699d`), 실보드 검증 2026-06-11.
+LP-AM263P 8kW WPT TX 보드가 UART5로 PC와 주고받는 **바이너리 패킷 프레임**. 펌웨어와 호스트([[pc_monitor_gui]])가 공유하는 wire 계약이다. branch `uart5`(commit `ba241fa`·`979699d`) 실보드 검증 2026-06-11, branch `gpio` GPIO 양방향 확장 2026-06-16.
 
-선례 = c팀 oled의 [[pc_uart_gui]]/[[spi_packet_format]](11B·XOR·다중 HDR·양방향). 이 8kw 프로토콜은 그 강건성(HDR 동기+체크섬 재동기)을 가져오되 **CRC-16·단일 패킷·단방향**으로 단순화한 별개 계약이다.
+선례 = c팀 oled의 [[pc_uart_gui]]/[[spi_packet_format]](11B·XOR·다중 HDR·양방향). 이 8kw 프로토콜은 그 강건성(HDR 동기+체크섬 재동기)을 가져오되 **CRC-16**으로 단순화한 별개 계약이다.
 
-## 프레임 (18B 고정, big-endian)
+## 공통 프레임 구조 (big-endian)
+
+```
+[SOF=0xA5][LEN][TYPE][SEQ][...payload (LEN bytes)...][CRC-16 2B]
+```
+
+- **CRC-16/CCITT-FALSE**: poly `0x1021`, init `0xFFFF`, reflect 없음. 계산 범위 = **byte[1..끝-2]** (LEN부터 payload 끝, SOF·CRC 제외).
+- **SEQ**: 0~255 rolling, 드롭 감지용.
+
+---
+
+## 패킷 타입
+
+### TYPE=0x01 — ADC 텔레메트리 (MCU→PC, 18B 고정)
 
 | 바이트 | 필드 | 값/의미 |
 |--------|------|---------|
-| [0] | SOF | `0xA5` (start of frame) |
-| [1] | LEN | `12` (payload 길이) |
-| [2] | TYPE | `0x01` (ADC telemetry) |
-| [3] | SEQ | `0..255` rolling (드롭 감지용) |
-| [4..15] | payload | ch0..ch5 raw, 각 **u16 big-endian** (6×2 = 12B) |
-| [16..17] | CRC | **CRC-16/CCITT-FALSE** |
+| [0] | SOF | `0xA5` |
+| [1] | LEN | `12` |
+| [2] | TYPE | `0x01` |
+| [3] | SEQ | rolling |
+| [4..15] | payload | ch0..ch5 raw **u16 big-endian** (6×2=12B) |
+| [16..17] | CRC | CRC-16/CCITT-FALSE |
 
-- **CRC-16/CCITT-FALSE**: poly `0x1021`, init `0xFFFF`, reflect 없음(in/out 모두). 계산 범위 = **byte[1..15]**(LEN·TYPE·SEQ·payload, SOF·CRC 자신 제외 = 15B).
-- 전체 18B = 헤더 4B + payload 12B + CRC 2B.
+- 송신 주기 **RTI2 10 Hz(100 ms)**, polled blocking.
+- 실보드 검증(2026-06-11): 10.067 Hz·301프레임·SEQ 드롭 0·CRC 에러 0.
+
+### TYPE=0x02 — GPIO 상태 (MCU→PC, 7B, 이벤트 기반)
+
+| 바이트 | 필드 | 값/의미 |
+|--------|------|---------|
+| [0] | SOF | `0xA5` |
+| [1] | LEN | `1` |
+| [2] | TYPE | `0x02` |
+| [3] | SEQ | rolling |
+| [4] | GPIO_STATUS | bit0=485_EN, bit1=GD_EN_seed |
+| [5..6] | CRC | CRC-16/CCITT-FALSE |
+
+- **이벤트 기반**: `eta_gpio_init()` 직후 및 `set_gd_en()` 호출 시 자동 송신.
+- GUI 수신 시 GPIO Control 섹션 상태 라벨 갱신.
+
+### TYPE=0x10 — GPIO 커맨드 (PC→MCU, 8B, fire-and-forget)
+
+| 바이트 | 필드 | 값/의미 |
+|--------|------|---------|
+| [0] | SOF | `0xA5` |
+| [1] | LEN | `2` |
+| [2] | TYPE | `0x10` |
+| [3] | SEQ | rolling |
+| [4] | CMD_ID | `0x01`=GD_EN_seed |
+| [5] | VALUE | `0`=LOW / `1`=HIGH |
+| [6..7] | CRC | CRC-16/CCITT-FALSE |
+
+- MCU 수신 → `eta_gpio_set_gd_en(VALUE)` 즉시 실행 → TYPE=0x02 응답 반송.
+- GUI `send_gpio_cmd()`: Lock 포함, CRC-16 적용.
 
 ## payload 채널 순서 (ETA_ADC_CH enum 그대로)
 
@@ -47,8 +89,9 @@ LP-AM263P 8kW WPT TX 보드가 UART5로 PC에 ADC 6채널을 송출하는 **18B 
 ## 전송 / 링크
 
 - UART5 **115200 / 8N1**, **polled blocking** 송신.
-- 송신 주기 = **RTI2 10 Hz(100 ms)**.
-- 펌웨어 구조: `src/eta_bsp/eta_packet.{c,h}`가 프레임 조립 + CRC, `eta_uart5.c`는 송신만 담당. 핀맵은 `eta_uart5.h` — **TXD = EPWM15_A = J1.4**.
+- ADC 텔레메트리(TYPE=0x01) 주기 = **RTI2 10 Hz(100 ms)**.
+- **485_EN(GPIO91) DE 자동 토글**: `UART_write` 전 HIGH → 후 LOW. THVD1400 U13 TX enable 자동 제어 — 별도 코드 불필요.
+- 펌웨어 구조: `src/eta_bsp/eta_packet.{c,h}`가 프레임 조립 + CRC, `eta_uart5.c`는 송신·수신·파서 담당. 핀맵 `eta_uart5.h` — **TXD = EPWM15_A = J1.4**.
 - ⚠️ UART5_TXD는 alt-function 패드(EPWM15)라 SoC IOMUX force_io 필요([[am263p_iomux_force_io_enable]]) + 온보드 보드먹스(U54/TCA6416 P00/P14=LOW) 게이트([[lp_am263p_uart_epwm_mux]]). 둘 다 충족돼야 J1.4 헤더로 출력.
 
 ## 수신측 재동기 (호스트 파서 계약)
@@ -70,6 +113,7 @@ LP-AM263P 8kW WPT TX 보드가 UART5로 PC에 ADC 6채널을 송출하는 **18B 
 - **UART5는 온보드 XDS110 가상 COM에 안 실린다** — 외부 CP210x(COM13)로만 PC 도달.
 - **송신이 polled blocking** — 논블로킹(콜백/DMA) 전환은 Phase 2 잔여.
 - 물리량(°C/V/A) 미교정 — wire는 raw, host는 mV까지가 종착점(계수 미입수, [[adc_pinmap]] §미확인).
+- **TYPE=0x02·0x10 GUI 왕복 검증 잔여** — 실보드에서 PC→MCU TYPE=0x10·MCU→PC TYPE=0x02 왕복 미검증.
 
 ## 관련
 
