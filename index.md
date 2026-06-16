@@ -145,7 +145,8 @@
 ### Concepts
 
 - [[team_briefing_8kw]] — **팀 업무보고 참고 자료(8kw)**: 주차별 보고 스냅샷 이력·작업 호(A0~A4)·ADC 6채널 완료 현재 위치·만난 문제표(트리거 결선·soft 재셔플)·다음(A3 스펙 대기/UART5 복구). 보고 직전 참고
-- [[jtag_flash_clean_host]] — **운영 함정**: AM263P OSPI JTAG 굽기는 CCS IDE를 완전히 내린 클린 호스트에서. host-driven 스크립팅(run.bat/flash_node.js, DSS Rhino) ↔ IDE 상주 cloudagent+DSLite 디버그 백엔드 경합 → 비일관 실패(펌웨어/보드 오인 위험). `getDebugSessions=[]`라도 프로세스 레벨 확인 (2026-06-05 실측)
+- [[jtag_flash_clean_host]] — **운영 함정 2종**: ①AM263P OSPI JTAG 굽기는 CCS IDE 완전 종료 후(IDE 상주 DSLite 경합 → 비일관 실패, 2026-06-05 실측). ②"Run > Flash Project" **금지** — SBL 미포함, 전원사이클 후 standalone 부팅 불가(2026-06-16). 올바른 경로: `tools/jtag_flash/run_flash_node`
+- [[uart5_rx_polled_1byte]] — **SDK 함정**: AM263Px `UART_read()` POLLED+NO_WAIT+FULL에서 `rx.count`가 앱 transaction에 미반영 → stale 0x00 버퍼 주입·SOF 탐색 불가. 수정: `count=1`·반환값 `==SystemP_SUCCESS` (2026-06-16 실보드 검증)
 - [[uart5_packet_protocol]] — **UART5 텔레메트리 패킷 정본**(branch uart5 ba241fa·979699d, ✓실보드): 18B 고정 big-endian `[SOF=0xA5][LEN=12][TYPE=0x01][SEQ][raw u16×6][CRC-16/CCITT-FALSE]`, CRC 범위 byte[1..15]. RTI2 10Hz·115200/8N1 polled. thin device(raw만 wire)·smart host(mV=raw*3300/4095 미러). 채널 순서=ETA_ADC_CH enum, eta_packet.c 직렬화 자동 추종. SOF동기+CRC 1바이트 슬라이드 재동기. 선례 oled 대비 CRC-16·단일·단방향
 - [[pc_monitor_gui]] — **host PC GUI**(`tools/gui/gui.py`, `785b848`, 2026-06-12): ADC 텔레메트리 모니터(18B 수신·6ch 표·플롯·CSV) + **dead-time 빌드/플래시 컨트롤**(Spinbox→write→build→flash, headless CLI `--deadtime N --build --flash`). 백로그 7항목(상태배너·경로박스·안내문·배포형태·폭축소·버튼이동·채널명굵게) 포함
 - [[ospi_boot_mode_strap]] — **OSPI standalone 무부팅 해소 정본(8kw, 2026-06-12)**: 진짜 원인 = 부트모드 핀 스트랩 미스매치. 보드 flash IS25LX256는 **octal-only**(quad/`0x6B`/QE 물리적 부재) → SW1=`1,1,1,1`(4S Quad)에서 ROM `0x6B`+QE 기대 미충족 → `'C'` ping. **SW1=`0,0,1,1`(xSPI 8D SFDP)로 교정 → VCC 전원사이클 후 완전 부팅 실측**(SBL→app→`eta-tx: 8kw-ev-wpt start`). 종전 "flash 프로그래밍/cell/QE" 블로커 가설 전부 무효. TRM Table 5-1/5-2·UG Table 2-5·IS25LX256 cross-link

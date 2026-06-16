@@ -93,6 +93,7 @@ LP-AM263P 8kW WPT TX 보드가 UART5로 PC와 주고받는 **바이너리 패킷
 - **485_EN(GPIO91) DE 자동 토글**: `UART_write` 전 HIGH → 후 LOW. THVD1400 U13 TX enable 자동 제어 — 별도 코드 불필요.
 - 펌웨어 구조: `src/eta_bsp/eta_packet.{c,h}`가 프레임 조립 + CRC, `eta_uart5.c`는 송신·수신·파서 담당. 핀맵 `eta_uart5.h` — **TXD = EPWM15_A = J1.4**.
 - ⚠️ UART5_TXD는 alt-function 패드(EPWM15)라 SoC IOMUX force_io 필요([[am263p_iomux_force_io_enable]]) + 온보드 보드먹스(U54/TCA6416 P00/P14=LOW) 게이트([[lp_am263p_uart_epwm_mux]]). 둘 다 충족돼야 J1.4 헤더로 출력.
+- ⚠️ **RX 수신은 1바이트씩 read 필수**: SDK `UART_read()` POLLED+NO_WAIT+FULL 조합에서 `rx.count`가 앱 transaction에 반영되지 않아 8바이트 요청 시 stale 버퍼 주입 → SOF 탐색 불가. `count=1`, 반환값 `==SystemP_SUCCESS`로 판단. 상세 [[uart5_rx_polled_1byte]].
 
 ## 수신측 재동기 (호스트 파서 계약)
 
@@ -113,7 +114,7 @@ LP-AM263P 8kW WPT TX 보드가 UART5로 PC와 주고받는 **바이너리 패킷
 - **UART5는 온보드 XDS110 가상 COM에 안 실린다** — 외부 CP210x(COM13)로만 PC 도달.
 - **송신이 polled blocking** — 논블로킹(콜백/DMA) 전환은 Phase 2 잔여.
 - 물리량(°C/V/A) 미교정 — wire는 raw, host는 mV까지가 종착점(계수 미입수, [[adc_pinmap]] §미확인).
-- **TYPE=0x02·0x10 GUI 왕복 검증 잔여** — 실보드에서 PC→MCU TYPE=0x10·MCU→PC TYPE=0x02 왕복 미검증.
+- ~~**TYPE=0x02·0x10 GUI 왕복 검증 잔여**~~ — ✅ **완료(2026-06-16)**: GUI GD_EN ON → TYPE=0x10 PC→MCU → `eta_gpio_loop()` GPIO93 HIGH. Logic2 실측 확인. standalone 부팅 후 재확인.
 
 ## 관련
 

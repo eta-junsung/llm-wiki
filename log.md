@@ -4,6 +4,16 @@
 
 ---
 
+## [2026-06-16] ingest | 8kw-ev-wpt-tx GUI 왕복 검증·UART5 RX 1바이트 fix·flash 운영 함정
+
+근거: 실보드 검증 세션 (2026-06-16). 대상: [[uart5_rx_polled_1byte]](신설), [[gpio_impl]], [[jtag_flash_clean_host]], [[uart5_packet_protocol]], [[status]].
+
+- **uart5_rx_polled_1byte.md 신설**: SDK `UART_read()` POLLED+NO_WAIT+FULL에서 `rx.count` 미반영 → stale 0x00 버퍼 주입·SOF 탐색 불가. 수정 = `count=1`·반환값 `==SystemP_SUCCESS` 판정.
+- **gpio_impl.md 갱신**: GPIO 루프 패턴(`eta_gpio_request_gd_en` enqueue + `eta_gpio_loop` 소비, `eta_gpio_set_gd_en` static 비공개) 명문화. flash_node_8kw.js mcelf mtime 자동 선택 갱신. "Run > Flash Project" 금지 + 올바른 절차. GUI 왕복 검증 완료(미확인 해소).
+- **jtag_flash_clean_host.md 갱신**: "Run > Flash Project" 금지 섹션 추가 — SBL 미포함·전원사이클 부팅 불가.
+- **uart5_packet_protocol.md 갱신**: UART5 RX 1바이트 함정 링크([[uart5_rx_polled_1byte]]). TYPE=0x10 왕복 검증 완료 표시.
+- **status.md 갱신**: UART5 양방향 △→✓. 다음 시작점 = branch gpio 커밋 → PWM P3 보호 착수. 미결 "GUI 왕복 검증 잔여" 해소.
+
 ## [2026-06-16] 환원 | DK 검증 완료·SPI 배선 핀맵 신설·SpiCommSt DOWN 진단 경로
 
 근거: DK 보드(STM32 Mini Pro + PCA10040) 검증 세션 (2026-06-16). 대상: [[status]], [[spi_pin_mapping]](신설), [[comm_state_monitoring]].
