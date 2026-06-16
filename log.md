@@ -14,6 +14,14 @@
 - **uart5_packet_protocol.md 갱신**: UART5 RX 1바이트 함정 링크([[uart5_rx_polled_1byte]]). TYPE=0x10 왕복 검증 완료 표시.
 - **status.md 갱신**: UART5 양방향 △→✓. 다음 시작점 = branch gpio 커밋 → PWM P3 보호 착수. 미결 "GUI 왕복 검증 잔여" 해소.
 
+## [2026-06-16] 환원 | buck 지령 바이너리화 완료·0x51 전파 검증
+
+근거: 2026-06-16 브랜치 merge 세션. 대상: [[uart_command_set]], [[buck_vout_ref_command_path]], [[status]].
+
+- **uart_command_set.md**: `buck <v>` 텍스트 커맨드 제거 기록. `HAL_UART_RxCpltCallback` 0x51 바이너리 분기 소절 추가. 헤더 노트·요약표 갱신.
+- **buck_vout_ref_command_path.md**: 입력 경로 다이어그램을 GUI 바이너리 0x51 → `pkt_apply_rx_cmd()` 기준으로 재작성. `pkt_apply_rx_cmd()` 신설 문서화. 코드 연혁 2026-06-16 항목 추가. `cubeide_newlib_nano_float` 의존성 소멸 기록.
+- **status.md**: `0x51 Zin·Tx Buck Vout Ref 와이어 전송` △→✓(u16 BE 확정·GUI→03 실보드 검증). D3 e2e 항목 완료 처리. `Uint16 vs i16 잔여 차이` 미결 해소.
+
 ## [2026-06-16] 환원 | DK 검증 완료·SPI 배선 핀맵 신설·SpiCommSt DOWN 진단 경로
 
 근거: DK 보드(STM32 Mini Pro + PCA10040) 검증 세션 (2026-06-16). 대상: [[status]], [[spi_pin_mapping]](신설), [[comm_state_monitoring]].

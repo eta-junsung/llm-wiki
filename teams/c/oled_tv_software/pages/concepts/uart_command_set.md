@@ -9,7 +9,11 @@ subsystem: 01_RX_control
 
 [[rx_control]] 보드의 UART5 디버그 명령. 터미널에서 명령 입력 후 Enter.
 
-> **방향 주의 (`35b94d0`)**: 이 페이지는 **host→01 command 채널**(라인 단위·텍스트·ISR 파싱)을 다룬다 — 이 채널은 **무변경**. 반대 방향 **01→host 모니터 출력은 `35b94d0`부터 11B 바이너리 패킷**으로 바뀌었다([[comm_state_monitoring]] "monitor 바이너리 전환", host [[pc_uart_gui]]). command 응답 printf(`buck=.. V` 등)만 텍스트로 남아 바이너리 모니터와 한 포트(UART5)에 섞여 나간다 — 수동 TeraTerm 디버그용.
+> **방향 주의 (`35b94d0`·2026-06-16)**: 이 페이지는 **host→01 command 채널**(UART5)을 다룬다. 두 종류가 한 포트에 공존:
+> - **텍스트 커맨드** (`duty`/`freq`/`dt`/`phase`/`start`/`stop`/`reset`): 라인 단위·텍스트·ISR 파싱 — **무변경**.
+> - **`buck` 지령 (2026-06-16 변경)**: ASCII "`buck <v>\r`" 텍스트가 **제거**되고 host([[pc_uart_gui]])가 **11B 바이너리 0x51 패킷**을 직접 UART5로 전송하는 방식으로 전환. `HAL_UART_RxCpltCallback`에 0x51 바이너리 분기 추가. ([[buck_vout_ref_command_path]])
+>
+> 반대 방향 **01→host 모니터 출력은 `35b94d0`부터 11B 바이너리 패킷**([[comm_state_monitoring]] "monitor 바이너리 전환", [[pc_uart_gui]]). command 응답 printf는 텍스트로 남아 한 포트(UART5)에 섞임 — TeraTerm 디버그용.
 
 ## 설정
 
@@ -106,11 +110,14 @@ subsystem: 01_RX_control
 
 ### `buck` — **(RF 지령)** Tx Buck 출력 전압 Ref
 
-**형식:** `buck <v>`
-- `v`: 0 ~ 300 [V] (clamp). 소수 허용 — `sscanf("%f")` 파싱 (→ [[cubeide_newlib_nano_float]] 선결).
-- 동작: 전역 `rx_cmd.tx_buck_vout_ref`(float) 설정 → 0x51 `DATA[6,7]`에 `u16 = volts × 100`으로 실려 **RF 링크를 건너 03_TX_ble까지 전달**.
-- 예: `buck 123.34` → 03 Monitor에 `tx_buck_vout_ref=12334` (검증 완료).
-- **01_RX_control UART 커맨드 중 RF 링크 너머 tx-nrf까지 가는 유일한 지령.** 나머지는 전부 로컬 PWM 제어. (커밋 `eca4d96` 추가, `175a8f7`에서 키워드 `eta-tx buck vout ref`→`buck` 단축)
+> ⚠️ **2026-06-16 변경**: ASCII "`buck <v>`" 텍스트 커맨드가 **제거**됐다. host GUI([[pc_uart_gui]])가 **11B 바이너리 0x51 패킷**을 UART5로 직접 전송한다.
+
+- 패킷 포맷: `[HDR=0x51 | LEN=0x08 | DATA[0..5]=0x00 | DATA[6..7]=ref×100 u16 BE | XOR CRC]`
+- 01 수신 경로: `HAL_UART_RxCpltCallback` 0x51 분기 → 11B 프레임 수집·CRC 검증 → `pkt_apply_rx_cmd()` → `rx_cmd.tx_buck_vout_ref` (float)
+- 공유 함수 `pkt_apply_rx_cmd()` (`_shared/oled_tv_protocol.h/.c`): `pkt_build_rx()`(0x51 인코딩)의 역연산, `pkt_apply_tx()`와 대칭. DATA[6..7] u16 BE ÷100 → `rx_cmd.tx_buck_vout_ref`.
+- 이후 경로 불변: `rx_cmd.tx_buck_vout_ref` → `build_rx_pkt()` → 0x51 DATA[6,7] → SPI → 02 → ESB ACK → 03_TX_ble.
+- 실보드 검증 완료 (2026-06-16): GUI 입력 → 03 Monitor `Tx_Buck_Vout_Ref` 정상 전파.
+- **UART 채널 중 RF 링크 너머 03_TX_ble까지 가는 유일한 지령.** 나머지는 전부 로컬 PWM 제어.
 - 전체 경로·패턴: [[buck_vout_ref_command_path]]
 
 ---
@@ -124,7 +131,7 @@ subsystem: 01_RX_control
 | `dt <ch> <ns>` | 데드타임 (ch 0=TIM8, 2=TIM3) |
 | `phase <deg>` / `p<deg>` | 위상차 |
 | `start` / `stop` / `reset` | PWM 시작 / 정지 / 시스템 리셋 |
-| `buck <v>` | **(RF 지령)** Tx Buck Vout Ref [0~300V] → [[buck_vout_ref_command_path]] |
+| ~~`buck <v>`~~ | *(2026-06-16 제거)* GUI 바이너리 0x51 패킷으로 대체 — [[buck_vout_ref_command_path]] |
 
 ---
 
@@ -138,7 +145,16 @@ subsystem: 01_RX_control
 - 부팅 시 `uart_init()`(while 루프 진입 **전**)에서 1회 무장. 이후 **콜백이 매 바이트 자기 재무장**한다.
 - UART5 IRQ 우선순위 **14**.
 
-### 라인 단위 파싱
+### 0x51 바이너리 분기 (2026-06-16 추가)
+
+콜백 진입 시 **텍스트 라인 파싱보다 먼저** 평가되는 0x51 프레임 수집 로직.
+
+- 11B 프레임을 바이트 단위로 수집: HDR(`0x51`) 매칭 → LEN·DATA[8]·CRC 순서대로 버퍼에 누적.
+- 11B 완성 시 XOR CRC 검증 → 통과하면 `pkt_apply_rx_cmd()` 호출 → `rx_cmd.tx_buck_vout_ref` 업데이트.
+- 검증 실패(CRC 불일치·HDR 불일치) 시 버퍼 리셋 후 재동기.
+- **이 분기에서 소비된 바이트는 텍스트 파싱으로 내려가지 않는다.**
+
+### 라인 단위 파싱 (텍스트 커맨드)
 
 - `cmd_buf[64]`에 누적, `\r` / `\n`에서 한 라인 확정. **63자 초과분은 폐기.**
 - **커맨드 파싱·실행이 ISR 컨텍스트에서 직접 일어난다** — main loop로 디퍼하지 않음. 즉 엔터를 친 순간 main loop를 선점해 처리한다. (main loop 구성은 [[rx_control#메인-루프]])
@@ -148,6 +164,7 @@ subsystem: 01_RX_control
 - 명령 분기는 `else-if strncmp` prefix 매칭 체인. **분기 순서 = 우선순위.**
 - prefix 매칭이라 **트레일링 문자는 무시** — `stopXYZ`도 `stop`에 걸린다.
 - `phase ` (끝 공백) 형식은 공백이 필수.
+- ~~`buck`~~ 분기는 2026-06-16에 **제거**됨 — 위 "0x51 바이너리 분기"로 대체.
 
 ---
 
