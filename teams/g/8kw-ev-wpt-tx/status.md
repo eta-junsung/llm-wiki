@@ -1,5 +1,5 @@
 ---
-date: 2026-06-16
+date: 2026-06-17
 ---
 
 
@@ -101,14 +101,22 @@ GPIO 출력 2핀 브링업과 UART5 양방향 확장(GPIO 커맨드 RX + 상태 
 
 **다음 시작점**: branch gpio 커밋 완료 → PWM P3 보호(trip-zone) 착수. `teams/g/8kw-ev-wpt-tx/roadmaps/pwm.md` P3 섹션 읽기, 보호 신호 소스(trip-zone 입력 핀) 회로도 확인.
 
-### ~~cleanup 브랜치 (미시작)~~ — ✅ **완료 (2026-06-17, branch cleanup, commit 23b12bb)**
+### ~~cleanup 브랜치 (미시작)~~ — ✅ **심화 정리 완료 (2026-06-17, branch cleanup, 23b12bb→dd2bbdd)**
 
-`cleanup` 브랜치에서 브링업 임시 파일 전량 정리 완료. **코드 변경 없음** — 파일/디렉터리 삭제 + `.gitignore` 정비 + `build/` gmake 파일 추적 + `scratch/` 컨벤션 도입.
+`cleanup` 브랜치에서 브링업 임시 파일 전량 정리 완료 (1차 + 심화 정리 5개 커밋). **코드 변경 없음** — 파일/디렉터리 삭제 + `.gitignore` 정비 + `build/` gmake 파일 추적 + `scratch/` 컨벤션 도입.
 
-- **삭제**: `verify_*/` 27개·`dt100/dt150/dt250/saleae/`·`Release/verify_pwm_raw*/`·`Session 13.sal`·일회성 스크립트 9개(`tools/jtag_flash/`) + `build/` 산출물(`.out/.map/.mcelf/.mcelf_xip/.lnkxml/obj/generated/`). 모두 untracked이었으므로 git diff 무변화.
-- **추적 추가**: `build/makefile`, `build/config.mk` — HW 엔지니어 GUI gmake 빌드 시스템 보존.
-- **`.gitignore` 추가**: `**/*.lnkxml`, `build/generated/`, `build/obj/`, `scratch/*`/`!scratch/README.md`.
-- **`scratch/` 컨벤션**: Logic2 CSV·`.sal`·진단 스크립트 등 임시 파일은 `scratch/`에 집결. `scratch/README.md`만 추적.
+- **23b12bb (1차)**: 임시 측정·진단 산출물 정리, `build/makefile`·`build/config.mk` git 추적, `scratch/` 컨벤션 도입.
+- **21f7586**: SDK 예제(`enet/sdl`) 잔재 제거, CCS 생성물(`Release/makefile`·`Release/syscfg/`) 추적 해제, Rhino legacy flash 3종·미사용 code-coverage 스킬 제거.
+- **558805e**: 구 레이아웃 고아 트리(`Release/src/bsp`, `Release/build`, `Release/tools` 미러) 삭제, `.cproject` MAP_FILE 산출물명 `hello_world`→`${ProjName}` 정정.
+- **96a2500**: docs — 구 리포트 삭제, 보드 회로도 PDF 추적 추가.
+- **dd2bbdd**: `.claude/skills` gitignore, CCS exclude-from-build(`docs|tools|build`) `.cproject` 영속화 반영.
+
+#### cleanup 정책 (확정, 앞으로의 규칙)
+
+- **임시 측정/진단 산출물** (Logic2 CSV·`.sal`·일회성 캡처)은 전부 repo 루트 `scratch/` 하나로. `verify_*/`·`dt*/` 식 패턴 나열은 폐기.
+- **CCS+SysConfig 자동생성물** (`Release/makefile`, `Release/syscfg/`, `.clangd`, `syscfg_c.rov.xs`)은 git 추적 안 함 (`.gitignore`). 빌드 시 `example.syscfg`에서 재생성.
+- **GUI 수제 gmake 빌드 시스템** (`build/makefile`, `build/config.mk`)은 추적 유지. `build/` 산출물(`generated/`·`obj/`·`*.lnkxml` 등)만 ignore.
+- **루트 비소스 폴더** (`build/`·`tools/`·`docs/`)는 CCS에서 Exclude from Build, `.cproject` `sourceEntries`에 영속화됨 → `Release/` 하위 미러 트리 재생성 차단.
 
 ADC 잔여는 스펙·HW 대기로 막혀 있어, **GPIO 검증 완료 후 다음 활성 트랙은 PWM P3 보호**.
 
@@ -180,7 +188,8 @@ P1·P2(150/300ns 단일소스) 위에 **주파수 확정값(85 kHz) 반영 + 튜
 
 ## 미결 사항
 
-- ~~**cleanup 브랜치 (미시작)**~~ — ✅ **완료(2026-06-17, commit 23b12bb)**: `verify_*/` 27개·측정 데이터·진단 스크립트 9개·`build/` 산출물·`Session 13.sal` 삭제. `.gitignore` 정비 + `build/makefile`·`build/config.mk` 추적 추가 + `scratch/` 컨벤션 도입.
+- ~~**cleanup 브랜치 (미시작)**~~ — ✅ **심화 정리 완료(2026-06-17, 23b12bb→dd2bbdd)**: 1차(임시 산출물·`scratch/` 컨벤션) + 심화 4커밋(SDK 잔재·CCS 생성물 추적해제·고아 트리 삭제·회로도 PDF 추적·`.cproject` CCS exclude 영속화). 확정 정책 → §cleanup 정책 참고.
+- **tools/jtag_flash 정리 (다음 세션 예정)**: 폴더명 적정성 점검 + flash 경로 이원화 정책 수립(CCS/Release 개발자용 vs GUI/build HW 엔지니어용). 별도 세션에서 진행.
 - ~~GPIO 출력 미구현~~ — ✅ **완료(2026-06-16, branch gpio)**: `eta_gpio.{c,h}` 구현. GPIO91(J5.48) 10Hz 펄스·GPIO93(J4.33) HIGH 실보드 확인. PADCONFIG 런타임 mux + TCA6416A PRU_MUX_SEL. 상세 [[gpio_impl]].
 - ~~**GUI GPIO Control 왕복 검증 잔여**~~ — ✅ **완료(2026-06-16)**: GUI GD_EN ON → TYPE=0x10 → `eta_gpio_loop()` → GPIO93 HIGH. Logic2 실측 확인. branch gpio 커밋 예정.
 - **A3 센서 스펙 미입수 (블로커 유지)**: mV→물리량(°C/V/A) 변환 코드 전무. `eta_adc_loop`은 raw·mV까지만. Temp_Module1/2 출력 특성(V/°C), GA_Vin 분압비, I_LCC_SEN·I_COIL_SEN·GA_Iin_SEN 감도(mV/A)·오프셋 모두 미입수.
@@ -193,7 +202,7 @@ P1·P2(150/300ns 단일소스) 위에 **주파수 확정값(85 kHz) 반영 + 튜
 - ~~PWM 주파수 85 kHz 고정 / dead-time config 분리~~ — ✅ **완료(`d01fc0a`)**: 85.032 kHz 실측, dead-time 100/150/400 ns 스윕 PASS(shoot-through 0). 단일소스 `eta_tuning.h ETA_DEADTIME_NS`(100~400 ns `#error` 가드), 주파수·dead-time 모두 `eta_pwm_init()` 런타임 override로 SysConfig 면역.
 - ~~PWM dead-time 최종값 미고정~~ — **✅ 해결(2026-06-12)**: flash+boot silicon 검증 완료 후 **`ETA_DEADTIME_NS = 150U` production 기본값 확정**. 100~400 ns 전 범위 실측 PASS([[pwm_deadtime_knob_verify]]). 전력단 브링업에서 재조정 가능하나 현재 정본은 150 ns.
 - ~~PWM 레그2 dead-time 비대칭~~ — **✅ 해결(`4014901`)**: EPWM0 fan-out + isoform으로 ~22 ns → **±2 ns**. 최소 갭 ≥ 98 ns. 보드 단계 단일모듈화는 여전히 미래 개선 후보([[pwm_pinmap]] §향후). ([[am263p_epwm_module_sync_deadtime]])
-- **빌드 환경 주의 (HW 엔지니어 워크플로우)**: CCS 생성 makefile(`Release/subdir_rules.mk`)이 **절대경로**(`C:/ti/...`, `C:/Users/echog/...`)를 박고 있고, 빌드 시 `Release/syscfg`를 `example.syscfg`에서 재생성한다. **다른 노트북에서 git clone 후엔 CCS로 프로젝트 import**(=makefile 로컬 경로 재생성)해서 빌드. 단 **`eta_tuning.h` 변경은 순수 C 컴파일로 반영**되어 syscfg 재생성 불요 — 이것이 런타임 override 방식의 이점.
+- **빌드 환경 주의 (HW 엔지니어 워크플로우)**: CCS 생성 `Release/makefile`·`Release/syscfg/`는 git 추적 안 함(`.gitignore`). **다른 노트북에서 git clone 후엔 CCS로 프로젝트 import**(=makefile·syscfg 로컬 재생성)해서 빌드. `build/makefile`·`build/config.mk`는 git 추적 유지 — HW 엔지니어 GUI gmake 워크플로우용. 단 **`eta_tuning.h` 변경은 순수 C 컴파일로 반영**되어 syscfg 재생성 불요 — 런타임 override 방식의 이점. `docs/`·`tools/`·`build/`는 CCS Exclude from Build(`.cproject` 영속화) → `Release/` 하위 미러 트리 재생성 차단됨.
 - **PWM 회로도 net 라벨 함정 (정본 기록 유지)**: 회로도 net 라벨("EPWM4_B"/"EPWM7_A")과 silicon 채널(EPWM4_A/EPWM7_B) suffix **반대** — 펌웨어 정본=silicon 채널(UG Mode0·pinmux.csv 교차확인). 라벨에 끌려가지 말 것([[pwm_pinmap]]).
 - **PWM 게이트 극성 회로도 미확인**: active-high 가정으로 4핀 검증 통과(shoot-through 0) → 가정 실보드 실증. **회로도 원본으로 극성 확인은 잔여**. shutdown 입력 미확인.
 - **PWM 잔여 스펙**: ~~스위칭 주파수~~ **85 kHz 고정·구현·실측 확정(`d01fc0a`)**. ~~dead-time 단일소스/스윕 인프라~~ ✅ 완료. 잔여 = **보호(trip) 신호 소스 미정(P3 선결)** · dead-time 최종값 고정(위 항목).
