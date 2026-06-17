@@ -97,9 +97,21 @@ GPIO 출력 2핀 브링업과 UART5 양방향 확장(GPIO 커맨드 RX + 상태 
 
 ---
 
-## 다음 작업: GUI 연동 검증 → 커밋 / PWM P3 보호 / ADC 잔여(A3·A4) / UART5 Phase 2(RS-485)
+## 다음 작업: GUI 연동 검증 → 커밋 / PWM P3 보호 / ADC 잔여(A3·A4) / UART5 Phase 2(RS-485) / cleanup 브랜치
 
 **다음 시작점**: branch gpio 커밋 완료 → PWM P3 보호(trip-zone) 착수. `teams/g/8kw-ev-wpt-tx/roadmaps/pwm.md` P3 섹션 읽기, 보호 신호 소스(trip-zone 입력 핀) 회로도 확인.
+
+### cleanup 브랜치 (미시작)
+
+`cleanup` 브랜치(v1_0e00 기준)에서 브링업 과정에서 누적된 임시 파일들을 정리. **코드 변경 없음** — 파일/디렉터리 삭제 + `.gitignore` 정비만.
+
+정리 대상 (전부 git untracked):
+- `verify_*/` 디렉터리 27개 (Logic2 측정 CSV·임시 캡처)
+- 측정 데이터 폴더: `dt100/`, `dt150/`, `dt250/`, `saleae/`, `Release/verify_pwm_raw/`, `Release/verify_pwm_raw2/`
+- `tools/jtag_flash/` 일회성 진단·캡처 스크립트 9개 (`analyze_com4_porsync.ps1` 등)
+- `build/` (gmake 산출물), `verify_dt150analyze.py`, `Session 13.sal`
+
+`.gitignore` 추가 예정: `build/`, `*.sal`, `verify_*/`, `dt*/`, `saleae/`, `Release/verify_*/`
 
 ADC 잔여는 스펙·HW 대기로 막혀 있어, **GPIO 검증 완료 후 다음 활성 트랙은 PWM P3 보호**.
 
@@ -171,6 +183,7 @@ P1·P2(150/300ns 단일소스) 위에 **주파수 확정값(85 kHz) 반영 + 튜
 
 ## 미결 사항
 
+- **cleanup 브랜치 (미시작)**: `cleanup` 브랜치에서 브링업 임시 파일 정리 예정. `verify_*/` 27개·측정 데이터·진단 스크립트·`build/`·`Session 13.sal` 삭제 + `.gitignore` 정비. 코드 변경 없음.
 - ~~GPIO 출력 미구현~~ — ✅ **완료(2026-06-16, branch gpio)**: `eta_gpio.{c,h}` 구현. GPIO91(J5.48) 10Hz 펄스·GPIO93(J4.33) HIGH 실보드 확인. PADCONFIG 런타임 mux + TCA6416A PRU_MUX_SEL. 상세 [[gpio_impl]].
 - ~~**GUI GPIO Control 왕복 검증 잔여**~~ — ✅ **완료(2026-06-16)**: GUI GD_EN ON → TYPE=0x10 → `eta_gpio_loop()` → GPIO93 HIGH. Logic2 실측 확인. branch gpio 커밋 예정.
 - **A3 센서 스펙 미입수 (블로커 유지)**: mV→물리량(°C/V/A) 변환 코드 전무. `eta_adc_loop`은 raw·mV까지만. Temp_Module1/2 출력 특성(V/°C), GA_Vin 분압비, I_LCC_SEN·I_COIL_SEN·GA_Iin_SEN 감도(mV/A)·오프셋 모두 미입수.
