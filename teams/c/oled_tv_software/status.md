@@ -127,7 +127,7 @@ date: 2026-06-17
 - SPI_FAIL/ESB_FAIL 응답 — Warning/Fault 플래그·PWM 차단·상태 머신 미구현 ([[comm_state_monitoring]])
 - BLE_Comm_St `N=20` 실측 검증 — 실 RF 수신율 대비 적정성 미확인(`d2232fe`로 3→20 설정됨). STM32 모니터 rx 카운트가 `LOG_EN` 게이트로 미관측 (필요 시 임시 활성)
 - ~~02/03 COMM 라인 미와이어링~~ → **무의미**(`35b94d0`): COMM 텍스트 라인 자체가 폐기됨(링크 health는 0x10 d0 bit5/6 바이너리 운반). 02/03이 별도 COMM 라인 낼 이유 없음
-- (검증 대기) SPI 끊김 시 0x10 d0 bit5가 정확히 0으로 떨어져 host GUI `Link: SPI DOWN` 표시되는지 실보드 확인 ([[pc_uart_gui]], [[comm_state_monitoring]])
+- ~~SPI 끊김 시 0x10 d0 bit5 → 0 낙하 실보드 확인~~ → **완료 (2026-06-17)**: SPI 점퍼 분리로 bit5 낙하·GUI `SPI DOWN` 확인. ([[comm_state_monitoring]] "SPI down → ESB down" 절)
 - 회사 BLE_Module_Board 실장 시 LED3 매크로 P0.06(active-high) 전환 — 체크인 기본은 DK P0.19 ([[tx_ble_module]])
 - SPI 오류율 모니터 / spi_tx_busy 타임아웃 복구 실보드 장시간 안정성 검증
 - TX_ble stack_temp 실측 값 정상 여부 확인
