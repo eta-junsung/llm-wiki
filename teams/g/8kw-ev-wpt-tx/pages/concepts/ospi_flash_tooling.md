@@ -13,13 +13,27 @@ date: 2026-06-17
 ## 1. 위치
 
 ```
-tools/ospi_flash/           ← 현재 이름 (구: tools/jtag_flash/ — 2026-06-17 cleanup rename)
-  run.bat                   ← Windows 진입점
-  launcher.mjs              ← Node.js ESM 런처
-  flash_node_8kw.js         ← 실제 플래시 로직 (DSS API 호출)
+tools/ospi_flash/                       ← 현재 이름 (구: tools/jtag_flash/ — 2026-06-17 cleanup rename)
+  run.bat                               ← Windows 진입점
+  launcher.mjs                          ← Node.js ESM 런처
+  flash_node_8kw.js                     ← 실제 플래시 로직 (DSS API 호출, :26에 헬퍼 경로)
+  Release/ospi_flasher.out              ← 헬퍼 FW 바이너리 (.gitignore negation으로 추적)
+  targetConfigs/AM263Px.ccxml           ← XDS110 타겟 설정 (.gitignore negation으로 추적)
 ```
 
-`tools/jtag_flash/`는 2026-06-17 cleanup 브랜치에서 `tools/ospi_flash/`로 rename됐다. 동작이 "JTAG 전송"이 아니라 "JTAG 경유 OSPI 굽기"라 `ospi_flash`가 정확한 이름.
+`tools/jtag_flash/`는 2026-06-17 cleanup 브랜치에서 `tools/ospi_flash/`로 rename됐다. 동작이 "JTAG 전송"이 아니라 "JTAG 경유 OSPI 굽기"라 `ospi_flash`가 정확한 이름. 내부 변수·파일명도 `jtag_flasher` → `ospi_flasher`로 일괄 정정됨 (`flash_node_8kw.js:26` 포함).
+
+### 추적 바이너리 자산 (.gitignore negation)
+
+`Release/ospi_flasher.out`와 `targetConfigs/AM263Px.ccxml`는 CCS 빌드 산출물이 아닌 **고정 자산**이지만, 상위 `.gitignore`가 `Release/`·`*.ccxml`을 ignore할 수 있어 negation으로 강제 추적한다:
+
+```gitignore
+# tools/ospi_flash/.gitignore
+!Release/ospi_flasher.out
+!targetConfigs/AM263Px.ccxml
+```
+
+fresh clone 후 이 파일들이 없으면 `loadProgram(ospi_flasher.out)` 단계에서 즉시 실패한다.
 
 ---
 
@@ -28,17 +42,26 @@ tools/ospi_flash/           ← 현재 이름 (구: tools/jtag_flash/ — 2026-0
 ```
 XDS110 / JTAG
     │
-    └─ ds.configure → openSession → loadProgram(jtag_flasher.out)
-            ↓  헬퍼 펌웨어가 타겟 R5F RAM에서 실행
-            ↓  AutoCmd 구조체 (0x70038000) — op / offset / size 기록 + MAGIC trigger
-            ↓  헬퍼가 status 폴링 후 완료 응답
-            ↓
+    └─ ds.configure → openSession
+         │
+         └─ loadProgram(Release/ospi_flasher.out)   ← 헬퍼 FW를 타겟 R5F RAM에 적재
+                ↓  auto_check_marker 브레이크포인트에서 멈춤 (헬퍼 초기화 완료 신호)
+                ↓
+         flash_node_8kw.js가 gCmd@0x70038000 에 명령 구조체 기록
+                  op      ← ERASE_ALL / WRITE_SBL / WRITE_APP
+                  offset  ← 0x00000000(SBL) / 0x00081000(app)
+                  size    ← 바이트 길이
+         gFileBuf@0x70040020 에 파일 데이터 스트림 기록
+         MAGIC 트리거 → 헬퍼 resume → status 폴링 → 완료 응답
+                ↓
     IS25LX256 (OSPI flash)
-            ├─ @0x00000000 → SBL  (sbl_ospi_am263p.tiimage)
-            └─ @0x00081000 → app  (*.mcelf)
+            ├─ @0x00000000 → SBL  (C:/ti/sbl_ospi_am263p.tiimage)
+            └─ @0x00081000 → app  (build/*.mcelf 또는 Release/*.mcelf)
 ```
 
 `ERASE_ALL → SBL write → app write` 순서를 한 런에 완주한다. SBL 없이 app만 굽으면 전원사이클 후 standalone 부팅 불가([[jtag_flash_clean_host]] §"Run > Flash Project" 금지).
+
+SBL 파일 출처·재빌드 레시피: [[sbl_ospi_provenance]] (실테스트 확증 후 작성 예정).
 
 ---
 
@@ -78,9 +101,12 @@ run.bat
 
 - **FACT**: 동작은 JTAG 전송이 아닌 "헬퍼를 RAM에 올려 OSPI를 굽는" 방식.
 - **FACT**: `ERASE_ALL → SBL@0x00000000 → app@0x00081000` 순서.
+- **FACT**: 헬퍼 바이너리명 `ospi_flasher.out` (구 `jtag_flasher.out`, 2026-06-17 rename).
+- **FACT**: `gCmd@0x70038000`(명령 구조체) + `gFileBuf@0x70040020`(파일 스트림) + `auto_check_marker` BP (코드 분석).
 - **FACT**: `--source release|build` argv로 mcelf 소스 분기, mtime fallback 자동 선택.
+- **FACT**: `Release/ospi_flasher.out`·`targetConfigs/AM263Px.ccxml` .gitignore negation 추적 (2026-06-17 확정).
 - **FACT**: CCS IDE 상주 DSLite와 독립 스크립팅 경합 → 비일관 실패 (2026-06-05 실측 [[jtag_flash_clean_host]]).
-- **모름**: PowerShell 래퍼(`-Source` param 형식)의 현재 파일 존재 여부 — 이번 세션 미확인.
+- **모름**: `C:/ti/sbl_ospi_am263p.tiimage`가 SDK LP prebuilt 그대로인지 8kw 보드 OSPI 핀맵에 맞춰 재빌드한 것인지 — fresh clone 실테스트로 확증 예정([[sbl_ospi_provenance]]).
 
 ---
 
