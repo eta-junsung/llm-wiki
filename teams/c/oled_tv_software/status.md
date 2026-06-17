@@ -15,13 +15,21 @@ date: 2026-06-17
 
 실보드에서 [[pc_uart_gui]] 11B 바이너리 수신 정상 확인.
 
-**[STEP 3] 04_tx_control Nucleo 포팅 → e2e 전 체인 검증** ← 현재 작업
+**[STEP 3] 커스텀 보드(UTO-NBK-52) comm_st 재검증** ← 현재 작업 (미완)
 
-01↔02↔RF↔03↔04 전 체인 검증을 위해 04를 NUCLEO-F103RB(STM32F103RBT6)에 포팅.
-- 포팅 단계: N1~N4(.ioc/ld/startup/심볼 교체) + (조건부) HSI 재설정
-- 선결 게이트: ① CubeMX 재생성 정책(수동 vs 재생성) ② Nucleo X3 HSE 크리스탈 실장 여부
-- 포팅 완료 후: Ctrl+B 빌드 에러 0 → 4보드 플래시 → 03↔04 SPI 링크 검증 → TX status(0x10) 수신 + E2E Vout Ref(`buck 12.00` → `Tx_Buck_Vout_Ref=1200`) + RX status(0x50) 수신
-- ([[roadmaps/04-tx-control-dummy]] §7, D2→D3)
+02_RX_ble·03_TX_ble를 PCA10040 DK → 커스텀 실보드 UTO-NBK-52로 교체 후 comm_st 링크 판정 재검증.
+
+**오늘(2026-06-17) 완료**:
+- LED 핀 DK값(P0.17/18/19) → 커스텀값(P0.9/8/6)으로 수정, `CONFIG_NFCT_PINS_AS_GPIOS` emProject 추가, SES 빌드 통과
+- 커스텀 02 `SES Build+Erase All+Download`로 flash 정상 (stale .hex nrfjprog 시 HardFault → 원인 확인 해소)
+- 단계 1~5 무사 통과
+
+**내일(2026-06-18) TODO** ([[uto_nbk_52]] 핀맵, [[nfc_pins_gpio]] 참조):
+1. LED1(P0.9) cold-boot 확인 — 디버거 떼고 전원 재인가 후 점등 여부. UICR.NFCPINS(`0x1000120C`) bit0=0 확인
+2. LED2(SPI, P0.8)·LED3(BLE, P0.6) 점등 확인
+3. 03_TX_ble를 커스텀 보드에 SES flash
+4. 01+02+03 전체 연결 후 comm_st 진리표 4케이스 재검증 ([[comm_state_monitoring]] "SPI down → ESB down" 진리표): ①SPI 점퍼 분리 ②02만 SW1 RESET 홀드 ③03만 SW1 RESET 홀드 ④복구 (halt 금지 — 라디오 auto-ACK)
+5. 통과 후 커밋 (미커밋 LED 핀 변경 포함)
 
 `6fc8b92`(2026-06-12, 04-tx-control-dummy 브랜치): **02·03 BLE 릴레이 정리 + RX 방향 미연결 견고화**. 02 `protocol_init`에서 forward 버퍼(0x50/51/52)를 valid 헤더+LEN+CRC+zero payload로 seed(approach A RX 방향 대칭, TX 방향은 `e72b86e`에서 03 완료). `pkt_seed_buffers()` _shared 헬퍼 추출, `eta_spi.c/.h` _shared 공용화(02/03 바이트 동일). Monitor_Loop `seen_mask` 출력 게이트 제거 → 6줄 고정 스냅샷. [[app_protocol_module]] "릴레이 헤더 소유 원칙·02/03 통합 범위" 갱신.
 

@@ -1,8 +1,8 @@
 ---
 tags: [concept, gpio, verification, pinmap]
-source: 기존 wiki 사실 종합 (rx_control, esb_timing_measurements, spi_link_reliability, adc_channel_map) + conversation-2026-06-01
-date: 2026-06-15
-subsystem: 01_RX_control, 02_RX_ble, 03_TX_ble
+source: 기존 wiki 사실 종합 (rx_control, esb_timing_measurements, spi_link_reliability, adc_channel_map) + conversation-2026-06-01 + 2026-06-17 UTO-NBK-52 실측
+date: 2026-06-17
+subsystem: 01_RX_control, 02_RX_ble, 03_TX_ble, 04_tx_control
 ---
 
 # GPIO 검증 핀맵 (oled_tv_software)
@@ -101,6 +101,21 @@ STM32 RX ← ISOL2 ← TP15 (SCIB_RX, 5V TTL) ── 직접 프로브
 > LED 핀/극성은 **회사 BLE_Module_Board(BOARD_CUSTOM 빌드)** 기준 — 2026-06-04 실보드 실측 확정. PCA10040 DK로 빌드하면 P0.06/08은 UART, P0.17~20은 온보드 LED라 의미가 다르며, LED 코드는 `#if defined(BOARD_CUSTOM)` 가드로 회사 빌드에서만 컴파일된다. LED 핀맵 1차 출처 → [[schematic_ble_module_board_v01e00]].
 
 ---
+
+## 02_RX_ble / 03_TX_ble — 커스텀 보드 UTO-NBK-52 (2026-06-17 실측)
+
+> PCA10040 DK와 핀·극성이 다름. DK 핀맵은 위 "02_RX_ble / 03_TX_ble" 절.
+
+| 검증 대상 | 핀 | 신호 | 기대값 | 비고 |
+|----------|----|------|--------|------|
+| LED1 System Ready | **P0.09** | active-high | 상시 점등 | NFC 핀 → `CONFIG_NFCT_PINS_AS_GPIOS` 필수. cold-boot 후 확인 ([[nfc_pins_gpio]]) |
+| LED2 SPI Comm St | **P0.08** | active-high | 200ms 점멸 (SPI UP 시) | SPI heartbeat |
+| LED3 BLE Comm St | **P0.06** | active-high | 200ms 점멸 (ESB UP 시) | ESB health |
+| UART TXD (모니터) | **P0.15** | 격리형 UART | nRF 텍스트 모니터 출력 | 별도 USB-to-TTL 필요 (DK VCP 아님) |
+| SPI NSS | **P0.22** | active LOW | CS 10ms 주기 | STM32 PB12 대응 |
+| RESET (SW1) | **P0.21** | PINRESET | CPU+RADIO 전정지 | comm_st 케이스 검증용. halt 금지(라디오 auto-ACK) |
+
+→ 보드 전체 핀맵·빈자리: [[uto_nbk_52]]
 
 ## 확인 필요 (사용자 호명 대기)
 

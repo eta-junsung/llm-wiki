@@ -294,6 +294,28 @@ ble_up = spi_up && (ble_comm != 0);           // 동일 규칙
 - **bit5가 안 드러난 이유**: STM32가 bit5는 5초 freshness(무변화 timeout)로 봤기 때문에 race가 가려졌고, 즉시 0/1로 읽히는 **bit6만** 표면화했다.
 - **원칙**: **판정(`EsbCommSt_Loop`/`SpiCommSt_Loop`의 변수 set)과 wire 적재(`SPI_Loop` 송신 직전 stamp)를 분리**하는 게 단일·race-free 자리.
 
+## 커스텀 보드(UTO-NBK-52) 교체 후 재검증 셋업 (2026-06-17)
+
+PCA10040 DK → 커스텀 보드 [[uto_nbk_52]] 교체 시 comm_st 검증 셋업 차이.
+
+**코드 변경 없음 (comm_st 핵심 경로)**:  
+SPI(P0.22/25/26/27)·UART(P0.15/14)·RESET(P0.21)은 기존 코드 매크로와 완벽 일치. 판정 로직은 01/04(소비측 STM32)에 있어 nRF 보드 교체와 무관.
+
+**보드별 노드 차단 방법 비교**:
+
+| 방법 | PCA10040 DK | UTO-NBK-52 |
+|------|-------------|------------|
+| nRF 전체 차단 (SPI+ESB 동시 down) | USB 케이블 분리 (⚠ 역전류 주의) | SW1(P0.21 RESET) 홀드 — CPU+RADIO 동시 정지 |
+| ESB 단독 차단 ("spi UP·esb DOWN") | RESET 버튼 홀드 | SW1 홀드 (동일) |
+| SPI 단독 차단 ("spi DOWN·esb DOWN") | SPI 점퍼선 분리 | 동일 |
+| **halt 사용 금지** | RADIO 페리가 살아 ESB auto-ACK 지속 | 동일 |
+
+**검증 확인 수단 (커스텀 보드)**:
+- LED2(P0.08): SPI UP=점멸 / DOWN=소등
+- LED3(P0.06): ESB UP=점멸 / DOWN=소등
+- P0.15 격리 UART → PC TeraTerm (별도 USB-to-TTL 연결)
+- 01_RX_control GUI([[pc_uart_gui]]) / 04_tx_control USART2 모니터
+
 ## PCA10040 DK 테스트 방법론 함정 (2026-06-17 실측, 큰 시간 소모)
 
 comm_st 링크 검증 시 "nRF를 끄는" 방법을 잘못 선택하면 테스트가 통하지 않는다. 검증 중 확인된 함정 두 가지.
