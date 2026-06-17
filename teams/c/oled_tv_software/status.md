@@ -114,9 +114,9 @@ date: 2026-06-17
 
 ## 미결 사항
 
-- **(e2e) 01-02-03-04 전 체인 양방향 검증** — TX status(0x10) 01 수신 + E2E Vout Ref(`buck 12.00` → 04 raw 1200) + RX status(0x50) 04 수신. (이전 검증: 02-03-04 부분 셋업·양 끝 STM32 중 하나 미연결 위주) ([[roadmaps/04-tx-control-dummy]] D2→D3)
-- **→ 진행 중 (2026-06-17): 04 Nucleo 포팅 (tx-dummy 브랜치)** NUCLEO-F103RB(STM32F103RBT6)에 04_tx_control 포팅 — N1~N4(.ioc/ld/startup/심볼 교체) + (조건부) HSI 재설정. 선결 게이트: ①CubeMX 재생성 정책(수동 vs 재생성) ②Nucleo X3 HSE 크리스탈 실장 여부. ([[roadmaps/04-tx-control-dummy]] §7)
-- **(04 더미 D1→D2)** 04 Nucleo 포팅 완료 후 → Ctrl+B 빌드 에러 0 확인 → 4보드 플래시 → 03↔04 SPI 링크 검증(CS 10ms Δt·CRC fail 0). ([[roadmaps/04-tx-control-dummy]] D2)
+- ~~**(e2e) 01-02-03-04 전 체인 양방향 검증**~~ → **완료 (2026-06-17, `47e46db`)**: GUI `buck 12.00` → 04 TeraTerm(USB VCP, USART2) raw 1200 도달 확인. ([[roadmaps/04-tx-control-dummy]] D3)
+- ~~**04 Nucleo 포팅 (tx-dummy 브랜치)**~~ → **완료 (2026-06-17, `47e46db`)**: NUCLEO-F103RB(STM32F103RBT6) 포팅 완료. ld in-place 수정(128K/20K), startup·심볼 무변경, HSI 64MHz 전환, UART5→USART2(PA2/PA3, VCP) 이전. ([[roadmaps/04-tx-control-dummy]] §7)
+- ~~**(04 더미 D1→D2)**~~ → **완료 (2026-06-17)**: 03↔04 SPI 링크 검증 완료. ([[roadmaps/04-tx-control-dummy]] D2)
 - ~~**(04 더미 D3)** E2E Vout Ref~~ → **완료** (2026-06-16): GUI 바이너리 0x51 → 01 `pkt_apply_rx_cmd` → SPI → ESB → 03 Monitor `Tx_Buck_Vout_Ref` 정상 전파 확인. ([[roadmaps/04-tx-control-dummy]] D3, [[buck_vout_ref_command_path]])
 - **(정리)** 04 `.ioc` 파일명 `RX_control.ioc` → `TX_control.ioc` 개명 여부 결정.
 - (02 리팩토링) `ADD_SPI` 전역 전파 점검 — 원래 `main.c` 로컬 `#define` → `.emProject` `c_preprocessor_definitions` 전역 이동. 의도치 않은 TU 전파 여부 확인 필요. ([[ses_build_conventions]]) *(헤더명 이슈는 eta_ 전환(b92835c)으로 해소)*

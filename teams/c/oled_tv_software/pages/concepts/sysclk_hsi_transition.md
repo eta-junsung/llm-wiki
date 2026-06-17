@@ -1,8 +1,8 @@
 ---
 tags: [concept, clock, rx_control, hsi]
-source: code/01_RX_control/SystemClock_Config (2026-06-15 실보드 확인)
+source: OLED_TV_Rx_Module/Core/Src/main.c SystemClock_Config (2026-06-15 실보드 확인) — ⚠️ 01_RX_control 디렉토리는 HSE 구본일 수 있음, HSI 정본은 OLED_TV_Rx_Module
 date: 2026-06-15
-subsystem: 01_RX_control
+subsystem: 01_RX_control, 04_tx_control
 ---
 
 # SYSCLK HSI 전환 (64 MHz)

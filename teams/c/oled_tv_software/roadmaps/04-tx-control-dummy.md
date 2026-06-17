@@ -35,8 +35,8 @@ date: 2026-06-16
 |------|------|-----------|------|
 | **D0** | 03_TX_ble SPI_Loop ~~활성화~~ → **SPIS 전면 재작성** | emBuild 에러 0 | △ `e706b53` — ⚠️ 기존 코드 SPIM이었음(§4 정정 1). 02 거울 SPIS 재작성. 실보드 미검증 |
 | **D1** | 04_tx_control 더미 프로젝트 생성 | CubeIDE Ctrl+B 에러 0 | △ `07fbf1f` — 01 복제·ADC/PWM/CAN/DAC 제거. **.ioc 파일명 `RX_control.ioc` 잔류·CubeIDE 빌드 미수행** |
-| **D2** | 03 ↔ 04 SPI 링크 동작 | CS 10ms Δt 오실로 확인, CRC fail 0 | ✗ |
-| **D3** | 01→02→ESB→03→04 End-to-end | `buck 12.00` → 04 모니터 raw 1200 표시 | ✗ |
+| **D2** | 03 ↔ 04 SPI 링크 동작 | CS 10ms Δt 오실로 확인, CRC fail 0 | ✓ `47e46db` 2026-06-17 |
+| **D3** | 01→02→ESB→03→04 End-to-end | `buck 12.00` → 04 모니터 raw 1200 표시 | ✓ `47e46db` 2026-06-17 |
 
 ---
 
@@ -215,48 +215,54 @@ wiki (`~/eta/wiki/teams/c/oled_tv_software/`):
 
 ---
 
-## 7. Nucleo 포팅 — NUCLEO-F103RB (브랜치 `tx-dummy`, 2026-06-16)
+## 7. Nucleo 포팅 — NUCLEO-F103RB (브랜치 `tx-dummy`, 2026-06-17 완료)
 
 ### 배경
 
-STM32 NUCLEO-F103RB(STM32F103RBT6) 보드 확보. 04_tx_control을 이 보드에 올려 TX 대역으로 삼아 통신 체인 더미 검증 예정. 목표: 04(Nucleo) → 03(nRF52) → ESB → 02 → 01 체인 동작 확인.
+STM32 NUCLEO-F103RB(STM32F103RBT6) 보드 확보. 04_tx_control을 이 보드에 올려 TX 대역으로 삼아 통신 체인 더미 검증. 결과: D2·D3 완료 (커밋 `47e46db`, 2026-06-17).
 
-### 04_tx_control 현재 상태 (탐색 완료, 2026-06-16)
+### 04_tx_control 포팅 전 상태 (탐색 완료, 2026-06-16)
 
 - 타겟 MCU: STM32F103**RC**T6 (256KB/48KB, LQFP64)
 - App 코드(Application/Src/*.c)는 SPI2+DMA, UART5, GPIO만 사용 — DAC/TIM5/TIM8/ADC/CAN은 .ioc 메타에만 잔재, 코드·init 호출 없음
 - 실 flash 사용량: **~44KB / 128KB** → STM32F103RBT6(128KB/20KB)에 충분히 수용
-- App 코드 수정 불필요 — 포팅은 메타데이터·빌드 파일 교체만
 
-### 포팅 작업 항목 (N1~N4)
+### 포팅 실제 경로 (N1~N4 정정 — 커밋 47e46db)
 
-| 단계 | 작업 | 상태 |
-|------|------|------|
-| **N1** | `.ioc` MCU 교체: `STM32F103RCT6` → `STM32F103RBT6` | ✗ |
-| **N2** | 링커 스크립트 교체: `STM32F103RCTX_FLASH.ld` → `STM32F103RBTX_FLASH.ld` (128K/20K) | ✗ |
-| **N3** | startup 파일 교체: `startup_stm32f103rctx.s` → `startup_stm32f103rbtx.s` | ✗ |
-| **N4** | 빌드 심볼 교체: `STM32F103xE` → `STM32F103xB` | ✗ |
-| (조건부) | HSE → HSI 클럭 재설정 — 게이트 ② 결과에 따라 | ? |
+탐색 시 예상과 실제 채택 경로가 달랐다. 아래가 확정 사실.
 
-### 미결 게이트 (작업 시작 전 결정 필요)
+| 단계 | 예상(탐색 시) | 실제 채택 | 상태 |
+|------|------|------|------|
+| **N1** | `.ioc` MCU 교체 | **미수행** — `.ioc`는 `TX_control.ioc`·RCT6/UART5 그대로 잔류. CubeMX 재생성 없어 빌드에 무관. | ✓(미수행으로 완료) |
+| **N2** | 링커 스크립트 신규 파일로 교체 | **기존 `STM32F103RCTX_FLASH.ld` in-place 수정** — FLASH 256K→128K, RAM 48K→20K. 파일명 무변경. | ✓ |
+| **N3** | startup 파일 교체 | **불필요·무변경** — `startup_stm32f103rctx.s`는 RB/RC 공통 벡터 테이블. | ✓(무변경) |
+| **N4** | 빌드심볼 `STM32F103xE`→`STM32F103xB` | **xE 유지** — `stm32f103xb.h`가 레포에 없어 xB 불가. 링커가 128K 상한 고정하므로 xE define이 256K를 가리켜도 무해(코드가 RBT6 실재 공통 페리만 사용). | ✓(유지로 완료) |
+| (조건부) | HSE → HSI 재설정 | **HSI 전환 수행** — Nucleo X3 HSE 미실장 확인. `SystemClock_Config` → HSI/2×16, SYSCLK 64MHz, APB1/2 ÷2, FLASH_LATENCY_2. [[sysclk_hsi_transition]] 패턴 차용. | ✓ |
 
-**① CubeMX 재생성 정책 vs MCU 교체**
+### 정정 1 — UART5 페리 부재 (⚠️ 탐색 시 오류)
 
-MCU 교체는 통상 CubeMX 재생성을 요구. 그러나 CLAUDE.md "CubeMX Generate 금지" 규칙과 상충. 두 선택지:
-- **선택지 A**: `.ioc`/`.ld`/startup/define 수동 교체 (재생성 없음) — 규칙 준수, 수작업 위험
-- **선택지 B**: CubeMX로 MCU 교체 재생성 후, 생성된 `Core/Src/*.c`와 기존 `Application/` 중복 수동 삭제
+탐색 시 기록: "UART5(PC12/PD2): LQFP64 동일 패키지 → 핀 번호 그대로". **이는 오류.**
 
-**② NUCLEO-F103RB 클럭 소스**
+STM32F103RBT6은 **medium-density**라 UART4/UART5가 물리적으로 없다(USART1/2/3만 존재). UART4/5는 high-density(xC/xD/xE) 전용 페리. LQFP64 패키지 호환 ≠ 페리 호환.
 
-04 현재: HSE 기반 PLL(`TX_control.ioc` / `main.c:113`). NUCLEO-F103RB는 온보드 HSE 크리스탈이 **미실장일 가능성**이 있음.
-- 확인 방법: 보드 X3 위치 크리스탈 실장 여부 육안 확인
-- HSE 없으면 `SystemClock_Config`를 HSI 기반으로 수정 필요 ([[sysclk_hsi_transition]] 참조 — SYSCLK 64MHz 상한, SPI prescaler 재계산)
+→ 04 모니터를 **UART5 → USART2(PA2=TX / PA3=RX)** 로 이전. PA2/PA3은 NUCLEO-64에서 ST-LINK 가상COM(VCP)에 기본 연결 — USB 케이블 하나로 TeraTerm 모니터 가능.
 
-### 핀 호환성 (탐색 완료)
+### 정리 라운드 (47e46db 포함)
 
-- `SPI2`(PB12/13/14/15), `UART5`(PC12/PD2): LQFP64 동일 패키지 → 핀 번호 그대로
-- `PC13`(DBG_LED1): Nucleo USER 버튼과 공유 — 디버그 LED 기능 손실만, 통신에 무해
-- Nucleo morpho 커넥터에서 SPI2/UART5 핀 물리 인출 가용성: 작업 시 확인
+포팅과 함께 04 코드베이스 정리 수행:
+- SPI2 + USART2만 잔존
+- `hal_conf`: ADC/CAN/DAC/TIM 비활성
+- 미사용 HAL 드라이버 `.c` 7개 삭제
+- orphan `Core/Inc` 헤더 8개 삭제
+- `main.h` ADC/DAC/PWM/CAN 핀매크로 제거
+- `app_spi` 미사용 blocking 함수 제거
+
+### 핀 호환성 (확정)
+
+- `SPI2`(PB12/13/14/15): LQFP64 동일 패키지 → 핀 번호 그대로 ✓
+- `UART5`(PC12/PD2): **RBT6에 없음** → USART2(PA2/PA3, VCP) 이전 ✓
+- `PC13`(DBG_LED1): Nucleo USER 버튼과 공유 — 디버그 LED 기능 손실만, 통신 무해
+- Nucleo morpho SPI2 핀(PBxx) 실크 직독 사용. CN10 정확 핀번호는 UM1724 자료 미인입으로 **미확정** (회상값 CN10-16/26/28/30, 미검증)
 
 ---
 
