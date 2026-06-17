@@ -73,13 +73,14 @@ CCS Theia 메뉴의 **Run > Flash Project**는 SBL(`sbl_ospi_am263p.tiimage`)을
 
 **올바른 플래시 절차**:
 1. CCS IDE 완전 종료 (위 클린-호스트 규칙 준수)
-2. `tools/jtag_flash/run_flash_node` 실행 (`ERASE_ALL → SBL@0x00000000 → app@0x00081000` 순서)
+2. `tools/ospi_flash/run.bat` 실행 (`ERASE_ALL → SBL@0x00000000 → app@0x00081000` 순서)
 3. 전원 사이클
 
 ---
 
 ## 함께 보기
 
+- **flash 툴링 메커니즘 전체** (헬퍼 RAM 로드·AutoCmd·mcelf 소스 분기·argv 구조): [[ospi_flash_tooling]]
 - **JTAG flash 하네스 정본(lp-am263p)**: [[jtag_flash_harness]] — 이 클린-호스트 규율을 포함한 굽기 도구 전체(runAsynch 하네스 vs DSS Rhino·파워 사이클·standalone 부팅 검증). 이 페이지는 그중 클린-호스트 함정의 deep-dive.
 - 프로젝트 현재 위치·다음 시작점: [[status]] · 전략 spine: [[roadmap]]
 - AM263P 부트 플래시(IS25LX256)·OSPI 디버그 맥락: [[flash_open_facts]] (lp-am263p) — 단, 그쪽은 **app `Flash_open()` 블로커**(런타임)이고, 이 페이지는 **굽는 호스트 환경**(flash-time) 함정으로 층위가 다르다.
