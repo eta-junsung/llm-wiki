@@ -1,5 +1,5 @@
 ---
-date: 2026-06-18
+date: 2026-06-19
 ---
 
 
@@ -95,16 +95,41 @@ GPIO 출력 2핀 브링업과 UART5 양방향 확장(GPIO 커맨드 RX + 상태 
 - `build/makefile FILES_common`에 `eta_gpio.c` 추가.
 - `.theia/launch.json`: 단일 project-based launch만 유지.
 
+## 직전 완료 — 툴체인 gmake 스택업: 신 스택 경고 0 빌드 성공 (branch toolchain-ccs21-sdk2606, commit 5a5fa44, 2026-06-19)
+
+브랜치 `toolchain-ccs21-sdk2606`(v1_0e00 190c2de에서 분기, origin 푸시) — **gmake(build/) 측 전부 신 스택 경고 0 성공**.
+
+구 스택 → 신 스택:
+
+| 구성 요소 | 구 | 신 |
+|----------|---|---|
+| CCS | 20.5 / ccs2050 | 21 / ccs2100 |
+| SDK | 26_00_00_01 | 26_00_00_06 |
+| SysConfig | 1.27.0 | 1.28.0+4696 |
+| TICLANG | 4.0.4.LTS | 5.1.1.LTS |
+
+변경 내용:
+- **`config.mk` 경로 3종**: SDK / CGT / SYSCFG_NODE 신 경로로 갱신.
+- **`makefile`**: SDK 경로 + CGT/SYSCFG_NODE override(`imports.mak` `=` 우회, include 이후 재정의) + `genimage_am26x.py` → `genimage.py` 리네임.
+- **`example.syscfg` `@versions`**: SysConfig 1.28.0+4696으로 갱신.
+- **`generated/` enet·SDL stub 12개**: 신 SDK SysConfig로 재생성.
+- **`ospi_flash` 스크립팅 호스트 경로**: `ccs2050` → `ccs2100`.
+- **resolved 변수 실측 확인**: `MCU_PLUS_SDK_PATH=_06`, `CGT=ti-cgt-armllvm_5.1.1.LTS`, `SYSCFG_NODE=ccs2100/ccs/tools/node/node`.
+
+⚠️ **미완**: 실보드 부팅 검증 미완(gmake Phase 1 완료), CCS GUI `.cproject` Phase 2 마이그레이션 미완.
+
+정본 [[sdk_ccs_toolchain_migration]], [[syscfg_build_model]], [[ospi_flash_tooling]].
+
 ---
 
-## 다음 작업: v1_0e00 새 노트북 실테스트 → wiki 환원 / PWM P3 보호 / ADC 잔여(A3·A4) / UART5 Phase 2(RS-485)
+## 다음 작업: 툴체인 실보드 검증 → CCS GUI Phase 2 / v1_0e00 새 노트북 실테스트 / PWM P3 / ADC(A3·A4) / UART5 Phase 2
 
-**다음 시작점**: **새 노트북에서 v1_0e00 브랜치 fresh-clone → README ① 최초 1회 셋업 체크리스트 순서대로 실행 → 실보드 flash/부팅 판정**.
-1. `git clone -b v1_0e00 https://github.com/Eta-Electronics/g-8kw-ev-wpt-tx.git`
-2. CCS 2050(`C:/ti/ccs2050/ccs`) + MCU+ SDK(`C:/ti/mcu_plus_sdk_am263px_26_00_00_01`) 설치
-3. **SBL 복사+리네임 실검증(직전 세션 미검증)**: `<SDK>/tools/boot/sbl_prebuilt/am263px-lp/sbl_ospi_multicore_elf.release.tiimage` → `C:/ti/sbl_ospi_am263p.tiimage`
-4. GUI "Build & Flash" 실행 → 보드 standalone 부팅 판정
-5. **통과 후**: wiki 환원 5건 (SBL 출처·이식성 설계·flash 아키텍처·ospi_flasher 리네임·셋업 체크리스트)
+**다음 시작점**: **`toolchain-ccs21-sdk2606` 브랜치 실보드 부팅 검증 — `run_flash_node_8kw.ps1 -Source build`(gmake .mcelf) → SW1=0011 파워사이클 → standalone 부팅 확인**.
+1. 전제: ① CCS21 IDE 완전 종료(상주 DSLite가 flash 스크립팅과 경합), ② ccs-debug MCP 연결 + allow-list 권한(서브에이전트는 권한 프롬프트 못 띄움), ③ 보드 JTAG(XDS110)·Logic2 연결
+2. `run_flash_node_8kw.ps1 -Source build` (gmake `.mcelf`; `Release/` CCS 산출물은 아직 구스택 → 금지)
+3. 파워사이클 → standalone 부팅 확인 ([[ospi_boot_mode_strap]] SW1=0011 xSPI 8D SFDP)
+4. 기능 스모크(codegen 4.0.4→5.1.1 무회귀): PWM dead-time both-LOW 추종, ADC 전압 추종 (구스택 known-good 값과 비교)
+5. **통과 후**: CCS GUI Phase 2 마이그레이션(사용자 IDE 작업 — [[sdk_ccs_toolchain_migration]] §6) → `.cproject`/`.ccsproject` diff 별도 커밋
 
 ### v1_0e00 직전 세션 완료 (브랜치 origin push 완료, tip `190c2de`)
 
@@ -203,11 +228,15 @@ P1·P2(150/300ns 단일소스) 위에 **주파수 확정값(85 kHz) 반영 + 튜
 | 실보드 교차검증 (A4) | ✗ | 멀티미터 기준값 교차 (A3 후) |
 | **PWM 전력제어 (P0~P4)** | ✓ (P1 4/4·P2 **완전 완료**·knob flash검증 ✓) | [[pwm]]. **4핀 HS1/LS1/HS2/LS2 ✓실보드 검증**. P2: `ETA_DEADTIME_NS` 단일소스(`8046744`). `d01fc0a`: 85kHz 고정(85.032kHz)·config 분리. **`4014901`: EPWM0 fan-out + isoform — ±2 ns, 4-DT sweep PASS**. **knob flash+boot silicon 검증(2026-06-12): 16/16 ≤2 ns, production 150 ns 확정**. 다음 P3 보호. 핀맵 [[pwm_pinmap]]. 리포트 [[pwm_leg2_isoform_report]]·[[pwm_deadtime_knob_verify]] |
 | **GPIO 출력 (485_EN·GD_EN_seed)** | ✓ | `eta_gpio.{c,h}` 구현·실보드 검증(2026-06-16). GPIO91(J5.48) 10Hz 펄스·GPIO93(J4.33) HIGH 확인. PADCONFIG 런타임 mux + TCA6416A PRU_MUX_SEL. 핀맵 [[gpio_pinmap]], 구현 [[gpio_impl]] |
+| **툴체인 gmake 스택업 (ccs2050→ccs2100)** | △ | branch `toolchain-ccs21-sdk2606`(5a5fa44, 2026-06-19). gmake `.out`+`.mcelf` 신 스택 경고 0 빌드 성공. 실보드 부팅 검증·CCS GUI Phase 2 미완. 정본 [[sdk_ccs_toolchain_migration]] |
 
 상태 기호: `✓` 구현+검증 / `△` 구현됨·미검증 / `?` 추가 정보 필요 / `✗` 미구현
 
 ## 미결 사항
 
+- **[다음 단계] toolchain 실보드 부팅 검증**: branch `toolchain-ccs21-sdk2606`. `run_flash_node_8kw.ps1 -Source build` → SW1=0011 파워사이클 → standalone 부팅·기능 스모크(PWM/ADC 무회귀). 전제: CCS21 IDE 종료·JTAG·Logic2. 정본 [[sdk_ccs_toolchain_migration]]·[[ospi_boot_mode_strap]].
+- **CCS GUI Phase 2 마이그레이션 (사용자 IDE 작업)**: `.cproject` 아직 구스택(`sysconfig:1.27.0`, `MCU-PLUS-SDK-AM263PX:26.0.0.01`, `superClass TMS470_TICLANG_4.0`). 실보드 검증 통과 후 진행. Project Properties → 제품·컴파일러 변경 또는 구 제품 제거 → 마이그레이션 다이얼로그 → `.cproject`/`.ccsproject` 재생성 → diff 커밋. [[sdk_ccs_toolchain_migration]] §6.
+- **.codex/ gitignore 추가 검토**: branch `toolchain-ccs21-sdk2606` commit 5a5fa44에서 제외됨. `.gitignore`에 `/.codex/` 추가 여부 결정 필요.
 - ~~**cleanup 브랜치 (미시작)**~~ — ✅ **심화 정리 완료(2026-06-17, 23b12bb→dd2bbdd)**: 1차(임시 산출물·`scratch/` 컨벤션) + 심화 4커밋(SDK 잔재·CCS 생성물 추적해제·고아 트리 삭제·회로도 PDF 추적·`.cproject` CCS exclude 영속화). 확정 정책 → §cleanup 정책 참고.
 - **tools/jtag_flash 정리 (다음 세션 예정)**: 폴더명 적정성 점검 + flash 경로 이원화 정책 수립(CCS/Release 개발자용 vs GUI/build HW 엔지니어용). 별도 세션에서 진행.
 - ~~GPIO 출력 미구현~~ — ✅ **완료(2026-06-16, branch gpio)**: `eta_gpio.{c,h}` 구현. GPIO91(J5.48) 10Hz 펄스·GPIO93(J4.33) HIGH 실보드 확인. PADCONFIG 런타임 mux + TCA6416A PRU_MUX_SEL. 상세 [[gpio_impl]].

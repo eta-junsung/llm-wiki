@@ -1,6 +1,6 @@
 ---
 tags: [roadmap, 8kw-ev-wpt-tx, living-doc]
-date: 2026-06-11
+date: 2026-06-19
 ---
 
 # 8kw-ev-wpt-tx — 프로젝트 로드맵
@@ -25,6 +25,8 @@ date: 2026-06-11
 
 | **gpio** | GPIO 출력 브링업 (485_EN·GD_EN_seed) + UART5 양방향 확장 | G0~G1 → [[gpio_impl]] | **G0 ✓** (eta_gpio.{c,h}·실보드 검증·UART5 양방향·GUI GPIO Control, 2026-06-16). 잔여 = GUI 왕복 검증 완료 후 커밋 |
 
+| **toolchain** | CCS/SDK 이중 빌드 스택업 — gmake+CCS GUI (ccs2050→ccs2100) | — | △ gmake 신 스택 경고 0 성공(branch `toolchain-ccs21-sdk2606`, 5a5fa44, 2026-06-19). 실보드 부팅 검증·CCS GUI Phase 2 미완. 정본 [[sdk_ccs_toolchain_migration]] |
+
 추가 후속 작업이 생기면 `roadmaps/<task>.md`로 추가하고 위 표에 행을 더한다.
 
 ---
@@ -35,6 +37,7 @@ date: 2026-06-11
 - **활성 트랙**: `gpio` 작업 호 — **G0 구현·실보드 검증 완료(2026-06-16)**. GUI 왕복 검증 후 커밋. 완료 후 다음 = PWM P3 보호(블로커: 보호신호 스펙).
 - **완료 트랙**: `pwm` 작업 호([[pwm]], P0~P4) — **P1 완료**(EPWM2/4/7 4핀 실보드 검증, 레그2 두 모듈 SYNC 상보, shoot-through 0) **+ P2 완료**(`ETA_DEADTIME_NS` 단일소스·150/300ns `8046744`) **+ 85 kHz 고정·dead-time config 분리(`d01fc0a`)** — **85.032 kHz 실측**, dead-time 100/150/400ns 스윕 4ch PASS(shoot-through 0), `eta_tuning.h` knob 분리(100~400ns `#error` 가드)·주파수/dead-time 런타임 override로 SysConfig 면역. 레그2 SYNC dead-time·모듈간 비대칭(~11ns)은 plat 정본 [[am263p_epwm_module_sync_deadtime]]. 다음 = P3 보호(trip-zone) / dead-time 최종값(전력단 브링업) / 보호신호·게이트 극성 회로도 스펙 확보.
 - **별트랙 완료(2026-06-11)**: UART5 PC 텔레메트리 — 18B 바이너리 패킷([[uart5_packet_protocol]]) + PC GUI([[pc_monitor_gui]]) 실보드 검증(branch uart5, ba241fa·979699d). A1.5 UART 출력의 진화(채널 하드코딩 해소). 잔여 = 송신 논블로킹화·RS-485 Phase 2.
+- **신규 트랙 (2026-06-19)**: `toolchain` — branch `toolchain-ccs21-sdk2606`. gmake 신 스택 경고 0 성공(commit 5a5fa44). 실보드 부팅 검증·CCS GUI Phase 2 진행 중.
 - **전술(다음 시작점·기능별 현황)**: [[status]] 단일 소스.
 
 ---
