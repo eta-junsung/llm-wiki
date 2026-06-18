@@ -1,6 +1,6 @@
 ---
 tags: [entity, board, nrf52832, custom_board]
-source: 2026-06-17 실측 (핀 게이트 대조, FICR DEVICEID, LED 검증) + 2026-06-18 LED 극성 실측 정정
+source: 2026-06-17 실측 (핀 게이트 대조, FICR DEVICEID) + 2026-06-18 LED 극성 실보드 실측 확정
 date: 2026-06-18
 subsystem: 02_RX_ble, 03_TX_ble
 ---
@@ -19,13 +19,17 @@ oled_tv_software 02_RX_ble·03_TX_ble에 사용하는 커스텀 nRF52832 모듈.
 
 | LED | 핀 | 의미 | 극성 | 비고 |
 |-----|----|------|------|------|
-| LED1 | **P0.09** | System Ready | **active-LOW** | NFC 핀 → `CONFIG_NFCT_PINS_AS_GPIOS` 필수 ([[nfc_pins_gpio]]). ⚠️ 02 보드(DEVICEID 0x09741932) LED1 물리 미점등 — active-LOW 구동 정상이나 **개체 결함** (03 보드는 정상 점등) |
-| LED2 | **P0.08** | SPI Comm St | **active-LOW** | SPI heartbeat 200ms 점멸 |
-| LED3 | **P0.06** | BLE Comm St | **active-LOW** | ESB health 점멸 |
+| LED1 | **P0.09** | System Ready | **active-HIGH** | NFC 핀 → `CONFIG_NFCT_PINS_AS_GPIOS` 필수 ([[nfc_pins_gpio]]). 상시 점등 의도 |
+| LED2 | **P0.08** | SPI Comm St | **active-HIGH** | SPI heartbeat 미러(02) / placeholder 토글(03) |
+| LED3 | **P0.06** | BLE Comm St | **active-HIGH** | ESB UP 시 HIGH → 점등. HIGH=ON 확인 (ESB UP 시 LOW 기록 = 소등) |
 
-> PCA10040 DK LED는 P0.17/18/19(active-low) — NBK와 핀·극성 모두 다름.
+> PCA10040 DK LED는 P0.17/18/19(**active-low**) — NBK와 핀·극성 **모두 다름**. 혼용 금지.
 
-> ⚠️ **active-HIGH 기록 정정 (2026-06-18)**: 종전 wiki 기록(active-high)은 UTO-**NBL**-52 기반 [[schematic_ble_module_board_v01e00]] 값을 NBK에 잘못 옮긴 것으로 추정. 실측 근거: 03 보드(DEVICEID 0xE9775EC9)가 P0.9를 `OUT bit9=0, DIR bit9=1, PIN_CNF[9]=0x3` (output+LOW)로 구동 시 LED1 점등 확인(JLink `mem32`). firmware `eta_gpio.h LED1_ON=0u` (active-LOW) — git 내내 active-LOW.
+> **극성 확정 (2026-06-18 실보드 육안 실측, ESB UP 상태)**: 03 LED1 HIGH → 점등 ⟹ HIGH=ON. LED3 LOW → 소등 ⟹ LOW=OFF. 02 LED1 LOW → 소등. 4점이 active-HIGH로만 모순 없이 설명됨.
+>
+> ⚠️ **이전 세션 오기 폐기**: 한 세션이 "active-LOW가 맞고 wiki active-HIGH는 NBL 오기"로 정정했으나 **그 정정이 틀렸다** — 해당 세션의 관측(03 보드 `OUT bit9=0`=LOW → 점등)은 당시 firmware가 `LED1_ON=0u`(active-LOW 가정)로 구동 중이었을 가능성이 커 재해석 필요. active-HIGH로 환원.
+>
+> **(참고) 02 보드 LED1 미점등**: 이전 세션에서 "개체 HW 결함"으로 기록됐으나, firmware가 active-LOW 가정으로 LOW를 써서 꺼졌을 가능성이 크다 — **HW 결함으로 단정 말 것, 재측정 대상**.
 
 ### SPI (SPIS1)
 
@@ -67,7 +71,7 @@ oled_tv_software 02_RX_ble·03_TX_ble에 사용하는 커스텀 nRF52832 모듈.
 
 - 32MHz HFXO 크리스탈 실장 여부 — ESB 라디오 의존이므로 추후 확인 필요. 실장 없으면 RC 발진 사용(주파수 정확도 저하 가능)
 - NBK 회로도·BOM 미인입
-- ~~LED1(P0.09) cold-boot 확인~~ → **2026-06-18 완료**: UICR.NFCPINS 두 보드 다 `0xFFFFFFFE`(GPIO 모드) 확인. 03 보드(DEVICEID 0xE9775EC9) P0.9 output+LOW → LED1 점등(정상). 02 보드(DEVICEID 0x09741932) 동일 구동 → 물리 미점등(**개체 결함**). firmware `LED1_ON=0u`(active-LOW)·NFCPINS 정상. → [[nfc_pins_gpio]] "비점등≠NFC모드" 참조.
+- ~~LED1(P0.09) cold-boot 확인~~ → **2026-06-18 완료**: UICR.NFCPINS 두 보드 다 `0xFFFFFFFE`(GPIO 모드) 확인. 03 보드(DEVICEID 0xE9775EC9) LED1 정상 점등(active-HIGH 확정). 02 보드(DEVICEID 0x09741932) LED1 미점등 — **HW 결함 아님, 재측정 대상**. firmware가 active-LOW 가정(`LED1_ON=0u`)으로 LOW를 써서 꺼진 것으로 추정. → [[nfc_pins_gpio]] "비점등≠NFC모드" 참조.
 
 ## 관련
 

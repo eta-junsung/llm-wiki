@@ -44,20 +44,22 @@ SES 메모리뷰 또는 `mem32 0x1000120C 1`으로 확인.
 
 ## ⚠️ 추가 함정 — LED 비점등 ≠ NFC 모드 (2026-06-18 사례)
 
-UICR.NFCPINS가 올바르게 `0xFFFFFFFE`(GPIO 모드)이고 firmware에서 `LED1_ON=0u`(active-LOW)로 정상 구동해도 **LED가 켜지지 않는 경우가 있다** — 이는 NFC 모드 잔류가 아니라 **보드 개체 결함**이다.
+UICR.NFCPINS가 올바르게 `0xFFFFFFFE`(GPIO 모드)이어도 **LED가 켜지지 않는 경우가 있다** — NFC 모드 잔류가 아니라 **펌웨어 극성 오기** 가능성을 먼저 확인할 것.
 
-**2026-06-18 사례**: UTO-NBK-52 02 보드(DEVICEID `0x09741932`)는 P0.9를 `OUT bit9=0, DIR bit9=1, PIN_CNF[9]=0x3` (output+LOW = active-LOW 점등 신호)로 정상 구동했으나 LED1이 물리 점등되지 않았다. 같은 펌웨어·같은 핀 구성의 03 보드(DEVICEID `0xE9775EC9`)는 정상 점등.
+**UTO-NBK-52 LED 극성: active-HIGH** (HIGH=점등). 확정 근거 (2026-06-18 실보드 실측):
+- 03 보드(DEVICEID `0xE9775EC9`) P0.9 HIGH 기록 → LED1 점등 ⟹ HIGH=ON
+- LED3(P0.6) LOW 기록(ESB UP 시) → 소등 ⟹ LOW=OFF
+- 4점이 active-HIGH로만 모순 없이 설명됨
+
+**02 보드(DEVICEID `0x09741932`) LED1 미점등 원인 추정**: firmware `LED1_ON=0u`(active-LOW 가정)로 LOW를 써서 꺼진 것 — **하드웨어 개체 결함 아님. 재측정 대상.** firmware 극성 수정(`LED1_ON=1u`) 후 재검증 필요.
 
 → **진단 게이트**: JLink `mem32`로 GPIO 레지스터 확인:
-- `OUT bit9=0` (output LOW) ✓
-- `DIR bit9=1` (output mode) ✓
-- `PIN_CNF[9]=0x3` ✓
+- `PIN_CNF[9]` DIR/OUTPUT 방향 ✓
 - NFCPINS = `0xFFFFFFFE` ✓
-
-위 네 항목이 모두 정상인데 미점등 → **하드웨어 개체 결함** (LED 물리 단선·소손 등). NFC 모드 의심하지 말 것.
+- 위 조건 정상인데 미점등 → **firmware가 쓰는 값(OUT bit)** 확인. active-HIGH 보드에 LOW를 쓰면 꺼짐.
 
 ## 관련
 
-- [[uto_nbk_52]] — UTO-NBK-52 보드 핀맵 (LED1=P0.09 사용 보드, LED active-LOW 확정)
+- [[uto_nbk_52]] — UTO-NBK-52 보드 핀맵 (LED1=P0.09 사용 보드, LED **active-HIGH** 확정)
 - [[nrf52_firmware_conventions]] — nRF52 빌드 컨벤션
 - [[st_link_nrf52_flash]] — UICR 레지스터 읽기 절차 (메모리뷰 / mem32)
