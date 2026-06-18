@@ -1,5 +1,5 @@
 ---
-date: 2026-06-17
+date: 2026-06-18
 ---
 
 
@@ -97,9 +97,29 @@ GPIO 출력 2핀 브링업과 UART5 양방향 확장(GPIO 커맨드 RX + 상태 
 
 ---
 
-## 다음 작업: GUI 연동 검증 → 커밋 / PWM P3 보호 / ADC 잔여(A3·A4) / UART5 Phase 2(RS-485) / cleanup 브랜치
+## 다음 작업: v1_0e00 새 노트북 실테스트 → wiki 환원 / PWM P3 보호 / ADC 잔여(A3·A4) / UART5 Phase 2(RS-485)
 
-**다음 시작점**: branch gpio 커밋 완료 → PWM P3 보호(trip-zone) 착수. `teams/g/8kw-ev-wpt-tx/roadmaps/pwm.md` P3 섹션 읽기, 보호 신호 소스(trip-zone 입력 핀) 회로도 확인.
+**다음 시작점**: **새 노트북에서 v1_0e00 브랜치 fresh-clone → README ① 최초 1회 셋업 체크리스트 순서대로 실행 → 실보드 flash/부팅 판정**.
+1. `git clone -b v1_0e00 https://github.com/Eta-Electronics/g-8kw-ev-wpt-tx.git`
+2. CCS 2050(`C:/ti/ccs2050/ccs`) + MCU+ SDK(`C:/ti/mcu_plus_sdk_am263px_26_00_00_01`) 설치
+3. **SBL 복사+리네임 실검증(직전 세션 미검증)**: `<SDK>/tools/boot/sbl_prebuilt/am263px-lp/sbl_ospi_multicore_elf.release.tiimage` → `C:/ti/sbl_ospi_am263p.tiimage`
+4. GUI "Build & Flash" 실행 → 보드 standalone 부팅 판정
+5. **통과 후**: wiki 환원 5건 (SBL 출처·이식성 설계·flash 아키텍처·ospi_flasher 리네임·셋업 체크리스트)
+
+### v1_0e00 직전 세션 완료 (브랜치 origin push 완료, tip `190c2de`)
+
+- **누락 필수 자산 .gitignore negation 추적 진입**: `tools/ospi_flash/Release/ospi_flasher.out`(flash 엔진 헬퍼 FW), `tools/ospi_flash/targetConfigs/AM263Px.ccxml`.
+- **`jtag_flasher` → `ospi_flasher` 리네임**: `flash_node_8kw.js:26` 경로 + 변수명 (디렉터리 `tools/ospi_flash`와 일관).
+- **README.md 신설**: ① 최초 1회 셋업 체크리스트(CCS·SDK·SBL 복사·보드 3건: SW1=0011·SAC 해제·IDE 종료) / ② 평소 GUI 사용.
+- **TI 경로 하드코딩 유지 + 문서화**: `run.bat`=`C:/ti/ccs2050/...`, `TI_DIR=C:/ti`, `config.mk` 3줄 `?=` env override.
+- **이 머신 fresh-clone 시뮬레이션**: 자산 추적·gmake 빌드(mcelf 생성)·flash 경로 해소·리네임 잔재 0건 확인. **실보드 flash/부팅은 새 노트북에서 실검증 예정.**
+
+### 예상 마찰점 (실테스트 실패 시 진단 순서)
+
+1. gmake/SDK 경로 미해소 → `config.mk` 3줄 또는 env 확인
+2. flash 스크립트 `run.bat` 없음 → `CCSnode_8kw.ps1:12` 하드코딩 불일치
+3. **SBL 부팅 실패** → LP prebuilt가 8kw 보드 OSPI 핀맵과 안 맞을 가능성 (LP 기본 prebuilt 그대로 쓴 건지 8kw 보드용 재빌드인지 미확인)
+4. 무부팅 → 부트모드 스트랩 SW1=0011 우선 의심 ([[ospi_boot_mode_strap]])
 
 ### ~~cleanup 브랜치 (미시작)~~ — ✅ **심화 정리 완료 (2026-06-17, branch cleanup, 23b12bb→dd2bbdd)**
 
