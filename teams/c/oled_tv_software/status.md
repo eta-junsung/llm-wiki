@@ -24,7 +24,7 @@ date: 2026-06-18
 - 커스텀 02 `SES Build+Erase All+Download`로 flash 정상 (stale .hex nrfjprog 시 HardFault → 원인 확인 해소)
 
 **완료 (2026-06-18)**:
-- **LED1 진단**: NFCPINS 두 보드 다 `0xFFFFFFFE`(GPIO 모드) 확인. UTO-NBK-52 LED 극성 **active-HIGH 확정** — 03 보드 HIGH 기록 → 점등, LED3 LOW → 소등 등 4점 일치. 02 보드 LED1 미점등은 firmware `LED1_ON=0u`(active-LOW 가정)로 LOW를 써서 꺼진 것으로 추정 — **HW 결함 아님, 재측정 대상**. ([[uto_nbk_52]], [[nfc_pins_gpio]] active-HIGH 확정으로 갱신)
+- **LED1 진단·극성 확정**: UTO-NBK-52 LED **active-HIGH** (`LED*_ON=1u`/`LED*_OFF=0u`). 03 보드 HIGH→점등·LED3 LOW→소등 등 4점 일치. 02 보드 `LED1_ON=1u` 수정 후 **정상 점등 확인 — HW 정상** (이전 "개체 결함" 기록 폐기). ([[uto_nbk_52]], [[nfc_pins_gpio]])
 - **SPI_Comm_St-03 결합 버그 수정**: 02 `esb_pkt` seed 누락이 root cause 코드 확정. 02 `eta_protocol.c:227-232` `pkt_seed_buffers(esb_pkt, ...)` 추가 → DK 보드 검증 통과(01+02 only, 03 off → SPI UP/ESB DOWN). **미커밋**. ([[comm_state_monitoring]] "구조적 결합 정밀 메커니즘 + 수정", [[app_protocol_module]] "02 esb_pkt seed 누락")
 - 03_TX_ble 커스텀 보드 flash ✓
 - emBuild incremental-skip 함정 확인 → 빌드 전 `Output/Debug` 삭제 안전책 확립. ([[st_link_nrf52_flash]] 갱신)
@@ -122,7 +122,7 @@ date: 2026-06-18
 | 보드 | 입고 | 플래싱 | 비고 |
 |---|---|---|---|
 | BLE_Module_Board_Ver0.1E00 (회사 커스텀 UTO-NBL-52, nRF52832) | ✓ 2026-06-01 | ✓ 2026-06-04 `03_TX_ble` | 회로도 [[schematic_ble_module_board_v01e00]]. ST-LINK V2 + pyOCD 성공, LED 점멸 육안 확인 (LED1 상시점등·LED2/LED3 200ms 토글, active-high). 절차·함정 [[st_link_nrf52_flash]] |
-| UTO-NBK-52 #02 (커스텀, nRF52832) | ✓ 2026-06-17 | ✓ 2026-06-18 `02_RX_ble` | DEVICEID `0x09741932`. LED1(P0.09) 물리 미점등 — **재측정 대상** (firmware `LED1_ON=0u` active-LOW 가정으로 LOW 기록, active-HIGH 보드에서 꺼짐). [[uto_nbk_52]] |
+| UTO-NBK-52 #02 (커스텀, nRF52832) | ✓ 2026-06-17 | ✓ 2026-06-18 `02_RX_ble` | DEVICEID `0x09741932`. `LED1_ON=1u` 수정 후 LED1 정상 점등 확인 — **HW 정상**. [[uto_nbk_52]] |
 | UTO-NBK-52 #03 (커스텀, nRF52832) | ✓ 2026-06-17 | ✓ 2026-06-18 `03_TX_ble` | DEVICEID `0xE9775EC9`. LED1 정상 점등(**active-HIGH** 확정). [[uto_nbk_52]] |
 
 > 플래싱 셋업 함정 3개(libusb DLL·Zadig WinUSB 바인딩·pyOCD CTRL-AP 패치)와 트러블슈팅은 [[st_link_nrf52_flash]]에 정리됨. 추가 이슈/해결 공유 시 해당 페이지에 ingest.

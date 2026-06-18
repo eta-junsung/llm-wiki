@@ -19,9 +19,9 @@ oled_tv_software 02_RX_ble·03_TX_ble에 사용하는 커스텀 nRF52832 모듈.
 
 | LED | 핀 | 의미 | 극성 | 비고 |
 |-----|----|------|------|------|
-| LED1 | **P0.09** | System Ready | **active-HIGH** | NFC 핀 → `CONFIG_NFCT_PINS_AS_GPIOS` 필수 ([[nfc_pins_gpio]]). 상시 점등 의도 |
-| LED2 | **P0.08** | SPI Comm St | **active-HIGH** | SPI heartbeat 미러(02) / placeholder 토글(03) |
-| LED3 | **P0.06** | BLE Comm St | **active-HIGH** | ESB UP 시 HIGH → 점등. HIGH=ON 확인 (ESB UP 시 LOW 기록 = 소등) |
+| LED1 | **P0.09** | System Ready | **active-HIGH** | NFC 핀 → `CONFIG_NFCT_PINS_AS_GPIOS` 필수 ([[nfc_pins_gpio]]). 상시 점등 의도. 코드: `LED1_ON=1u` / `LED1_OFF=0u` |
+| LED2 | **P0.08** | SPI Comm St | **active-HIGH** | SPI heartbeat 점멸(02) / placeholder 토글(03). `LED2_ON=1u` / `LED2_OFF=0u` |
+| LED3 | **P0.06** | BLE Comm St | **active-HIGH** | ESB 통신 정상→점등 / 끊김→소등. `LED3_ON=1u` / `LED3_OFF=0u` |
 
 > PCA10040 DK LED는 P0.17/18/19(**active-low**) — NBK와 핀·극성 **모두 다름**. 혼용 금지.
 
@@ -29,7 +29,7 @@ oled_tv_software 02_RX_ble·03_TX_ble에 사용하는 커스텀 nRF52832 모듈.
 >
 > ⚠️ **이전 세션 오기 폐기**: 한 세션이 "active-LOW가 맞고 wiki active-HIGH는 NBL 오기"로 정정했으나 **그 정정이 틀렸다** — 해당 세션의 관측(03 보드 `OUT bit9=0`=LOW → 점등)은 당시 firmware가 `LED1_ON=0u`(active-LOW 가정)로 구동 중이었을 가능성이 커 재해석 필요. active-HIGH로 환원.
 >
-> **(참고) 02 보드 LED1 미점등**: 이전 세션에서 "개체 HW 결함"으로 기록됐으나, firmware가 active-LOW 가정으로 LOW를 써서 꺼졌을 가능성이 크다 — **HW 결함으로 단정 말 것, 재측정 대상**.
+> **02 보드 LED1 미점등 원인 확정**: firmware `LED1_ON=0u`(active-LOW 가정)으로 LOW를 출력 → active-HIGH 보드에서 꺼짐. active-HIGH 수정(`LED1_ON=1u`) 후 **정상 점등 확인 — HW 정상**. 이전 "개체 HW 결함" 기록 폐기.
 
 ### SPI (SPIS1)
 
@@ -71,7 +71,7 @@ oled_tv_software 02_RX_ble·03_TX_ble에 사용하는 커스텀 nRF52832 모듈.
 
 - 32MHz HFXO 크리스탈 실장 여부 — ESB 라디오 의존이므로 추후 확인 필요. 실장 없으면 RC 발진 사용(주파수 정확도 저하 가능)
 - NBK 회로도·BOM 미인입
-- ~~LED1(P0.09) cold-boot 확인~~ → **2026-06-18 완료**: UICR.NFCPINS 두 보드 다 `0xFFFFFFFE`(GPIO 모드) 확인. 03 보드(DEVICEID 0xE9775EC9) LED1 정상 점등(active-HIGH 확정). 02 보드(DEVICEID 0x09741932) LED1 미점등 — **HW 결함 아님, 재측정 대상**. firmware가 active-LOW 가정(`LED1_ON=0u`)으로 LOW를 써서 꺼진 것으로 추정. → [[nfc_pins_gpio]] "비점등≠NFC모드" 참조.
+- ~~LED1(P0.09) cold-boot 확인~~ → **완료**: UICR.NFCPINS 두 보드 다 `0xFFFFFFFE`(GPIO 모드). 03 보드 active-HIGH 확정(2026-06-18). 02 보드 `LED1_ON=1u` 수정 후 정상 점등 확인 — HW 정상. → [[nfc_pins_gpio]]
 
 ## 관련
 
