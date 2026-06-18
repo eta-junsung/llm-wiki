@@ -36,7 +36,7 @@ SPI 파라미터: MODE_2 (CPOL=1, CPHA=0), **8 Mbps** (PCLK1=32 MHz, prescaler=/
 
 **03측 배선 포인트**: 4신호 + GND가 PCA10040 **P4 헤더 한 곳**에 집중 — 실크(P0.xx) 직독 가능. 출처: nRF52 DK User Guide p.15 Figure 10, `_external/nRF5_SDK_17/components/boards/pca10040.h`.
 
-**04측 배선 포인트**: Nucleo morpho 커넥터에서 PBxx 실크 직독. CN10 정확 핀번호는 ST UM1724 자료 미인입으로 **미확정** (회상값 CN10-16/26/28/30, 미검증) — 실크 직독이 1차.
+**04측 배선 포인트**: Nucleo morpho 커넥터에서 PBxx 실크 직독. CN10 핀번호: **CN10-16(PB12/CS) / CN10-26(PB15/MOSI) / CN10-28(PB14/MISO) / CN10-30(PB13/SCK)** — 이미지 직독 확인 (2026-06-18). 전체 핀맵 → [[nucleo_f103rb_morpho_pinmap]].
 
 **⚠️ UART 주의**: 04는 STM32F103RBT6(medium-density)라 **UART4/UART5 없음**. 모니터는 USART2(PA2=TX, PA3=RX) 사용 — Nucleo VCP(ST-LINK USB)에 기본 연결.
 
