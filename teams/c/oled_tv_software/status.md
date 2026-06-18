@@ -1,5 +1,5 @@
 ---
-date: 2026-06-17
+date: 2026-06-18
 ---
 
 # oled_tv_software — 구현 현황
@@ -19,17 +19,22 @@ date: 2026-06-17
 
 02_RX_ble·03_TX_ble를 PCA10040 DK → 커스텀 실보드 UTO-NBK-52로 교체 후 comm_st 링크 판정 재검증.
 
-**오늘(2026-06-17) 완료**:
+**완료 (2026-06-17)**:
 - LED 핀 DK값(P0.17/18/19) → 커스텀값(P0.9/8/6)으로 수정, `CONFIG_NFCT_PINS_AS_GPIOS` emProject 추가, SES 빌드 통과
 - 커스텀 02 `SES Build+Erase All+Download`로 flash 정상 (stale .hex nrfjprog 시 HardFault → 원인 확인 해소)
-- 단계 1~5 무사 통과
 
-**내일(2026-06-18) TODO** ([[uto_nbk_52]] 핀맵, [[nfc_pins_gpio]] 참조):
-1. LED1(P0.9) cold-boot 확인 — 디버거 떼고 전원 재인가 후 점등 여부. UICR.NFCPINS(`0x1000120C`) bit0=0 확인
-2. LED2(SPI, P0.8)·LED3(BLE, P0.6) 점등 확인
-3. 03_TX_ble를 커스텀 보드에 SES flash
-4. 01+02+03 전체 연결 후 comm_st 진리표 4케이스 재검증 ([[comm_state_monitoring]] "SPI down → ESB down" 진리표): ①SPI 점퍼 분리 ②02만 SW1 RESET 홀드 ③03만 SW1 RESET 홀드 ④복구 (halt 금지 — 라디오 auto-ACK)
-5. 통과 후 커밋 (미커밋 LED 핀 변경 포함)
+**완료 (2026-06-18)**:
+- **LED1 진단**: 03 보드(DEVICEID `0xE9775EC9`) P0.9 output+LOW → LED1 정상 점등. 02 보드(DEVICEID `0x09741932`) 동일 구동 → 물리 미점등 → **개체 결함**. NFCPINS 두 보드 다 `0xFFFFFFFE`(GPIO 모드) 확인. ([[uto_nbk_52]] LED 표 active-HIGH→active-LOW 정정, [[nfc_pins_gpio]] 갱신)
+- **SPI_Comm_St-03 결합 버그 수정**: 02 `esb_pkt` seed 누락이 root cause 코드 확정. 02 `eta_protocol.c:227-232` `pkt_seed_buffers(esb_pkt, ...)` 추가 → DK 보드 검증 통과(01+02 only, 03 off → SPI UP/ESB DOWN). **미커밋**. ([[comm_state_monitoring]] "구조적 결합 정밀 메커니즘 + 수정", [[app_protocol_module]] "02 esb_pkt seed 누락")
+- 03_TX_ble 커스텀 보드 flash ✓
+- emBuild incremental-skip 함정 확인 → 빌드 전 `Output/Debug` 삭제 안전책 확립. ([[st_link_nrf52_flash]] 갱신)
+
+**다음 시작점 — 커스텀 보드 SPI 배선 후 comm_st 재검증**:
+
+점퍼 수령 후 커스텀 보드를 SPI 배선(P0.22/P0.25/P0.26/P0.27 — **MISO P0.26 미연결 시 전부 0xFF 함정** 주의)으로 연결해:
+1. "02만 ON → SPI UP / ESB DOWN" 신규 케이스 확인 (seed 수정 효과 검증)
+2. 기존 comm_st 진리표 4케이스 재검증 ([[comm_state_monitoring]] "SPI down → ESB down" 진리표): ①SPI 점퍼 분리 ②02만 SW1 RESET 홀드 ③03만 SW1 RESET 홀드 ④복구
+3. 검증 완료 후 **02 `eta_protocol.c` seed 수정 + LED 핀 변경 commit & push** (현재 미커밋)
 
 `6fc8b92`(2026-06-12, 04-tx-control-dummy 브랜치): **02·03 BLE 릴레이 정리 + RX 방향 미연결 견고화**. 02 `protocol_init`에서 forward 버퍼(0x50/51/52)를 valid 헤더+LEN+CRC+zero payload로 seed(approach A RX 방향 대칭, TX 방향은 `e72b86e`에서 03 완료). `pkt_seed_buffers()` _shared 헬퍼 추출, `eta_spi.c/.h` _shared 공용화(02/03 바이트 동일). Monitor_Loop `seen_mask` 출력 게이트 제거 → 6줄 고정 스냅샷. [[app_protocol_module]] "릴레이 헤더 소유 원칙·02/03 통합 범위" 갱신.
 
@@ -97,7 +102,7 @@ date: 2026-06-17
 | 03_TX_ble 모듈 분리 리팩토링 | △ | `1d7f71a`(2026-06-11) `emBuild` 에러 0·경고 0. 실보드 미검증(TX 보드·오실로스코프 연결 필요). 02와 동일 eta_ 모듈 구조(gpio/clock/uart/spi/esb(저수준) + protocol). P0.17/18 = DBG_PIN_TX_ATTEMPT/DONE(ESB TX 오실로용). ([[tx_ble_module]], [[nrf52_module_naming]], [[nrf52_firmware_conventions]]) |
 | 03_TX_ble SPI_Loop SPIS 재작성 | △ | `e706b53`(2026-06-11) 기존 SPIM 코드 폐기 → 02 거울 SPIS(`nrf_drv_spis`, MODE_2, PIN_SPI_* 동일) 전면 재작성. `g_last_ack_by_hdr[3]` round-robin MISO 서빙. `emBuild` ✓. **실보드 미검증**. ([[roadmaps/04-tx-control-dummy]] §4) |
 | 04_tx_control 더미 프로젝트 | △ | `07fbf1f`(2026-06-11) 01_RX_control 복제 → ADC/PWM/CAN/DAC 제거, pkt_print 수신 모니터 추가. SPI2+UART5 잔존. **.ioc 파일명 `RX_control.ioc` 잔류. STM32CubeIDE Ctrl+B 빌드 미수행**. ([[roadmaps/04-tx-control-dummy]]) |
-| 릴레이 양방향 미연결 견고화 | △ | `e72b86e`(TX→RX, 03 seed) + `6fc8b92`(RX→TX, 02 seed, 2026-06-12). `protocol_init`에서 forward 버퍼를 valid 헤더+LEN+CRC+zero payload로 seed — source 미연결 시 hdr=0x00 zero 패킷 forward/드롭 방지. `pkt_seed_buffers()` _shared 헬퍼. 빌드 ✓, **실보드 미검증**. ([[app_protocol_module]] "릴레이 헤더 소유 원칙") |
+| 릴레이 양방향 미연결 견고화 | △ | `e72b86e`(TX→RX 03 seed) + `6fc8b92`(RX→TX 02 seed, 2026-06-12) + **미커밋**(TX→RX 02 `esb_pkt` seed, 2026-06-18). 02 `esb_pkt`(ESB수신→SPI forward) seed 누락이 "01+02만 구동 시 SPI DOWN 오판" 버그 원인 — `eta_protocol.c:227-232` seed 추가, DK 보드 검증 통과(01+02 only, SPI UP/ESB DOWN). **커스텀 보드 실보드 미검증**. ([[app_protocol_module]] "02 esb_pkt seed 누락", [[comm_state_monitoring]] "구조적 결합 정밀 메커니즘") |
 | BLE(ESB)_Comm_St presence 판정 | ✓ | `EsbCommSt_Loop()`가 수신 delta(02=`esb_rx_cnt`, 03=`esb_ack_cnt`)로 `ble_comm_st_bit` 판정. `BLE_COMM_ST_WINDOW_MS=200`/`MIN_COUNT=20`(`d2232fe`, 이전 3). 양방향 실보드 검증 (`6cd7e6c`) ([[comm_state_monitoring]]) |
 | BLE_Comm_St bit6 전달·소비 | ✓ | 02가 0x10 bit6(`COMM_ST_BIT_BLE`) 적재(송신 복사본 race-free)→01 `ble_comm` 추출→`esb \| LINK UP/DOWN` edge 콘솔. 03은 자기 LED3 미러만(STM32 전송 없음) |
 | LED3 = ble_comm_st_bit mirror | ✓ | 02·03 모두. 매크로 기본 DK P0.19(active-low), 회사보드 P0.06 주석 ([[tx_ble_module]]) |
@@ -116,7 +121,9 @@ date: 2026-06-17
 
 | 보드 | 입고 | 플래싱 | 비고 |
 |---|---|---|---|
-| BLE_Module_Board_Ver0.1E00 (회사 커스텀, nRF52832) | ✓ 2026-06-01 | ✓ 2026-06-04 `03_TX_ble` | 회로도 [[schematic_ble_module_board_v01e00]]. ST-LINK V2 + pyOCD 성공, LED 점멸 육안 확인 (LED1 상시점등·LED2/LED3 200ms 토글, active-high). 절차·함정 [[st_link_nrf52_flash]] |
+| BLE_Module_Board_Ver0.1E00 (회사 커스텀 UTO-NBL-52, nRF52832) | ✓ 2026-06-01 | ✓ 2026-06-04 `03_TX_ble` | 회로도 [[schematic_ble_module_board_v01e00]]. ST-LINK V2 + pyOCD 성공, LED 점멸 육안 확인 (LED1 상시점등·LED2/LED3 200ms 토글, active-high). 절차·함정 [[st_link_nrf52_flash]] |
+| UTO-NBK-52 #02 (커스텀, nRF52832) | ✓ 2026-06-17 | ✓ 2026-06-18 `02_RX_ble` | DEVICEID `0x09741932`. LED1(P0.09) 물리 미점등 — **개체 결함**(active-LOW 구동 정상, firmware `LED1_ON=0u`). [[uto_nbk_52]] |
+| UTO-NBK-52 #03 (커스텀, nRF52832) | ✓ 2026-06-17 | ✓ 2026-06-18 `03_TX_ble` | DEVICEID `0xE9775EC9`. LED1 정상 점등(active-LOW). [[uto_nbk_52]] |
 
 > 플래싱 셋업 함정 3개(libusb DLL·Zadig WinUSB 바인딩·pyOCD CTRL-AP 패치)와 트러블슈팅은 [[st_link_nrf52_flash]]에 정리됨. 추가 이슈/해결 공유 시 해당 페이지에 ingest.
 
@@ -136,6 +143,8 @@ date: 2026-06-17
 - BLE_Comm_St `N=20` 실측 검증 — 실 RF 수신율 대비 적정성 미확인(`d2232fe`로 3→20 설정됨). STM32 모니터 rx 카운트가 `LOG_EN` 게이트로 미관측 (필요 시 임시 활성)
 - ~~02/03 COMM 라인 미와이어링~~ → **무의미**(`35b94d0`): COMM 텍스트 라인 자체가 폐기됨(링크 health는 0x10 d0 bit5/6 바이너리 운반). 02/03이 별도 COMM 라인 낼 이유 없음
 - ~~SPI 끊김 시 0x10 d0 bit5 → 0 낙하 실보드 확인~~ → **완료 (2026-06-17)**: SPI 점퍼 분리로 bit5 낙하·GUI `SPI DOWN` 확인. ([[comm_state_monitoring]] "SPI down → ESB down" 절)
+- ~~LED1(P0.09) cold-boot 확인~~ → **완료 (2026-06-18)**: 03 보드 정상 점등, 02 보드 개체 결함. ([[uto_nbk_52]], [[nfc_pins_gpio]])
+- **(STEP 3 미완)** 커스텀 보드 SPI 배선 후 comm_st 재검증 — 점퍼 수령 대기. 완료 후 02 `eta_protocol.c` seed 수정 commit&push (미커밋). ([[comm_state_monitoring]] "다음 시작점")
 - 회사 BLE_Module_Board 실장 시 LED3 매크로 P0.06(active-high) 전환 — 체크인 기본은 DK P0.19 ([[tx_ble_module]])
 - SPI 오류율 모니터 / spi_tx_busy 타임아웃 복구 실보드 장시간 안정성 검증
 - TX_ble stack_temp 실측 값 정상 여부 확인
