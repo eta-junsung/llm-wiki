@@ -4,6 +4,14 @@
 
 ---
 
+## [2026-06-18] 환원 | 8kw-ev-wpt-tx MCU+ SDK/CCS 툴체인 마이그레이션 지식 6건
+
+근거: ccs2050→ccs2100, SDK 26_00_00_01→06 마이그레이션 실증 세션 (2026-06-18). 대상: [[sdk_ccs_toolchain_migration]](신설), [[index]](갱신).
+
+- **sdk_ccs_toolchain_migration.md 신설**: gmake 빌드 신 스택 마이그레이션(.out+.mcelf 경고 0)으로 실증된 함정 6종. ①SDK 릴리스노트·minToolVersion이 실제 요구 툴체인 정본(패치업은 프로파일 불변) ②imports.mak CGT_TI_ARM_CLANG_PATH 하드`=`·override는 include 이후만 유효 ③`export VAR ?=`가 config.mk include 앞이면 config.mk 죽은 줄 됨 ④CCS 번들 SysConfig=CLI전용(nodejs/nw/ 없음)·gmake는 standalone 또는 SYSCFG_NODE override 필요 ⑤genimage 스크립트 리네임(genimage_am26x.py→genimage.py)·SDK example makefile에서 정답 본뜨기 ⑥workspace 로드≠툴체인 마이그레이션(.cproject PRODUCTS·superClass로 확인, Project Properties 직접 변경 필요).
+
+---
+
 ## [2026-06-16] ingest | 8kw-ev-wpt-tx GUI 왕복 검증·UART5 RX 1바이트 fix·flash 운영 함정
 
 근거: 실보드 검증 세션 (2026-06-16). 대상: [[uart5_rx_polled_1byte]](신설), [[gpio_impl]], [[jtag_flash_clean_host]], [[uart5_packet_protocol]], [[status]].
