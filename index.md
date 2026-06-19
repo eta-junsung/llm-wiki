@@ -9,6 +9,7 @@
 ### Concepts
 
 - [[schematic_ingest_strategy]] — 회로도를 비전 처리 없이 텍스트로 ingest하는 Tier별 전략 (EDA export → CSV/netlist)
+- [[firmware_git_workflow]] — **펌웨어 Git 워크플로 표준(전사 공통)**: 트렁크 기반(`main` 단일)+annotated 릴리스 태그(SemVer `v0.x.y`). 핵심=**태그는 소스만 고정, 동일 바이너리는 고정 툴체인+의존성과 함께일 때만**(cf. [[sdk_ccs_toolchain_migration]]). 멀티-MCU 1태그=시스템 스냅샷·git hash 임베드·매니페스트. 핫픽스 forward-only(다중 유지 시 `release/x.y` 전환). 규모 커지면 GitHub Flow/Git Flow/west 대안
 
 ### Reference
 

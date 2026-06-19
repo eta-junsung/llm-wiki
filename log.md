@@ -4,6 +4,16 @@
 
 ---
 
+## [2026-06-19] ingest | 펌웨어 Git 워크플로 표준 (전사 공통 concept 신설)
+
+근거: 사용자 제공 표준 문서 (conversation-2026-06-19). 대상: [[firmware_git_workflow]](신설, 루트 `pages/concepts/`), [[index]](갱신).
+
+- **firmware_git_workflow.md 신설**: eta 펌웨어 팀 전사 공통 git 컨벤션 — 단일 프로젝트 결정 아님. 트렁크 기반 개발(`main` 단일 줄기)+annotated 릴리스 태그 모델. 9개 절: ①TBD+태그 채택 ②왜 펌웨어에 태그 필수(재현성·멀티-MCU 시스템 스냅샷)+**§2.1 태그는 소스만 고정·동일 바이너리는 고정 툴체인/의존성 락파일/reproducible build와 함께일 때만** ③일상 흐름표(작은수정/덩어리/배포/복원) ④SemVer(`v0.x.y` 시작·annotated `-a` 필수·lightweight 금지) ⑤핫픽스 forward-only·다중 유지 시 `release/x.y` 전환 ⑥브랜치 위생(merge 후 삭제·`rev-list --count`·`archive/*` 태그 보존) ⑦릴리스 추적성(git hash 임베드·매니페스트·코드 서명) ⑧실무 주의(깨끗한 push된 tip서 태그) ⑨규모 확장 대안(GitHub Flow/`release/x.y`/Git Flow/west).
+- 위치 판단: 모든 펌웨어 repo 공통 방법론 → 프로젝트 디렉토리 아닌 루트 `pages/concepts/`([[schematic_ingest_strategy]]와 동급, `source: conversation-*`).
+- cross-ref: §2.1 "툴체인 버전이 바이너리를 바꾼다"는 [[sdk_ccs_toolchain_migration]](8kw 실증)와 연결. §2 멀티-MCU 시스템 스냅샷은 [[app_protocol_module]] 3펌웨어 구조 인접.
+
+---
+
 ## [2026-06-19] 환원 | 8kw-ev-wpt-tx CCS managed-build Phase 2 마이그레이션 실증 — syscfg_build_model 대폭 보강
 
 근거: CCS21 managed-build Phase 2 마이그레이션 실증 세션 (2026-06-19, commit e1aca4f·f3d16ff). 대상: [[syscfg_build_model]](보강).
