@@ -4,6 +4,20 @@
 
 ---
 
+## [2026-06-19] 환원 | 8kw-ev-wpt-tx 두 가지 빌드 방법 — build_methods concept 신설
+
+근거: 사용자 제공 + 리포 직접 확인 사실 (build/makefile · build/config.mk · tools/gui/gui.py · tools/ospi_flash/run_flash_node_8kw.ps1 · flash_node_8kw.js). 대상: [[build_methods]](신설), [[index]](갱신).
+
+- **build_methods.md 신설**: "이거 어떻게 빌드·플래시하나"를 빠르게 답하는 진입 페이지. 기존 [[syscfg_build_model]](생성물 의존 메커니즘)·[[ospi_flash_tooling]](flash 메커니즘)과 다른 고도 — 개발자 vs HW 엔지니어 워크플로 관점.
+  - §1 방법1(CCS IDE managed build→`Release/`, 개발자 편집·디버그) vs 방법2(GUI gmake→`build/`, HW 엔지니어 원클릭) 비교표: 용도/방식/진입점/빌드명령/산출물/플래시 소스. 방법2 진입 `gui.bat`→`launch_gui.ps1`→`gui.py`→`gmake -C build all`, gmake 탐색=config.mk CCS_PATH. CLI 동등 명령(`gmake -C build all` / `python tools/gui/gui.py --deadtime <ns> --write --build --flash`).
+  - §2 공통 스택(CCS21/SDK_06/TICLANG5.1.1/SysConfig1.28, 타겟 AM263P4 r5fss0-0 NoRTOS), 머신별 이식=config.mk 3줄.
+  - §3 syscfg 생성물 규칙(generated/ 커밋·SYSTEM_FLAG=true 기본 재생성 스킵·example.syscfg 변경 시만 SYSTEM_FLAG=false·gitignore 금지) → 심층 [[syscfg_build_model]] 위임.
+  - §4 새 .c 파일 두 빌드 각각 등록(.cproject sourceEntries / build/makefile FILES_common) 강조.
+  - §5 플래시 공통 다운스트림(`run_flash_node_8kw.ps1 -Source release|build`, ERASE_ALL→SBL@0x00→app@0x00081000, IDE 미상주 전제, SW1=`0,0,1,1` xSPI 8D SFDP) → [[ospi_flash_tooling]]·[[jtag_flash_clean_host]]·[[ospi_boot_mode_strap]] 위임.
+- 추측·미확인 추가 없음 — 리포 확인 사실만.
+
+---
+
 ## [2026-06-19] ingest | 펌웨어 Git 워크플로 표준 (전사 공통 concept 신설)
 
 근거: 사용자 제공 표준 문서 (conversation-2026-06-19). 대상: [[firmware_git_workflow]](신설, 루트 `pages/concepts/`), [[index]](갱신).

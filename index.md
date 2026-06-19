@@ -146,6 +146,7 @@
 ### Concepts
 
 - [[team_briefing_8kw]] — **팀 업무보고 참고 자료(8kw)**: 주차별 보고 스냅샷 이력·작업 호(A0~A4)·ADC 6채널 완료 현재 위치·만난 문제표(트리거 결선·soft 재셔플)·다음(A3 스펙 대기/UART5 복구). 보고 직전 참고
+- [[build_methods]] — **두 가지 빌드 방법 진입 페이지**(2026-06-19): 방법1 개발자 CCS IDE 빌드(`Release/`) vs 방법2 HW 엔지니어 GUI gmake 빌드(`build/`, `gui.bat`→`launch_gui.ps1`→`gui.py`→`gmake -C build all`). 비교표(용도/진입점/빌드명령/산출물/플래시 소스) + 공통스택(CCS21/SDK_06, config.mk 3줄 이식) + syscfg 함정(`generated/` 커밋·gitignore 금지) + 새 .c 파일 양쪽(.cproject·FILES_common) 등록 + 플래시 공통(`run_flash_node_8kw.ps1 -Source release|build`, SW1=`0,0,1,1`)
 - [[jtag_flash_clean_host]] — **운영 함정 2종**: ①AM263P OSPI JTAG 굽기는 CCS IDE 완전 종료 후(IDE 상주 DSLite 경합 → 비일관 실패, 2026-06-05 실측). ②"Run > Flash Project" **금지** — SBL 미포함, 전원사이클 후 standalone 부팅 불가(2026-06-16). 올바른 경로: `tools/ospi_flash/run.bat` (구 `tools/jtag_flash/`, 2026-06-17 rename)
 - [[ospi_flash_tooling]] — **OSPI flash 툴링 메커니즘 정본**(2026-06-17): XDS110/JTAG → 헬퍼 펌웨어 RAM 로드 → AutoCmd(0x70038000) → IS25LX256 굽기(SBL@0x00·app@0x00081000). `--source release|build` argv 분기 + mtime fallback 자동 선택. DSLite 콜드스타트/경합 함정
 - [[syscfg_build_model]] — **SysConfig 생성물 빌드 의존 모델**(2026-06-17): CCS managed build(`Release/`) vs 수제 gmake(`build/`) — 동일 `example.syscfg` 공유. gmake `SYSTEM_FLAG=true`(기본)=`build/generated/` 커밋본 사용·**gitignore 금지**. SysConfig 미사용 모듈 stub emit 함정. CCS vs gmake 바이너리 비동일(inert 심볼 차이, 기능 동일)
