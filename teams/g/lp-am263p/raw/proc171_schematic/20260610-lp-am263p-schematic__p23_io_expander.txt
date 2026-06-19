@@ -1,0 +1,102 @@
+    1                                 2                                                                                              3                                                                  4                                                         5                                                           6
+
+
+
+
+                                                                                                                                                    IO_EXPANDER
+                          AM263P_I2C1_SCL
+        AM263P_I2C1_SCL
+                          AM263P_I2C1_SDA
+A       AM263P_I2C1_SDA                                                                                                                                                                                                                                                                                                                                   A
+
+
+
+
+                                                                                    VSYS_3V3
+                                                     VSYS_3V3
+
+                                                                                         PIR42 02
+                                                                                                COR422
+                                                                                                R422
+                                                  C268 PIC26801
+                                                  COC268               PIC26901 COC269
+                                                                                C269                10.0k
+                                                  10V                           10V      PIR42 01                                                           COU63
+                                                                                                                                                            U63
+                                                  0.1uF     PIC26802   PIC26902 10uF              NLIO0ADDR
+                                                                                                  IO_ADDR
+                                                                                         PIR42302                               NLAM263P0I2C10SCL
+                                                                                                                                AM263P_I2C1_SCL PIU63019
+                                                                                                                                                  19     SCL                           1
+                                                                                                                                                                                P00 PIU6301          UART/EPWM_MUX_SEL
+B
+                                                                                                COR423
+                                                                                                R423                            NLAM263P0I2C10SDA
+                                                                                                                                AM263P_I2C1_SDAPIU63020
+                                                                                                                                                  20                                   2                                                                                                                                                                  B
+                                                                                                                                                         SDA                    P01 PIU6302          EMMC_RST_EN
+                                                                                                    10.0k                                                                              3
+                                                                                                                                                                                P02 PIU6303          CPSW RGMI1/ICSSM_MII1_RST_EN
+                                                                                         PIR42301                                        IO_ADDR       18
+                                                                                                                                                     PIU63018 ADDR
+                                                                                                                                                                                       4
+                                                                                                                                                                                P03 PIU6304          CPSW RGMI2/ICSSM_MII0_RST_EN
+                                                          GND                                                                                                                          5
+                                                                                                                                                                                P04 PIU6305          AM263P_LED_DRIVER_EN
+                                                                                                                                                                                P05 PIU6306          AM263P_LED_EN
+                                                                                                                                                                                       7
+                                                                                                                                                                                P06 PIU6307          AM263P_BP_MUX_SEL
+                                                                                                                  VSYS_3V3                                                             8
+                                                                                                                                                                                P07 PIU6308          AM263P_PRU_MUX_SEL
+                                                                                         GND
+                                                                                                                                                                                       10
+                                                                                                                                                                                P10 PIU63010         AM263P_MMC_MUX_SEL
+                                                                                                                     PIR42602                                                          11
+                                                                                                                                                                                P11 PIU63011         AM263P_MMC_MUX_EN
+                                                                                                                            COR426
+                                                                                                                            R426                                                       12
+                                                                                                                                                                                P12 PIU63012         AM263P_MCAN_STB
+                                                                                                                            10.0k                                                      13
+                                                                                                                                                                                P13 PIU63013         VPP_LDO_EN
+                                                                                                                     PIR42601                                                          14
+                                                                                                                                                                                P14 PIU63014         UART/EPWM_MUX_EN
+                                                                                                                                         NLIO0INT
+                                                                                                                                         IO_INT       22                               15
+                                                                                                                                                     PIU63022   INT             P15 PIU63015         AM263P_PRU/BP_MUX_EN
+                                                                                                                                                                                       16
+                                                                                                                                                                                P16 PIU63016         AM263P_U52_MUX_SEL
+                                                                                                                                                       24
+                                                                                                                                                     PIU63024 RESET                    17
+                                                                                                                                                                                P17 PIU63017
+                                                                                                                AM263P_WARMRSTN
+                                                                                                     VSYS_3V3
+                                                                                                                                                       23
+                                                                                                                                                     PIU63023   VCCI                  25
+                                                                                                                                                                                EP PIU63025
+                                                                                                                                                      21                              9
+                                                                                                                                                     PIU63021   VCCP           GND PIU6309
+                                                                                                                                                            TCA6416ARTWR
+
+
+                                                                                                                                                                                               GND
+
+                                                                                                                                                                      I2C ADDRESS
+                                                                                                                                                                           0x20
+C                                                                                                                                                                                                                                                                                                                                                         C
+
+
+
+
+D                                                                                                                                                                                                                                                                                                                                                         D
+
+
+
+
+                                                                                                                                                                                                                                         Orderable: LP-AM263P              Designed for: TEXAS INSTRUMENTS Mod. Date: 10-03-2025
+                                                                                                                                                                                                                                         TID #:      N/A                   Project Title: AM263P Launchpad
+                                                                                                                                                                                                                                         Number: PROC171        Rev: A     Sheet Title: *
+                                    Texas Instruments and/or its licensors do not warrant the accuracy or completeness of this specification or any information contained therein. Texas Instruments and/or its licensors do not         SVN Rev: Not in version control   Assembly Variant: 001                 Sheet: 23 of 27
+                                    warrant that this design will meet the specifications, will be suitable for your application or fit for any particular purpose, or will operate in an implementation. Texas Instruments and/or its   Drawn By: *                       File: PROC171_IO_EXPANDER.SchDoc            Size: B        http://www.ti.com
+                                    licensors do not warrant that the design is production worthy. You should completely validate and test your design implementation to confirm the system functionality for your application.          Engineer: Shrinivas               Contact:                                                © Texas Instruments
+    1                                 2                                                                                              3                                                                  4                                                         5                                                           6
+
