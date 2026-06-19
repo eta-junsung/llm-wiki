@@ -25,7 +25,7 @@ date: 2026-06-19
 
 | **gpio** | GPIO 출력 브링업 (485_EN·GD_EN_seed) + UART5 양방향 확장 | G0~G1 → [[gpio_impl]] | **G0 ✓** (eta_gpio.{c,h}·실보드 검증·UART5 양방향·GUI GPIO Control, 2026-06-16). 잔여 = GUI 왕복 검증 완료 후 커밋 |
 
-| **toolchain** | CCS/SDK 이중 빌드 스택업 — gmake+CCS GUI (ccs2050→ccs2100) | — | △ gmake 신 스택 경고 0 성공(branch `toolchain-ccs21-sdk2606`, 5a5fa44, 2026-06-19). 실보드 부팅 검증·CCS GUI Phase 2 미완. 정본 [[sdk_ccs_toolchain_migration]] |
+| **toolchain** | CCS/SDK 이중 빌드 스택업 — gmake+CCS IDE (ccs2050→ccs2100) | — | ✓ 완전 완료(2026-06-19). gmake/GUI/CCS IDE 3경로 + 실보드 end-to-end PASS. C:\ti 구스택 정리. 정본 [[sdk_ccs_toolchain_migration]]·[[syscfg_build_model]] |
 
 추가 후속 작업이 생기면 `roadmaps/<task>.md`로 추가하고 위 표에 행을 더한다.
 

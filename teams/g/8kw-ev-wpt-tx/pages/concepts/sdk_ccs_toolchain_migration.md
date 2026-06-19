@@ -143,6 +143,31 @@ gmake_exe = f"{ccs_path}/utils/bin/gmake"
 
 ---
 
+## 8. CCS 21은 자급자족 — standalone 컴파일러/SysConfig/node 불필요
+
+**증상**: 신 스택으로 올릴 때 `C:\ti\sysconfig_1.28.0`, `ti_cgt_arm_llvm_5.1.1` 등을 별도 설치해야 할 것 같다.
+
+**원인**: CCS 20 이하 시절 standalone SysConfig·컴파일러를 `C:\ti\`에 따로 설치하는 것이 표준 패턴이었다. 이 관성이 CCS 21로 이어진다.
+
+**해결·교훈**: CCS 21(ccs2100)은 컴파일러(ti-cgt-armllvm_5.1.1.LTS)·SysConfig 1.28·Node.js를 모두 `ccs/` 하위에 번들한다. **별도 standalone 설치는 중복/orphan — 삭제 가능.**
+
+gmake 스택에서 번들 경로를 지목하는 구조:
+
+```makefile
+# build/config.mk (배선 진입점 — config.mk만 변수 보유)
+CCS_PATH := C:/ti/ccs2100/ccs
+
+# build/makefile (imports.mak include 이후 `:=` 재정의)
+CGT_TI_ARM_CLANG_PATH := $(CCS_PATH)/tools/compiler/ti-cgt-armllvm_5.1.1.LTS
+SYSCFG_NODE           := $(CCS_PATH)/tools/node/node
+```
+
+⚠️ `makefile`의 CGT/SYSCFG_NODE는 `:=` 하드코딩(`makefile:11-12`) — `config.mk` override 범위 밖. CCS를 비표준 경로에 깔면 `makefile`도 직접 수정 필요.
+
+**구 `C:\ti` 정리 후보 (신스택에서 orphan)**: `ccs2050/`, `uniflash/`, `sysconfig_1.27.0/`, `ti_cgt_arm_llvm_4.0.4.LTS/`, 구 SDK(`mcu_plus_sdk_am263px_26_00_00_01`).
+
+---
+
 ## 함께 보기
 
 - SysConfig 생성물 빌드 의존 모델: [[syscfg_build_model]]

@@ -86,6 +86,17 @@ mcu_plus_sdk_am263px_26_00_00_01\tools\boot\sbl_prebuilt\am263px-lp\
 
 상세(harness 정본): [[jtag_flash_harness]] §8.
 
+### SDK 버전 간 SBL 해시 차이 — 정상 현상
+
+SDK 버전이 바뀌면(예: 26_00_00_01 → 26_00_00_06) prebuilt SBL의 **파일 크기는 동일(307,005B)하나 SHA256 해시가 상이**하다. TI가 SDK 빌드마다 서명 cert의 serial number·timestamp를 재발급하기 때문이며, 기능은 동등하다.
+
+**SBL 확보 방법**: 머신 간 파일 이주 불필요 — SDK만 설치하면 prebuilt에서 직접 복사·리네임:
+
+```
+<SDK>/tools/boot/sbl_prebuilt/am263px-lp/sbl_ospi_multicore_elf.release.tiimage
+  → C:/ti/sbl_ospi_am263p.tiimage
+```
+
 ---
 
 ## 5. route② `.mcelf` standalone 부팅 — **실증됨 (2026-06-12)**

@@ -14,6 +14,17 @@
 
 ---
 
+## [2026-06-19] 환원 | 8kw-ev-wpt-tx 신스택 전환 완전 완료 — 도메인 지식 4건 + 상태 갱신
+
+근거: 툴체인 신스택 전환 완전 완료 세션 (2026-06-19, end-to-end PASS). 대상: [[sdk_ccs_toolchain_migration]](§8 추가), [[windows_bat_ps1_launcher]](신설, 루트), [[ospi_boot_console_diagnostic]](§4 보강), [[ospi_boot_mode_strap]](VCC 주의 추가), [[status]]·[[roadmap]](완전 완료 반영).
+
+- **sdk_ccs_toolchain_migration.md §8 추가**: CCS21 자급자족 — 번들 컴파일러/SysConfig/node로 충분, standalone 불필요. config.mk CCS_PATH 배선 구조. makefile CGT/SYSCFG_NODE `:=` 하드코딩은 config.mk 범위 밖. 구 C:\ti orphan 정리 후보.
+- **windows_bat_ps1_launcher.md 신설(루트 pages/concepts/)**: cmd .bat + 한글 + chcp 65001 = 토크나이저 파괴(멀티바이트 토큰 쪼개짐). 해법: ASCII 전용 .bat 래퍼 → .ps1 위임. .ps1 UTF-8 BOM 필수(PS5.1 cp949 오독 방지). Python 런처 레시피(py→python 폴백·의존성 자동설치·진단 콘솔). cwd 독립 설계(`__file__` 기준 내부 자원).
+- **ospi_boot_console_diagnostic.md §4 보강**: SDK 버전 간 SBL 해시 상이 = cert serial/timestamp 차이(정상). 머신 간 이주 불필요 — SDK prebuilt 직접 복사.
+- **ospi_boot_mode_strap.md 보강**: standalone 부팅 검증 = 물리 VCC 전원사이클 필수(JTAG 리셋 = connect GEL 코어 리셋으로 ROM 미실행).
+
+---
+
 ## [2026-06-19] 환원 | 8kw-ev-wpt-tx CCS managed-build Phase 2 마이그레이션 실증 — syscfg_build_model 대폭 보강
 
 근거: CCS21 managed-build Phase 2 마이그레이션 실증 세션 (2026-06-19, commit e1aca4f·f3d16ff). 대상: [[syscfg_build_model]](보강).
