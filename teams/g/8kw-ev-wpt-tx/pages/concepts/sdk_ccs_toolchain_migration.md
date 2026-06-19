@@ -1,137 +1,151 @@
 ---
 tags: [concept, build, ccs, gmake, sdk, toolchain, sysconfig, ticlang, am263p, 8kw-ev-wpt-tx]
-source: 8kw-ev-wpt-tx gmake 빌드 신 스택 마이그레이션 실증 (2026-06-18, ccs2050→ccs2100, SDK 26_00_00_01→06, .out+.mcelf 경고 0 성공)
-date: 2026-06-18
+source: 8kw-ev-wpt-tx gmake 빌드 신 스택 마이그레이션 실증 (2026-06-19, ccs2050→ccs2100, SDK 26_00_00_01→06, .out+.mcelf 경고 0 + 실보드 부팅·기능 정상)
+date: 2026-06-19
 ---
 
-# MCU+ SDK / CCS 툴체인 마이그레이션 — 함정 6종
+# MCU+ SDK / CCS 툴체인 마이그레이션 — 함정 7종
 
-> **실증 범위**: gmake 빌드가 구 스택(CCS 20.5/SDK 26_00_00_01/SysConfig 1.27.0/TICLANG 4.0.4)에서 신 스택(CCS 21/SDK 26_00_00_06/SysConfig 1.28.0/TICLANG 5.1.1)으로 `.out`+`.mcelf` 경고 0 성공으로 실증(1~5). 6은 `.cproject` diff로 확인. 실보드 부팅 검증은 미완 — 툴체인 메커니즘과 무관.
-
----
-
-## 1. "새 SDK = 새 툴체인" 아님 — 실제 요구 버전 읽는 법
-
-**SDK가 요구하는 툴체인은 SDK 안에 명시돼 있다. CCS가 번들하는 툴체인 버전과 무관하다.**
-
-- **정본**: `<SDK>/docs/api_guide_*/RELEASE_NOTES_<ver>_PAGE.html` 내 의존성 표.  
-  예) `26_00_00_06` 요구 = CCS 20.5.0 / SysConfig 1.27.0+4565 / TICLANG 4.0.4.LTS — CCS 21이 번들하는 더 새 버전이 아니다.
-- **SysConfig 하한**: `<SDK>/.metadata/product.json` → `"minToolVersion"` 필드(예: `"1.27.0"`). 이 값 미만 SysConfig 사용 시 SDK가 로드 거부.
-- **패치 업은 같은 프로파일**: SDK `.01` → `.06`은 버그픽스 패치; 툴체인 프로파일(CCS/SysConfig/TICLANG 조합)은 동일하다.
-- **결론**: 마이그레이션 범위를 잡을 때 이 표와 `minToolVersion`을 먼저 읽는다. CCS 버전 업이 툴체인 업그레이드를 강제하지 않는다.
+> 각 항목은 독립 교훈 — **증상 → 원인 → 해결·교훈** 순.  
+> **실증 범위**: gmake(build/) 신 스택(CCS21/SDK_06/SysConfig1.28/TICLANG5.1.1) 경고 0 + 실보드 부팅·기능 정상(2026-06-19, branch `toolchain-ccs21-sdk2606`).
 
 ---
 
-## 2. `imports.mak`의 CGT 경로는 하드 `=` — override는 include 이후에
+## 1. SDK 릴리스노트 툴체인 표는 하한선 — 상위 스택도 동작한다
+
+**증상**: SDK 26_00_00_06 릴리스노트가 "CCS20.5/SysConfig1.27/TICLANG4.0.4 검증"이라 적혀 있어, CCS21/SysConfig1.28/TICLANG5.1.1로 올리면 안 될 것 같다는 의심이 생긴다.
+
+**원인**: 릴리스노트의 표는 TI가 해당 SDK 출시 시점에 검증한 스택(= 하한선·권장 조합)이다. "이 버전 이하만 된다"는 상한선이 아니다. SDK 패치 업(`.01` → `.06`)은 프로파일 고정 — 툴체인 조합이 바뀌지 않는다.
+
+**해결·교훈**: 신 스택(CCS21/SysConfig1.28/TICLANG5.1.1)으로 올려도 빌드·부팅·기능 정상. 표는 "최소 지원 버전" 기준으로만 읽는다.
+- 툴체인 하한 확인: `<SDK>/.metadata/product.json` → `"minToolVersion"` 필드.
+- 실제 의존성 표 위치: `<SDK>/docs/api_guide_*/RELEASE_NOTES_<ver>_PAGE.html`.
+
+---
+
+## 2. imports.mak CGT 경로는 하드 `=` — include 이후에 `:=` 재정의
+
+**증상**: `config.mk`에 신버전 TICLANG 경로를 써도 gmake가 여전히 구버전 `ti-cgt-armllvm_4.0.4.LTS`를 가리킨다.
+
+**원인**: SDK `imports.mak`이 `CGT_TI_ARM_CLANG_PATH`를 `=`(하드 대입)로 고정한다. `config.mk`가 `imports.mak` include **이전**에 처리되므로, `config.mk`의 어떤 값도 이미 박힌 `=` 줄을 덮지 못한다.
 
 ```makefile
-# <SDK>/imports.mak
-:43  CGT_TI_ARM_CLANG_PATH=$(CCS_PATH)/tools/compiler/ti-cgt-armllvm_4.0.4.LTS   # 하드 =
-:45  # 2차 fallback: $(TOOLS_PATH)/ti-cgt-armllvm_4.0.4.LTS
-:49  SYSCFG_PATH ?= $(TOOLS_PATH)/sysconfig_1.27.0                                # ?= (fallback)
+# imports.mak (SDK 내부) — 발췌
+CGT_TI_ARM_CLANG_PATH = $(CCS_PATH)/tools/compiler/ti-cgt-armllvm_4.0.4.LTS   # 하드 =
+SYSCFG_PATH           ?= ...                                                    # ?= (조건)
 ```
 
-- CGT 경로는 `?=`(조건 대입)이 아니라 `=`(무조건 대입). `config.mk`가 `imports.mak` **include 이전**에 들어가므로 `config.mk`의 어떤 값도 이미 박힌 `=`를 덮지 못한다.
-- 2차 fallback 경로(`$(TOOLS_PATH)/ti-cgt-armllvm_*`)는 이름 패턴이 standalone 설치(`ti_cgt_arm_llvm_*` — 언더스코어 위치 다름)와 불일치해 자동 매칭이 깨질 수 있다.
-- **SDK가 고정한 버전이 아닌 다른 컴파일러를 쓰려면**: 프로젝트 `makefile`에서 `include imports.mak` **이후**에 재정의.
+**해결·교훈**: `include imports.mak` **이후** 줄에서 `:=`로 재정의.
 
 ```makefile
-include $(SDK_PATH)/imports.mak
-# imports.mak의 = 덮어쓰기 — := 로 강제
+include $(MCU_PLUS_SDK_PATH)/imports.mak
+# include 이후 재정의 — imports.mak의 = 를 덮어씀
 CGT_TI_ARM_CLANG_PATH := C:/ti/ccs2100/ccs/tools/compiler/ti-cgt-armllvm_5.1.1.LTS
+SYSCFG_NODE           := C:/ti/ccs2100/ccs/tools/node/node
 ```
 
-- `SYSCFG_PATH`는 `?=`이므로 `include` 이전 export도 유효하지만, CGT는 그렇지 않다.
+- `SYSCFG_PATH`는 `?=`이므로 include 이전 export도 유효. CGT는 반드시 include 이후.
 
 ---
 
-## 3. `export VAR ?=`가 `config.mk` include보다 앞에 있으면 `config.mk`를 가린다
+## 3. makefile 상단의 `?=`가 config.mk를 가린다
 
-gmake의 `?=`는 "값이 아직 없으면 대입"이다. makefile 상단에
+**증상**: `config.mk`의 `MCU_PLUS_SDK_PATH`를 신 SDK로 고쳤는데 구 SDK가 계속 잡힌다.
+
+**원인**: `build/makefile` 상단에
 
 ```makefile
-export MCU_PLUS_SDK_PATH ?= C:/ti/mcu_plus_sdk_am263px_26_00_00_01   # ← 이 줄이
+export MCU_PLUS_SDK_PATH ?= C:/ti/mcu_plus_sdk_am263px_26_00_00_01   # ← 먼저 평가
 ...
-include config.mk                                                       # ← 이 줄보다 앞에 있으면
+-include config.mk                                                      # ← 나중
 ```
 
-`?=`가 먼저 값을 선점해, `config.mk` 안의 같은 변수 줄은 **죽은 줄**이 된다. `config.mk`만 고쳐도 실효가 없다.
+`?=`가 먼저 값을 선점해 `config.mk` 안의 같은 변수 줄은 **죽은 줄**이 된다.
 
-- **SDK 경로를 변경할 때는** `config.mk` 수정 + makefile 상단 해당 줄도 함께 수정.
-- `?=` vs `=` vs `:=` 의미 차이와 include 순서를 확인해야 어느 줄이 실효 줄인지 알 수 있다. 의심스러우면 `make -p | grep VAR=`로 실측.
+**해결·교훈**: SDK 경로 변경 시 `config.mk` + makefile 상단 `?=` 줄 **둘 다** 수정. 의심되면 `make -p | grep MCU_PLUS_SDK_PATH=`로 실효값 확인.
 
 ---
 
-## 4. CCS 번들 SysConfig는 CLI 전용 — gmake는 standalone 필요
+## 4. CCS 번들 SysConfig는 CLI 전용 — SYSCFG_NODE override로 충분
+
+**증상**: gmake `syscfg` 타겟(SysConfig 재생성, `SYSTEM_FLAG=false`)이 번들 SysConfig를 가리킬 때 `nodejs/` 없음 오류로 깨진다.
+
+**원인**: CCS 번들 SysConfig(`ccs2100/.../sysconfig_1.28.0/`)는 `dist/`·`sysconfig_cli.bat`만 포함, `nodejs/`·`nw/`·GUI 런처가 없다. `imports.mak`이 `SYSCFG_NODE`로 독립 Node.js 바이너리를 직접 호출하는데 번들에는 그 경로가 없다.
 
 | 설치 형태 | 경로 예 | 포함 내용 |
 |-----------|---------|-----------|
-| CCS 번들 | `<CCS>/utils/sysconfig_1.27.0/` | `dist/` + `sysconfig_cli.bat` 만. `nodejs/`·`nw/` **없음** |
-| standalone | `C:/ti/sysconfig_1.27.0/` | `nodejs/`·`nw/`·GUI 런처 포함 **풀 설치** |
+| CCS 번들 | `<CCS>/utils/sysconfig_1.28.0/` | `dist/` + `sysconfig_cli.bat` 만 |
+| standalone | `C:/ti/sysconfig_1.28.0/` | `nodejs/`·`nw/`·GUI 런처 포함 |
 
-번들은 `<CCS>/tools/node/node.exe`(공유 Node.js)에 의존해 CLI를 구동한다. `nodejs/`가 없으므로 `SYSCFG_NODE` 변수가 가리킬 독립 바이너리가 없다.
-
-**gmake는 `imports.mak:51`에서 `SYSCFG_NODE`를 직접 요구한다.** `SYSCFG_PATH`를 번들로 가리키면 `syscfg` 타겟(`SYSTEM_FLAG=false` 재생성 경로)이 깨진다.
-
-해법 두 가지:
+**해결·교훈**: **standalone SysConfig 별도 설치 불필요** — CCS 공유 node를 override로 지목하면 된다.
 
 ```makefile
-# (a) SYSCFG_PATH를 standalone으로 (권장)
-SYSCFG_PATH := C:/ti/sysconfig_1.27.0
-
-# (b) SYSCFG_NODE를 CCS 공유 node로 override (번들 sysconfig_cli.bat 경유)
-SYSCFG_NODE := C:/ti/ccs2100/ccs/tools/node/node.exe
+SYSCFG_NODE := C:/ti/ccs2100/ccs/tools/node/node
 ```
 
-- 번들과 standalone의 build 번호 차이(예: `+4712` vs `+4696`)는 cosmetic — `@versions` 불일치 경고만 발생하며, `minToolVersion` 충족 시 SDK가 로드를 거부하지 않는다.
+- 번들과 standalone의 build 번호 차이(예: `+4712` vs `+4696`)는 cosmetic — `@versions` 경고만 발생하며 `minToolVersion` 충족 시 SDK 로드를 거부하지 않는다.
 
 ---
 
-## 5. SDK 버전 간 `genimage` 스크립트 리네임 — 정답은 SDK example makefile
+## 5. genimage 스크립트가 SDK 버전 간 리네임됨
 
-SDK 버전이 오르면 멀티코어 이미지 생성 스크립트가 리네임될 수 있다.
+**증상**: SDK 신버전으로 교체 후 `.mcelf` 생성 룰이 `No such file or directory`로 실패한다.
+
+**원인**: SDK 버전이 오르면 멀티코어 이미지 생성 스크립트가 리네임될 수 있다.
 
 | SDK 계열 | 스크립트명 |
 |----------|-----------|
 | 26_00_00_0x (구) | `genimage_am26x.py` |
 | 26_00_00_06 (신) | `genimage.py` |
-인자는 동일.
 
-`makefile`의 `MCELF_IMAGE_GEN` 경로가 `No such file or directory`로 깨지면:
+인자는 동일. 신 SDK에 `--otfaConfigFile` 인자가 추가됐으나 HS-FS/OTFA 전용 — GP 디바이스는 무관.
 
-1. **추측 금지** — 이름 규칙을 짐작해 고치지 않는다.
-2. `<SDK>/examples/<유사 예제>/ti-arm-clang/makefile`을 열어 `.mcelf` 생성 룰에서 **스크립트명과 인자를 그대로 본뜬다**.
-
-> ⚠️ SDK 26_00_00_06 레퍼런스 예제의 `.mcelf` 생성 룰에는 HS-FS/OTFA 전용 분기가 있다 — **GP(General Purpose) 디바이스에는 무관**, 해당 분기 없이 단순 `genimage.py` 호출로 충분.
+**해결·교훈**: **추측으로 이름 고치지 말 것**. `<SDK>/examples/<유사 예제>/ti-arm-clang/makefile`의 `.mcelf` 생성 룰에서 스크립트명과 인자를 그대로 본뜬다. makefile의 `MCELF_IMAGE_GEN` 변수 경로 수정.
 
 ---
 
 ## 6. CCS workspace 로드 ≠ 프로젝트 툴체인 마이그레이션
 
-구 workspace를 새 CCS로 열어도, **구 제품(구 SDK·구 CCS 버전)이 아직 설치돼 있으면** CCS는 `.cproject`의 툴체인 참조를 자동 마이그레이션하지 않는다. 빌더 attribute 정규화(`name`/`keepEnvironmentInBuildfile` 같은 메타데이터)만 일어난다.
+**증상**: CCS21로 구 workspace를 열었는데 IDE 빌드 경로·에러가 이상하다. `.cproject`를 열어보면 제품·superClass가 구버전 그대로다.
 
-**미마이그레이션 지표 — `.cproject` 안에서 확인:**
+**원인**: 구 제품이 아직 설치돼 있으면 CCS는 `.cproject` 툴체인 참조를 자동 마이그레이션하지 않는다. workspace 로드 시 일어나는 것은 빌더 attribute 정규화(cosmetic)뿐.
+
+미마이그레이션 지표 — `.cproject` 안에서 확인:
 
 ```xml
-<!-- PRODUCTS 라인: 구 버전 그대로면 미마이그레이션 -->
-<extension id="com.ti.MCU-PLUS-SDK-AM263PX.core" point="..." version="26.0.0.1"/>
-<extension id="org.eclipse.cdt.core.sysconfig" point="..." version="1.27.0"/>
-
-<!-- superClass: 구 CCS/컴파일러 정의 그대로면 미마이그레이션 -->
-<builder superClass="com.ti.ccstudio.buildDefinition.gcc.exe.release.2050..."/>
+<extension id="com.ti.MCU-PLUS-SDK-AM263PX.core" ... version="26.0.0.1"/>  <!-- 구 SDK -->
+<extension id="org.eclipse.cdt.core.sysconfig"    ... version="1.27.0"/>   <!-- 구 SysConfig -->
+<builder superClass="com.ti.ccstudio...2050..."/>                           <!-- 구 CCS -->
 ```
 
-**실제 마이그레이션 경로:**
+**해결·교훈**: `.cproject`를 직접 손편집하지 말 것 — superClass 재생성은 IDE가 해야 한다.
 
 1. **Project Properties → CCS Build → Products**: 구 SDK 제거 + 신 SDK 추가, 컴파일러 버전 갱신.
-2. **구 제품 제거**: CCS Help → About → Installation Details에서 구 SDK/CCS 버전 제거 → 재시작 시 CCS 마이그레이션 다이얼로그 자동 표시.
+2. 또는 구 제품 제거(Help → About → Installation Details) → CCS 재시작 시 마이그레이션 다이얼로그 자동 표시.
 
-> **CCS workspace 첫 로드는 "로드됨"이지 "마이그레이션됨"이 아니다.** IDE 빌드 결과물(에러 메시지·경로)이 이상하면 `.cproject` PRODUCTS와 superClass를 먼저 확인한다.
+---
+
+## 7. 빌드 툴 셀렉터를 단일 진실 소스에 묶어라
+
+**증상**: 여러 CCS 버전이 설치된 머신에서 GUI 빌드 스크립트가 사전순으로 구버전 CCS를 잡아 "머신마다 다른 툴체인으로 빌드"되는 비결정성이 생긴다.
+
+**원인**: GUI 빌드 스크립트가 gmake.exe 경로를 glob 첫 매치(`glob("C:\ti\ccs*\...")`)로 결정하면 알파벳 순으로 가장 이른 `ccs2050/`가 선택된다. makefile(→ `config.mk`)과 GUI 스크립트가 각자 CCS를 찾으므로 서로 다른 버전을 가리킬 수 있다.
+
+**해결·교훈**: **`config.mk`의 `CCS_PATH`를 파싱해 지목하라** — 빌드(makefile)와 GUI 스크립트가 동일 `config.mk`를 단일 소스로 읽으면 어떤 머신에서든 같은 CCS로 빌드됨.
+
+```python
+# run.ps1 / gui 빌드 스크립트 내 예시
+ccs_path = parse_config_mk("build/config.mk")["CCS_PATH"]
+gmake_exe = f"{ccs_path}/utils/bin/gmake"
+```
+
+- 확인: `make -p | grep CCS_PATH=` 와 스크립트가 실제 잡은 경로를 비교.
 
 ---
 
 ## 함께 보기
 
-- SysConfig 생성물 빌드 의존 모델 (CCS managed build vs gmake, `SYSTEM_FLAG`, stub emit 함정): [[syscfg_build_model]]
+- SysConfig 생성물 빌드 의존 모델: [[syscfg_build_model]]
 - OSPI standalone 부팅·부트모드 스트랩: [[ospi_boot_mode_strap]]
+- OSPI flash 스크립팅 툴링: [[ospi_flash_tooling]]
 - 현재 위치·다음 시작점: [[status]]

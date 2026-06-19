@@ -4,6 +4,14 @@
 
 ---
 
+## [2026-06-19] 환원 | 8kw-ev-wpt-tx MCU+ SDK/CCS 툴체인 마이그레이션 지식 7건 (구조 재정비 + 신규 1건)
+
+근거: toolchain-ccs21-sdk2606 브랜치 실보드 부팅·기능 검증 완료 세션 (2026-06-19). 대상: [[sdk_ccs_toolchain_migration]](갱신).
+
+- **sdk_ccs_toolchain_migration.md 갱신**: 기존 6건을 "증상→원인→해결·교훈" 구조로 재정비 + 신규 §7 추가. ①SDK 릴리스노트 툴체인 표=하한선·상위 스택 빌드·부팅·기능 정상 실증 ②imports.mak CGT 하드`=`·include 이후 `:=` 재정의 ③`?=` 선점·config.mk 둘 다 수정 ④CCS 번들 SysConfig CLI전용·standalone 불필요·SYSCFG_NODE override 충분 ⑤genimage 리네임·SDK example 본뜨기 ⑥workspace 로드≠마이그레이션·손편집 금지 ⑦**빌드 툴 셀렉터 비결정성 — glob 첫 매치 금지, config.mk CCS_PATH 단일 소스로 makefile+GUI 일치시키기**.
+
+---
+
 ## [2026-06-18] 환원 | 8kw-ev-wpt-tx MCU+ SDK/CCS 툴체인 마이그레이션 지식 6건
 
 근거: ccs2050→ccs2100, SDK 26_00_00_01→06 마이그레이션 실증 세션 (2026-06-18). 대상: [[sdk_ccs_toolchain_migration]](신설), [[index]](갱신).
