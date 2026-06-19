@@ -4,6 +4,14 @@
 
 ---
 
+## [2026-06-19] 환원 | 8kw-ev-wpt-tx CCS managed-build Phase 2 마이그레이션 실증 — syscfg_build_model 대폭 보강
+
+근거: CCS21 managed-build Phase 2 마이그레이션 실증 세션 (2026-06-19, commit e1aca4f·f3d16ff). 대상: [[syscfg_build_model]](보강).
+
+- **syscfg_build_model.md 보강**: ①낡은 경로 갱신(TI_DIR/CCS_DIR/SDK_DIR→MCU_PLUS_SDK_PATH/CCS_PATH/SYSCFG_PATH, ccs2050→ccs2100, SDK_01→SDK_06) ②dual-build 중복심볼 메커니즘 §1에 명시 ③함정 5종 신설: ④CDT sourceEntries 1차진실(filteredResources 빌드 무력, 재추가entry 제거 필수, e1aca4f) ⑤컴파일러 발견 CCS인스턴스 종속(신버전은 ccs2100에서만) ⑥All Configurations 미설정 시 Debug 구스택 잔존 ⑦CCS post-build genimage 경로도 수정 필요(ignored-error 조용히 실패, f3d16ff) ⑧Theia 기반 CCS=headless build CLI 없음·Resource Filters UI 없음.
+
+---
+
 ## [2026-06-19] 환원 | 8kw-ev-wpt-tx MCU+ SDK/CCS 툴체인 마이그레이션 지식 7건 (구조 재정비 + 신규 1건)
 
 근거: toolchain-ccs21-sdk2606 브랜치 실보드 부팅·기능 검증 완료 세션 (2026-06-19). 대상: [[sdk_ccs_toolchain_migration]](갱신).
