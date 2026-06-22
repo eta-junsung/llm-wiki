@@ -6,8 +6,13 @@
 
 ## 공통 (모든 팀·프로젝트)
 
+### Living docs
+
+- [roadmaps/linux_migration.md](roadmaps/linux_migration.md) — **Windows→Ubuntu 전환 로드맵**(L1 백업~L8 파티션 회수, living-doc). 듀얼부팅→**검증 게이트 L6**(보드별 빌드·플래시·디버깅)→런처 포팅→회수. 현재 L0 미착수(2026-06-22 결정만). 결정·근거는 [[linux_migration]]
+
 ### Concepts
 
+- [[linux_migration]] — **Windows 11 → Ubuntu 24.04 LTS 개발환경 전환 결정·근거**(전사 공통): 배포판 선택(CCS 공식지원 24.04)·듀얼부팅+회수 전략(**ESP 삭제 금지**·WSL2 배제)·동기 3종(거부감/장기 Linux 스킬/Edge AI 장기동인)·툴체인 4종 portability 평가표(전부 네이티브 Linux)·런처 포팅 대상(`.ps1`/`.bat`→`.sh`). 단계는 [roadmaps/linux_migration.md](roadmaps/linux_migration.md) 위임
 - [[schematic_ingest_strategy]] — 회로도를 비전 처리 없이 텍스트로 ingest하는 Tier별 전략 (EDA export → CSV/netlist)
 - [[firmware_git_workflow]] — **펌웨어 Git 워크플로 표준(전사 공통)**: 트렁크 기반(`main` 단일)+annotated 릴리스 태그(SemVer `v0.x.y`). 핵심=**태그는 소스만 고정, 동일 바이너리는 고정 툴체인+의존성과 함께일 때만**(cf. [[sdk_ccs_toolchain_migration]]). 멀티-MCU 1태그=시스템 스냅샷·git hash 임베드·매니페스트. 핫픽스 forward-only(다중 유지 시 `release/x.y` 전환). 규모 커지면 GitHub Flow/Git Flow/west 대안
 

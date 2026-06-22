@@ -4,6 +4,18 @@
 
 ---
 
+## [2026-06-22] ingest | Windows→Ubuntu Linux 전환 결정·로드맵 (전사 공통 신설)
+
+근거: 사용자 전환 결정(conversation-2026-06-22) + `projects/` 디렉토리 직접 점검(런처·툴체인·레이아웃 사실 확인). 대상: [[linux_migration]](신설, 루트 `pages/concepts/`), `roadmaps/linux_migration.md`(신설, **루트 `roadmaps/` 디렉토리 신설**), [[index]](공통 Living docs 절 신설 + Concepts 1행).
+
+- **linux_migration.md 신설(루트 pages/concepts/)**: 전사 공통 운영 결정 — 모든 펌웨어 프로젝트 개발환경에 걸침. ①결정표(배포판 Ubuntu 24.04 LTS Desktop amd64 GNOME=CCS Theia 공식지원 20.04/22.04/24.04뿐·STM32CubeIDE·SEGGER 커버·2029 지원 / 전략 듀얼부팅→검증 후 윈도우 파티션 회수·**ESP 절대 삭제 금지**(Ubuntu GRUB이 같은 ESP) / WSL2 배제=윈도우 안 쓰려는 동기와 모순) ②동기 3종(윈도우 거부감·장기 Linux 스킬 투자[Yocto/Zephyr/CI/HIL/오픈툴체인]·**Edge AI 장기동인**[즉시 단계 아님]) ③툴체인 4종 portability 평가표(STM32CubeIDE/SEGGER ES 8.28/CCS Theia+TI Clang 5.1.1/Python3+tk — 전부 네이티브 Linux, `.emProject` $(StudioDir) 상대·nRF5 SDK in-repo·CCS 경로 자동재생성, 24.04 함정[libtinfo5는 TICLANG5.1.1 무해·chrome-sandbox 1회성], 프로브 udev 3종) ④런처 포팅 대상(`.ps1`/`.bat`→`.sh`).
+- **roadmaps/linux_migration.md 신설(루트 roadmaps/ 신설)**: 단계 spine L1~L8(백업→듀얼부팅 설치→툴4종→udev룰3종→재import·빌드경로 재생성→**검증 게이트 L6**[보드별 빌드·플래시·브레이크포인트 디버깅 통과해야 진입]→런처 포팅→윈도우 파티션 회수). 완료/검증 기준 표·상태기호(전 단계 ✗ 미착수). L6 전까지 윈도우 안전망 유지 원칙. 현재 위치 L0 미착수. 짝 status.md 없어 상태기호로 직접 표기(프로젝트 로드맵의 [[status]] 위임과 다른 점 명시).
+- **배치 합의**: 결정/근거 개념은 루트 `pages/concepts/`(스키마 명확), 로드맵은 **루트 `roadmaps/` 신설**(프로젝트 `roadmap.md`가 프로젝트 루트에 사는 것과 평행 — 사용자 합의). index 링크는 다른 로드맵과 동일 path-style.
+- **repo 점검 사실(보강)**: 실 레이아웃 `projects/<팀>/<프로젝트>`(c/·g/, task 설명의 flat과 다름). 런처 grep 확인 — 8kw `run_flash_node_8kw.ps1`=`C:\ti\ccs2100\ccs\scripting\run.bat`·`gui.bat`→`launch_gui.ps1`·lp `bp-3351/jtag_flasher/*.ps1` 11개(⚠️ 구 `ccs2050` 경로). config.mk 3줄 wiki와 일치. `projects/c/`에 백업 zip 2개 + 거대 전달본 사본(`oled_tv_software_전달본/`, SES 설치 .exe·nRF5_SDK·oled_tv.zip). build/**/*.bat=Zephyr/west 캐시 무시 확정. pc_uart_gui `uart_gui.py`+PyInstaller `build/`.
+- 기존 페이지 백링크 연결(중복 생성 없음): [[windows_bat_ps1_launcher]]·[[ses_build_conventions]]·[[cubeide_cli_build_trap]]·[[st_link_nrf52_flash]]·[[ospi_flash_tooling]]·[[jtag_flash_clean_host]]·[[sdk_ccs_toolchain_migration]]·[[syscfg_build_model]]·[[instruments]]·[[firmware_git_workflow]].
+
+---
+
 ## [2026-06-22] 환원 | oled_tv_software 시립대 전달 문서 신설
 
 근거: 기존 페이지 종합(신규 raw 없음). 대상: [[시립대_전달]](신설), [[index]](갱신은 본 lint에서 보강).
