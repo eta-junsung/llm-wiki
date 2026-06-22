@@ -20,7 +20,7 @@ date: 2026-06-12
 `ETA_DEADTIME_NS`(`src/eta_bsp/eta_tuning.h`) 컴파일타임 knob으로 설정한 dead-time이
 **flash → VCC 전원사이클 → silicon 핀 출력**의 전체 체인에서 실제 both-LOW dead-band로 나오는지 검증.
 
-**결론**: 100~400 ns 전 범위에서 설정값 ≤2 ns 정확도 추종. shoot-through 0. **기능 검증 종합 PASS.**
+**결론**: 100~500 ns 전 범위에서 설정값 ≤2 ns 정확도 추종. shoot-through 0. **기능 검증 종합 PASS.**
 
 ---
 
@@ -46,7 +46,7 @@ flash 검증은 **standalone 부팅**(SW1=`0,0,1,1` xSPI 8D SFDP, [[ospi_boot_mo
 | 스위칭 주파수 | 85 kHz 고정 |
 | TBCLK | 200 MHz (1 count = 5 ns) |
 | TBPRD | 1176 counts |
-| knob 파일 | `src/eta_bsp/eta_tuning.h` → `ETA_DEADTIME_NS` (범위 100~400 ns, `#error` 가드) |
+| knob 파일 | `src/eta_bsp/eta_tuning.h` → `ETA_DEADTIME_NS` (범위 100~500 ns, `#error` 가드) |
 
 ---
 
@@ -123,10 +123,10 @@ flash 검증은 **standalone 부팅**(SW1=`0,0,1,1` xSPI 8D SFDP, [[ospi_boot_mo
 
 ## 7. 결론
 
-- **dead-time knob 단대단 silicon 검증 PASS**: `ETA_DEADTIME_NS` (컴파일타임) → flash → VCC 전원사이클 → silicon 핀 dead-band가 100~400 ns 전 범위에서 ≤2 ns 정확도로 추종.
+- **dead-time knob 단대단 silicon 검증 PASS**: `ETA_DEADTIME_NS` (컴파일타임) → flash → VCC 전원사이클 → silicon 핀 dead-band가 100~500 ns 전 범위에서 ≤2 ns 정확도로 추종.
 - **shoot-through 0**: 전 설정·전 주기 양 레그에서 확인.
 - **구조적 방향 비대칭**: 레그1 ~+0.6 ns / 레그2 ~+3 ns 고정 offset — dead-time 기능에 무영향, shoot-through 마진 충분(최소 gap = 99 ns @설정 100 ns).
-- **knob 범위 100~400 ns 전체 유효** — 전력단 브링업 때 최종값 선택 가능.
+- **knob 범위 100~500 ns 전체 유효** — 전력단 브링업 때 최종값 선택 가능.
 
 > 이 검증 후 소스는 production 기본값 **`ETA_DEADTIME_NS = 150U`** 로 정합.
 
@@ -138,3 +138,20 @@ flash 검증은 **standalone 부팅**(SW1=`0,0,1,1` xSPI 8D SFDP, [[ospi_boot_mo
 - **분해능 바닥**: 2 ns 격자 → 측정 오차 ≤2 ns가 분해능 수준. min/max는 모두 2 ns 경계에 정렬.
 - **Logic2 timedCapture 거동**: `durationSeconds` 지정대로 동작하지 않음 (요청 0.5 ms → 실제 100~230 ms). transition CSV + 다표본이라 판정에는 무영향이나 도구 거동으로 기록. [[pwm_leg2_isoform_report]] §6에서도 동일 관찰.
 - **원본 디렉토리 이름 불일치**: 소스 `verify_dt400/` → wiki 보관 `dt400/`으로 정규화. `dt100/dt150/dt250`은 원명 유지.
+
+---
+
+## 후속: dead-time 천장 500 ns 확장 (2026-06-22, 커밋 d22eb90)
+
+브랜치 test == v1_0e00 (동일 커밋으로 정렬).
+
+- **변경**: 유효 상한 400 → **500 ns**. limit은 이중 소스라 둘 다 이동:
+  - 펌웨어 `#error` 가드 — `src/eta_bsp/eta_tuning.h` (`> 500U`)
+  - GUI 클램프 — `tools/gui/gui.py` `DEADTIME_MAX_NS = 500`
+  (한쪽만 올리면 GUI가 막거나 펌웨어가 거부 → 어긋남)
+- **환산**: 500 ns = 100 counts @ TBCLK 200 MHz.
+- **하드웨어 여유**: 레그1 RED/FED는 14-bit(max 16383)라 무관. 레그2는
+  `EPWM7 CMPB = TBPRD/2 − COUNTS = 588 − 100 = 488 (>0, <588)`. 레그2의
+  구조적 천장은 CMPB→0 되는 **≈588 counts (≈2940 ns)** — 500 ns는 한참 안쪽.
+- **실측(설정 500U flash + Logic2)**: 레그1·레그2 both-LOW **≈500 ns 추종 확인, PASS**.
+  → 401~500 ns 구간이 실리콘 미검증 → 검증으로 닫힘. min 100 ns 유지.

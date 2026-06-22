@@ -57,6 +57,7 @@ date: 2026-06-11
 - **P1 자유구동 단독검증 → SYNC 결선** (`6e6b342`): EPWM4_A=HS2 free-run 단독 확인 후 SYNC 결선. 100 kHz, shoot-through 0.
 - **P2 dead-time 스윕** (`8046744`·`d01fc0a`, Saleae 4ch, transition CSV): 150/300 ns(100 kHz) + 100/150/400 ns(85 kHz). 두 레그 dead-time 명목 선형 추종, shoot-through 0. 레그2 비대칭 ~11 ns(HS→LS vs LS→HS) 첫 실측 — 합 보존 확인. 결과표 [[pwm]] §검증 방법·결과.
 - **EPWM0 fan-out + 동형화** (`4014901`, Saleae 4ch 500MS/s): 100/150/250/400 ns 4-DT sweep. **비대칭 ~22 ns → ±2 ns(측정 격자 바닥)**. 4에지 시차 ≤2 ns(레그1·레그2 동형). high-time 4채널 완전 일치. shoot-through 0(전 구간). 레그1 회귀 없음. 리포트 [[pwm_leg2_isoform_report]].
+- **dead-time 500 ns 확장** (`d22eb90`, 2026-06-22): 유효 상한 400 → 500 ns. 펌웨어 `#error` 가드(`eta_tuning.h`) + GUI 클램프(`gui.py`) 양쪽 이동. Logic2 실측 레그1·레그2 ≈500 ns 추종 PASS — 401~500 ns 구간 검증 닫힘. 리포트 [[pwm_deadtime_knob_verify]].
 
 ---
 
@@ -80,7 +81,7 @@ date: 2026-06-11
   - EPWM7_B: CMPA = TBPRD/2 − DT, CMPB = TBPRD/2 (AQ: ZERO→HIGH / UP_CMPB→LOW / DOWN_CMPA→HIGH).
   - @150 ns, TBPRD=1176: EPWM4_A CMPA=588+30=618, CMPB=588. EPWM7_B CMPA=588−30=558, CMPB=588.
 - **주파수**: **85 kHz 고정** (`d01fc0a`, Saleae 85.032 kHz). `TBPRD=1176`, TBCLK=200 MHz, 1 count=5 ns.
-- **단일소스 위치**: `ETA_DEADTIME_NS`는 `src/eta_bsp/eta_tuning.h`(100~400 ns `#error` 가드). `eta_pwm_init()` 런타임 override → SysConfig 면역.
+- **단일소스 위치**: `ETA_DEADTIME_NS`는 `src/eta_bsp/eta_tuning.h`(100~500 ns `#error` 가드, `d22eb90` 2026-06-22 상한 400→500 ns 확장). `eta_pwm_init()` 런타임 override → SysConfig 면역.
 - 근거 커밋: `6e6b342`(SYNC 상보), `8046744`(단일소스·스윕), `d01fc0a`(85 kHz·비대칭 첫 실측), `4014901`(EPWM0 fan-out+isoform — 비대칭 ~22 ns→±2 ns). branch pwm / pwm-deadtime. 리포트 [[pwm_leg2_isoform_report]].
 
 ---
