@@ -3,8 +3,3 @@
 # Obsidian — 개인 vault 설정 전체 무시
 .obsidian/
 
-# 대용량 원본 PDF — 디스크엔 두되 repo 비대화 방지. 추출 markdown이 durable 산출물.
-# (TRM 22MB. 작은 UG 3MB는 tracked.) 선례: IS25LX256 원본 PDF도 wiki 밖.
-teams/g/lp-am263p/raw/am263p_trm/trm_am263p.pdf
-# PROC171A 회로도 PDF 7.4MB — 추출 .txt가 durable. 원본은 SPRR503A에서 재취득 가능.
-teams/g/lp-am263p/raw/proc171_schematic/20260610-lp-am263p-schematic__full.pdf
