@@ -34,6 +34,7 @@
 - [[tim3]] — General Timer, PWM2(CH3/CH4). BDTR 없음
 - [[rx_ble_module]] — 02_RX_ble, nRF52832 ESB PRX. SPI Slave(STM32 Master 확정). BLE 시절 명칭 잔류
 - [[tx_ble_module]] — 03_TX_ble, nRF52832 ESB PTX. LED(LED1 P0.09·LED2 P0.08=spi_comm_st mirror·LED3=ble_comm_st mirror, 기본 DK P0.19/회사 P0.06 매크로)·DK↔회사 보드 분기(custom_board.h). TX 보드 SPI=SPIS 재작성(△ 미검증, `e706b53`)
+- [[uto_nbk_52]] — 커스텀 nRF52832 모듈(02·03 사용). **UTO-NBL-52와 별개 보드**(NBK 회로도·BOM 미인입). LED 3개 모두 **active-HIGH**(P0.09/08/06) 실보드 확정·SPI(SPIS1 P0.22/25/26/27)·격리형 UART(P0.15/14)·RESET(P0.21)·DEVICEID 보드 식별
 
 ### Concepts
 
@@ -50,6 +51,7 @@
 - [[adc_channel_map]] — ADC1 6채널 핀맵(PA0~PA3, PC4/PC5) + TEMP1/TEMP2 라벨 swap 함정 + 평가보드 시험 가이드
 - [[spi_packet_format]] — STM32-nRF 내부 SPI wire 포맷 (11B 고정, HDR 0x10~0x12/0x50~0x52). ESB와 동일 패킷 구조
 - [[spi_pin_mapping]] — STM32↔nRF52 SPI 물리 배선 핀맵 (SCK PB13↔P0.27 / MOSI PB15↔P0.25 / **MISO PB14↔P0.26** / CS PB12↔P0.22). MISO 미연결 시 spi_rx_pkt 전부 0xFF → SpiCommSt DOWN. (DK 실측 2026-06-16)
+- [[nucleo_f103rb_morpho_pinmap]] — NUCLEO-F103RB morpho 커넥터 핀맵(04_tx_control SPI 배선용). CN10-16(PB12/CS)·CN10-26(PB15/MOSI)·CN10-28(PB14/MISO)·CN10-30(PB13/SCK) 이미지 직독 (2026-06-18). [[spi_pin_mapping]] 04↔03 링크 보강
 - [[esb_packet_format]] — ESB wire 포맷 (11B, HDR round-robin 0x10-0x12/0x50-0x52, `ESB_TX_INTERVAL_MS=1ms`, ACK with payload, CRC-valid only 콜백)
 - [[esb_link_layer]] — ESB 링크 파라미터 (`ESB_TX_INTERVAL_MS=1ms`, ACK with payload, NRF_ESB_MAX_PAYLOAD_LENGTH=64) + 미결 파라미터
 - [[esb_timing_measurements]] — ESB 실측 타이밍(오실로): TX→ACK ~470µs / TX 주기 ~920µs / ACK 주기 ~940µs. P0.17/18 GPIO 프로브, 03_TX_esb esb 브랜치
@@ -63,6 +65,7 @@
 - [[nrf52_firmware_conventions]] — **nRF52 코딩 관습**(b92835c→e85839c 확정): ISR printf 금지(HardFault 실증)·오류 카운터 패턴(1초 윈도우 append)·init/배너 printf 금지·NRF_LOG 초기화 잔재(호출 0건) 인지
 - [[ses_build_conventions]] — SES `.emProject` 함정: ①파일 목록 하드코딩(와일드카드 없음) ②nRF5 SDK 헤더 충돌(→`eta_` 접두사로 해소·[[nrf52_module_naming]]) ③`ADD_SPI` 전역 전파 주의 ④`<folder>` 는 가상 그룹·빌드 무영향
 - [[gpio_verification_pinmap]] — 검증 핀맵: 기능 → 프로브 핀 → 기대값 (SPI CS PB12·PWM PC6~9·ESB P0.17/18·ADC). planner가 검증 경로에 인용. 미확인 핀은 "확인 필요"로 호명
+- [[nfc_pins_gpio]] — nRF52 P0.09(LED1)·P0.10이 NFC 안테나 핀 기본 → `CONFIG_NFCT_PINS_AS_GPIOS`로 GPIO 전용화(UICR.NFCPINS=`0xFFFFFFFE`, 전원사이클 후 적용). LED1 cold-boot 미점등 진단·**active-HIGH 확정**(2026-06-18)
 - [[시립대_전달]] — 시립대 전달 통합 문서: P1 핀맵(SPI/UART) · P2 구동 절차(전원 순서·LED·comm_st 케이스) · P3 GUI 사용법(연결·buck 지령·스크린샷)
 - [[st_link_nrf52_flash]] — 3-MCU 플래싱 정본 (01 ST-Link V2 네이티브 / 02·03 nRF = 커스텀보드 + **J-Link V9.3 Plus SN69730359** 외부 SWD, **02·03 둘 다 flash 2026-06-15 실측 통과**). 프로브 식별 ShowEmuList 규율·DEVICEID 보드 식별 게이트(02=0x5FE168DA/03=0xE9775EC9)·JLink connect 트러블슈팅(VTref↔데이터선)·pyOCD 폴백 강등. 종전 J-Link OB SN1050329071·02 DK 오기록 정정
 

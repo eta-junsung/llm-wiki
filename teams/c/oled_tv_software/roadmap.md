@@ -1,6 +1,6 @@
 ---
 tags: [roadmap, oled_tv_software, living-doc]
-date: 2026-06-10
+date: 2026-06-22
 ---
 
 # oled_tv_software — 전체 로드맵
@@ -61,7 +61,7 @@ OLED TV 무선 전력 전송 시스템의 **3-MCU 제어신호 교환 펌웨어*
 - **(사실)** M3 통과(2026-06-01): SPI 10 ms 폴링 확정. 초당 100 트랜잭션, CRC fail 0건.
 - **(사실)** heartbeat 200 ms 독립 타이머 실보드 검증 완료(✓).
 - **(사실)** comm-state 비트 2개(SPI/BLE) 실보드 검증 완료(2026-06-08).
-- **남은 활성 작업은 M 호 밖의 별트랙뿐** — comm-state·monitor 정리 완료(`35b94d0`: UART monitor 바이너리화 + PC GUI [[pc_uart_gui]], 실보드 검증). **02 리팩토링·eta_ 전환 실보드 ✓(b92835c, 2026-06-11)**. **03_TX_ble 리팩토링 빌드 ✓(1d7f71a, 2026-06-11) — 실보드 △(TX 보드·오실로스코프 필요)**. **`_shared` 프로토콜 다듬기 ✓(9ad338d·99c893f, 실보드 검증)**. 다음 = 02 ADD_SPI 점검·02/03 실보드 검증·SPI-down→bit5·N=20. 단일 소스 [[status]] "다음 시작점".
+- **남은 활성 작업은 M 호 밖의 별트랙뿐** — comm-state·monitor 정리 완료(`35b94d0`: UART monitor 바이너리화 + PC GUI [[pc_uart_gui]], 실보드 검증). **02 리팩토링·eta_ 전환 실보드 ✓(b92835c, 2026-06-11)**. **03_TX_ble 리팩토링 실보드 ✓(2026-06-19, ESB PTX·P0.17/18 오실로)**. **`_shared` 프로토콜 다듬기 ✓(9ad338d·99c893f, 실보드 검증)**. **커스텀 보드(UTO-NBK-52) comm_st 재검증·SPI-down→bit5 ✓(STEP3, 2026-06-19)**. 다음 = **시립대 보드 전달 준비**([[시립대_전달]]); 잔여 점검 = 02 ADD_SPI 전파·N=20 실측. 단일 소스 [[status]] "다음 시작점".
 
 ---
 

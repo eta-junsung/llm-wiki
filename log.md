@@ -4,6 +4,25 @@
 
 ---
 
+## [2026-06-22] 환원 | oled_tv_software 시립대 전달 문서 신설
+
+근거: 기존 페이지 종합(신규 raw 없음). 대상: [[시립대_전달]](신설), [[index]](갱신은 본 lint에서 보강).
+
+- **시립대_전달.md 신설**: 02·03 커스텀 보드(UTO-NBK-52)를 시립대에 전달하기 위한 통합 핸드오버 문서. P1 핀맵(SPI/UART)·P2 구동 확인 절차(전원 순서·LED 정상 판별·comm_st 케이스)·P3 PC GUI 사용법(`rx_gui.exe` 연결·buck 지령·스크린샷).
+- 출처 종합: [[spi_pin_mapping]]·[[uto_nbk_52]]·[[st_link_nrf52_flash]]·[[pc_uart_gui]]·[[comm_state_monitoring]].
+- ⚠ lint 호명: nRF측 SPI를 NBL 회로도([[schematic_ble_module_board_v01e00]]) CN2 핀번호로 표기 — 사용자 확인상 회로도 기준 확실 정보. [[uto_nbk_52]]의 "NBL 핀맵→NBK 적용 주의" 경고와의 긴장은 회로도 신뢰로 정리.
+
+---
+
+## [2026-06-19] 갱신 | oled_tv_software STEP3 완료 (커스텀 보드 comm_st 재검증) + 팀보고
+
+근거: 실보드 검증(commit `079bdc7`). 대상: [[status]](STEP3 완료·다음 시작점=시립대 전달 준비), [[team_briefing_oled]](6/19 스냅샷), [[uto_nbk_52]]·[[tx_ble_module]].
+
+- **STEP3 완료**: SPI 배선(P0.22/25/26/27) 후 comm_st 4케이스 재검증 + "02만 ON → SPI UP/ESB DOWN" 신규 케이스 확인. 02 `eta_protocol.c` seed 수정 commit&push(미커밋 해소). 03_TX_ble 실보드 검증 완료(ESB PTX 동작·P0.17/18 오실로).
+- 다음 시작점 = 시립대 보드 전달 준비(핀맵·구동 절차·GUI 사용법) → 2026-06-22 [[시립대_전달]]로 산출.
+
+---
+
 ## [2026-06-19] 환원 | 8kw-ev-wpt-tx 두 가지 빌드 방법 — build_methods concept 신설
 
 근거: 사용자 제공 + 리포 직접 확인 사실 (build/makefile · build/config.mk · tools/gui/gui.py · tools/ospi_flash/run_flash_node_8kw.ps1 · flash_node_8kw.js). 대상: [[build_methods]](신설), [[index]](갱신).

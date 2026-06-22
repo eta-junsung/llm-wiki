@@ -83,7 +83,7 @@ UART5(115200/8N1) 한 포트로 송신(buck 지령)·수신(모니터)을 모두
 - 0x51 `Tx_Buck_Vout_Ref`: Raw=22222, Physical=222.22 V.
 - 03_TX_ble SEGGER 디버그 터미널: `Tx_Buck_Vout_Ref=22222` 직접 확인.
 - SPI UP + ESB UP 동시 확인.
-- 검증 스크린샷: `raw/pc_uart_gui/eta-c-oled-monitor.png`, `raw/pc_uart_gui/eta-c-oled-tx-buck-set.png`.
+- 검증 스크린샷·상세 기록: [[pc_uart_gui_verification_260612]] (`raw/pc_uart_gui/eta-c-oled-monitor.png`, `eta-c-oled-tx-buck-set.png`).
 
 **(검증 대기)** SPI 끊김 시 0x10 d0 bit5가 정확히 0으로 떨어져 `Link: SPI DOWN`이 뜨는지 — 실보드 확인 대상([[comm_state_monitoring]] 보류 절).
 
