@@ -4,6 +4,17 @@
 
 ---
 
+## [2026-06-23] update | firmware_git_workflow 갱신 — Tier 계층·PR 필수·Conventional Commits·CI
+
+근거: 사용자 토의(conversation-2026-06-23) — "혼자 개발이지만 시스템으로 박아 새 사람이 그대로 따르게". 대상: [[firmware_git_workflow]](갱신), [[index]](1행 갱신).
+
+- **§0 Tier 계층 신설**: 표준은 완성형이라 혼자 단계에 전부 켜면 안 지킴 → "지금 지킬 최소(Tier 1)+트리거 시 켤 스위치(Tier 2·3)". Tier 1=PR 필수·Conventional Commits·annotated 태그+git hash 임베드·최소 CI·repo `CONTRIBUTING.md`. Tier 2=2번째 사람/`v1.0.0`→main 보호+리뷰 require·코드서명. Tier 3=다중 버전→`release/x.y`·Docker/Nix 툴체인 핀+reproducible·west.
+- **§3 PR 필수로 변경**(사용자 결정): 혼자여도 feature/*→PR→CI green→self-merge. 사람 오면 리뷰 require 한 스위치로 슬롯인.
+- **§4 Conventional Commits 신설**(사용자 결정): `type(scope): 요약`, type별 SemVer 영향표(feat→MINOR/fix→PATCH/build·refactor·docs·test·chore→무영향), `feat!`/`BREAKING CHANGE`→MAJOR.
+- **§8 CI 신설**: 개념(깨끗한 서버 빌드=works-on-my-machine 차단·약속→게이트·멀티MCU 폭증 방지), 전제=헤드리스 빌드 가능(프로젝트별 표: 8kw/lp TI `gmake -C build all` ✓ / nRF SES emBuild [추정] / STM32CubeIDE 막힘 [[cubeide_cli_build_trap]]→CI 예외), [[linux_migration]] Ubuntu 러너와 정렬, 최소 시작=빌드까지만(HIL 미룸).
+- 번호 재배열(기존 4~9 → 5~11)·내부 cross-ref(§5·§9→§6·§11) 정정. frontmatter date·source 갱신.
+- **남은 일(미실행)**: repo 루트 `CONTRIBUTING.md` + 8kw `.github/workflows/build.yml` 작성은 wiki 갱신 후 별도 단계로.
+
 ## [2026-06-22] ingest | Windows→Ubuntu Linux 전환 결정·로드맵 (전사 공통 신설)
 
 근거: 사용자 전환 결정(conversation-2026-06-22) + `projects/` 디렉토리 직접 점검(런처·툴체인·레이아웃 사실 확인). 대상: [[linux_migration]](신설, 루트 `pages/concepts/`), `roadmaps/linux_migration.md`(신설, **루트 `roadmaps/` 디렉토리 신설**), [[index]](공통 Living docs 절 신설 + Concepts 1행).

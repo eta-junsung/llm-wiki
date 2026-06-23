@@ -14,7 +14,7 @@
 
 - [[linux_migration]] — **Windows 11 → Ubuntu 24.04 LTS 개발환경 전환 결정·근거**(전사 공통): 배포판 선택(CCS 공식지원 24.04)·듀얼부팅+회수 전략(**ESP 삭제 금지**·WSL2 배제)·동기 3종(거부감/장기 Linux 스킬/Edge AI 장기동인)·툴체인 4종 portability 평가표(전부 네이티브 Linux)·런처 포팅 대상(`.ps1`/`.bat`→`.sh`). 단계는 [roadmaps/linux_migration.md](roadmaps/linux_migration.md) 위임
 - [[schematic_ingest_strategy]] — 회로도를 비전 처리 없이 텍스트로 ingest하는 Tier별 전략 (EDA export → CSV/netlist)
-- [[firmware_git_workflow]] — **펌웨어 Git 워크플로 표준(전사 공통)**: 트렁크 기반(`main` 단일)+annotated 릴리스 태그(SemVer `v0.x.y`). 핵심=**태그는 소스만 고정, 동일 바이너리는 고정 툴체인+의존성과 함께일 때만**(cf. [[sdk_ccs_toolchain_migration]]). 멀티-MCU 1태그=시스템 스냅샷·git hash 임베드·매니페스트. 핫픽스 forward-only(다중 유지 시 `release/x.y` 전환). 규모 커지면 GitHub Flow/Git Flow/west 대안
+- [[firmware_git_workflow]] — **펌웨어 Git 워크플로 표준(전사 공통)**: 트렁크 기반(`main` 단일)+annotated 릴리스 태그(SemVer `v0.x.y`). 핵심=**태그는 소스만 고정, 동일 바이너리는 고정 툴체인+의존성과 함께일 때만**(cf. [[sdk_ccs_toolchain_migration]]). **Tier 계층**: 지금 active=Tier 1(**PR 필수**·**Conventional Commits**·annotated 태그+git hash 임베드·**최소 CI 빌드 게이트**·repo `CONTRIBUTING.md`) / Tier 2(2번째 사람·v1.0.0→리뷰 require·코드서명) / Tier 3(다중 버전→`release/x.y`·Docker 툴체인 핀·west). CI 전제=헤드리스 빌드(TI gmake ✓·STM32CubeIDE 막힘 [[cubeide_cli_build_trap]], [[linux_migration]]와 정렬). 핫픽스 forward-only
 
 ### Reference
 
