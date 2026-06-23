@@ -19,6 +19,7 @@
 ### Reference
 
 - [[instruments]] — 회사 공통 계측 장비 + 프로그래밍/디버그 프로브 인벤토리 (Keysight MSOX3104T·Saleae Logic Pro 16 / ST-Link V2·**J-Link V9.3 Plus SN69730359**(nRF 정본)·SAM-ICE SN24012600). **2026-06-15 §정정: J-Link OB SN1050329071 현존 미확인·프로브 식별은 ShowEmuList 실측 규율**. planner가 검증 경로에 인용
+- [[contributing_template]] — **CONTRIBUTING.md 단일 템플릿(회사 공통)**: [[firmware_git_workflow]] 표준의 repo-side 산출물. 본문 100% 공통 + 상단 `프로젝트별` 블록(프로젝트명·MCU·툴체인·빌드 명령·CI 여부)만 수정해 어느 repo에도 복사. 정본=wiki(org `.github`/`firmware-ci` 마련 시 승격)
 
 ---
 

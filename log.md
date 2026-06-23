@@ -4,6 +4,15 @@
 
 ---
 
+## [2026-06-23] create | contributing_template — CONTRIBUTING.md 단일 템플릿 (회사 공통)
+
+근거: 사용자 토의(conversation-2026-06-23) — "어느 프로젝트에서도 동일 적용되는 하나의 템플릿". 대상: [[contributing_template]](신설, 루트 `pages/reference/`), [[index]](Reference 1행).
+
+- **단일 템플릿 가능 근거**: git 규칙(PR·Conventional Commits·SemVer·태그·브랜치 위생)은 전사 공통 → 본문 100% 동일. 프로젝트별 차이는 상단 `프로젝트별` 블록(프로젝트명·MCU·툴체인·빌드 명령·CI 여부)뿐. → 복사 후 그 블록만 수정.
+- **페이지 구조**: 사용법(복사→블록만 수정→표준 갱신 시 본문 재복사) + 8kw 채움 예시 + 복사용 코드블록(실제 CONTRIBUTING.md). 정본=wiki, repo는 사본. org `.github`/`firmware-ci` 마련 시 승격 경로 명시.
+- **CI는 별개**(이번엔 미작성): 단일 *파일* 불가(툴체인·빌드 명령 프로젝트마다 다름) → "재사용 워크플로(`workflow_call`) 골격 + 프로젝트별 caller·툴체인 설치 조각" 구조가 정답. 툴체인 헤드리스 설치는 환원 불가 조각이라 실검증 선행 필요. → 다음 단계.
+- GitHub org 개념 설명 차 진행(repo 공동 소유 계정·`.github` repo가 org 전체 워크플로 템플릿 공유). eta org 사용 여부 미확인 → 당분간 wiki 정본.
+
 ## [2026-06-23] update | firmware_git_workflow 갱신 — Tier 계층·PR 필수·Conventional Commits·CI
 
 근거: 사용자 토의(conversation-2026-06-23) — "혼자 개발이지만 시스템으로 박아 새 사람이 그대로 따르게". 대상: [[firmware_git_workflow]](갱신), [[index]](1행 갱신).
