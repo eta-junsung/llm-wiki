@@ -7,7 +7,7 @@ date: 2026-06-09
 # adc_pinmap — 8kW WPT TX 보드 ADC 핀맵
 
 > eta 보드 커넥터(J3) → LP-AM263P ADC 인스턴스/채널 → 신호 이름 대응표.
-> 스케일링(변환식, 분압비, 센서 감도)은 [[adc]] 작업 A3 단계에서 채운다.
+> 스케일링(변환식, 분압비, 센서 감도)은 [[adc_scaling]] 정본 (A3 완료 — I_LCC_SEN 제외 5채널 교정).
 > 인스턴스 배치 근거·다음 보드 설계 규칙은 [[am263p_adc_instance_allocation]].
 > 논리↔물리 인스턴스 고정(soft 재배치 함정)은 [[am263p_syscfg_soft_vs_hard_assign]].
 
@@ -44,17 +44,17 @@ date: 2026-06-09
 
 ---
 
-## 미확인 — 추가 스펙 필요
+## 스케일링 현황 (A3)
 
-스케일링 단계(A3)에서 아래 정보가 있어야 변환식을 쓸 수 있다:
+변환식 상세 → [[adc_scaling]].
 
 | 신호 | 상태 | 비고 |
 |------|------|------|
-| Temp_Module1/2 | ✗ 미교정 | 온도 모듈 출력 특성 (V/°C, 오프셋, 선형 구간) 미입수 |
-| GA_Vin | ✗ 미교정 | 분압 저항비 (R_top / R_bot) 미입수 |
-| I_LCC_SEN | ✗ 미교정 | 전류 센서 감도 (mV/A), 오프셋 전압 미입수 |
-| **I_COIL_SEN** | **✓ 해소** | **SCALE≈6.770 A/V, OFFSET≈4.198 A — 식·파라미터 [[adc_scaling]] §I_COIL_SEN** |
-| GA_Iin_SEN | ✗ 미교정 | 다음 세션 진행 예정 |
+| Temp_Module1/2 | ✓ 해소 | NTC Beta식. R15=3kΩ, NTC_R25=5kΩ, B=3433 |
+| GA_Vin | ✓ 해소 | 저항분압+클리핑. SCALE≈353.39 V/V |
+| I_LCC_SEN | ✗ 미교정 | 센서 스펙 미입수 (`— A`) |
+| I_COIL_SEN | ✓ 해소 | CT+버든. SCALE≈6.770 A/V, OFFSET≈4.198 A |
+| GA_Iin_SEN | ✓ 해소 | Hall-effect. SCALE=10 A/V, OFFSET=−3.3 A |
 
 AM263P ADC 파라미터:
 - 분해능: 12-bit (0~4095 count)

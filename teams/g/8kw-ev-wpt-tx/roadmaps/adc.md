@@ -88,11 +88,13 @@ LP-AM263P 5개 ADC 인스턴스(ADC0~ADC4)에 eta 보드 J3 커넥터 6채널(Te
 
 | 신호 | 상태 | 비고 |
 |------|------|------|
-| **I_COIL_SEN** | **✓ 완료·검증** | **SCALE≈6.770 A/V, OFFSET≈4.198 A. 검증: ADC_V=2.64V→22.07A(기대 22.1A) (2026-06-24, commit 7335418)** |
-| GA_Iin_SEN | ✗ 미교정 | 다음 세션 진행 예정 |
-| I_LCC_SEN | ✗ 미교정 | 센서 스펙 미입수 |
-| GA_Vin | ✗ 미교정 | 분압비 미입수 |
-| Temp_Module1/2 | ✗ 미교정 | 모듈 출력 특성(V/°C) 미입수 |
+| **I_COIL_SEN** | **✓ 완료·검증** | CT+버든. SCALE≈6.770 A/V (2026-06-24, 7335418) |
+| **GA_Iin_SEN** | **✓ 완료·검증** | Hall-effect. SCALE=10 A/V, OFFSET=−3.3 A (2026-06-24) |
+| **GA_Vin** | **✓ 완료·검증** | 저항분압+클리핑. SCALE≈353.39 V/V (2026-06-24) |
+| **Temp_Module1/2** | **✓ 완료·검증** | NTC Beta. R15=3kΩ, B=3433 (2026-06-24) |
+| I_LCC_SEN | ✗ 미교정 | 센서 스펙 미입수 (`— A`) |
+
+변환식 상세·검증 데이터포인트 → [[adc_scaling]].
 
 ### A4 — 실보드 교차검증
 
@@ -112,7 +114,7 @@ A2 완료 — 6채널 ADC 실보드 검증, AIN hard `$assign` 승격, eta_adc.c
 
 ## 4. 블로커 / 추가 정보 대기
 
-- **A3 잔여 블로커**: Temp_Module1/2 출력 특성(V/°C), GA_Vin 분압비, I_LCC_SEN·GA_Iin_SEN 감도 미입수. ~~I_COIL_SEN~~ ✅ 해소(2026-06-24).
+- **A3 잔여 블로커**: I_LCC_SEN 센서 스펙만 미입수. ~~I_COIL_SEN~~ ✅ (2026-06-24) / ~~GA_Iin_SEN·GA_Vin·Temp_Module1/2~~ ✅ (2026-06-24) 해소.
 - **A0 전제**: LP-AM263P CCS 프로젝트 정상 동작 상태 (SysConfig 편집 가능)
 
 ---
