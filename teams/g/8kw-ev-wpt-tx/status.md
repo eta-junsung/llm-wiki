@@ -243,6 +243,13 @@ P1·P2(150/300ns 단일소스) 위에 **주파수 확정값(85 kHz) 반영 + 튜
 
 ## 미결 사항
 
+### 결정된 다음 작업 (2026-06-24 업무보고, 우선순위순)
+
+1. **GUI 값 소수점 세 자리 표시 (순위 1)**: `tools/gui/gui.py` 표시 포맷 변경 — 예) `1.23 V` → `1.234 V`. ADC(V)/Physical 컬럼. 펌웨어 무관 독립 작업. ([[pc_monitor_gui]])
+2. **ADC 값 필터 추가 (순위 2)**: 들어오는 값 널뛰기(노이즈)가 심함. **SW 구현(이동평균/median) vs MCU ADC 자체 기능(오버샘플링/HW 평균) 중 택일은 착수 시점에 판단.** 항목 3(트리거 전환)과 함께 보면 효율적 — 고속 샘플 위에 필터.
+3. **ADC SOC 트리거 RTI1 → EPWM0(85 kHz) 전환 (순위 3)**: 현재 RTI1 1 kSPS → PWM 마스터 클럭 **EPWM0**(`4014901` 도입 더미 마스터 fan-out, 85.032 kHz)로 전환. **PWM 로드맵 [[pwm]] P4 "ADC SOC 트리거 RTI→EPWM 전환" 항목이 앞당겨진 것.** 전환 시 트리거 export 게이트 함정 점검([[am263p_adc_rti_trigger]] §1). 샘플레이트 1 kSPS→최대 85 kSPS 상승.
+4. **GUI 화면 녹화 기능 (순위 4, nice-to-have)**: GUI 라이브 화면 녹화. **최저 우선순위 — 있으면 좋고 없으면 말고.** ([[pc_monitor_gui]])
+
 - ~~**toolchain 실보드 부팅 검증**~~ — ✅ **완료(2026-06-19)**: end-to-end PASS(gui.bat → flash → 전원사이클 → deadtime 측정). 정본 [[sdk_ccs_toolchain_migration]]·[[ospi_boot_mode_strap]].
 - ~~**CCS GUI Phase 2 마이그레이션**~~ — ✅ **완료(2026-06-19)**: `.cproject` 신스택 전환, sourceEntries 중복심볼 해소, All Configurations 적용. 정본 [[syscfg_build_model]] §④⑥.
 - **.codex/ gitignore 추가 검토**: commit 5a5fa44에서 제외됨. `.gitignore`에 `/.codex/` 추가 여부 결정 필요.
