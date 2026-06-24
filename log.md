@@ -4,6 +4,15 @@
 
 ---
 
+## [2026-06-24] 환원 | 트렁크 기반 Git 워크플로 실습 → walkthrough 신설 + 표준 4건 보강
+
+근거: g-8kw-ev-wpt-tx에서 트렁크 기반 워크플로를 사이클 3바퀴 직접 돌린 실습 세션(2026-06-24) + repo 직접 확인(git log·tag·ci.yml·PR 템플릿·치트시트). 대상: [[firmware_git_workflow_walkthrough]](신설, 루트 `pages/concepts/`), [[firmware_git_workflow]](§3.1·§5·§8.4·§9 보강 + walkthrough 상호링크), [[index]](2행).
+
+- **firmware_git_workflow_walkthrough.md 신설**: 초심자가 한 사이클을 따라 돌리는 실전 가이드. 8단계 골격 표(가지→커밋→push→PR→CI→merge→삭제→태그, 각 무엇을/왜/게이트) + 실습 3사이클(B 연습 squash `5ea8623`→`e76019b` #3 / A 실전 rebase 7커밋 `726008a..bec434d`+annotated `v0.1.0` / C PR 템플릿 squash `8158e24`→`6d0556a` #4). **흔한 오해 박스**: 로컬/원격 경계(가지·커밋=로컬, push가 첫 원격 접촉, trunk 진입은 merge뿐)·왜 pull request(받는 쪽 관점, `git request-pull` 유래, GitLab=MR)·PR≠커밋 메시지(git/커밋 단위 vs GitHub/가지 전체+리뷰·CI)·PR 컨벤션(Conventional Commits는 커밋 규약, PR 공식표준 없음, squash면 PR 제목=커밋 메시지)·PR 템플릿 펌웨어 항목(영향 타깃 MCU/보드·실보드 HIL·위험/안전 PWM·deadtime·전류·열·폴트). 결정·함정·치트시트 포함.
+- **표준 4건 보강(실습 합의 → 표준 반영)**: ①§3.1 신설 **머지 방식**(squash 기본/rebase atomic 예외/merge commit 금지 + squash·rebase 후 `rev-list --count` 깨짐 경고) ②§5 보강 **pre-1.0(`v0.x.y`)=불안정/테스트 grade, `v1.0.0`=첫 production, 테스트/production은 버전번호로 구분, `-rc` 접미사** ③§8.4 신설 **CI informational→required 승격**(branch protection Require status checks, 트리거=안정 green+상시 러너 systemd) ④§9 보강 **보드 구우면 무조건 태그**(HW 테스트 빌드 포함, 추적성).
+- **함정 점검**: ①squash/rebase 머지는 GitHub이 새 SHA로 재작성 → `git rev-list --count main..<branch>==0` 규칙 깨짐(로컬 ff-merge만 통함), `gh pr view`=MERGED로 확인·삭제는 `git branch -D`. ②stale 가지(adc) 작업트리엔 CONTRIBUTING.md 부재(분기 이전 커밋) → 탐색은 base 브랜치 기준. ③**ci.yml "§8/§8.1" 인용 점검 결과 = 현재 wiki와 일치**(06-23 번호 재배열로 §8=CI 빌드 게이트·§8.1=왜 확정. 실습 노트의 "§8=실무주의·오기" 우려는 06-23 *이전* 번호 기준이라 이미 해소). → 추측으로 "오기" 기록하지 않고 검증 결과 그대로 남김.
+- repo 확인 사실: 태그 `v0.1.0`@`bec434d` annotated("HW 테스트 빌드" 명시), `.github/workflows/ci.yml`=self-hosted informational(`gmake -C build clean→all→.mcelf` + 아티팩트 업로드), `.github/PULL_REQUEST_TEMPLATE.md`·`docs/git-workflow-cheatsheet.md` 존재. 최종 상태 열린 PR 0·원격 가지 main만·작업트리 clean.
+
 ## [2026-06-23] create | contributing_template — CONTRIBUTING.md 단일 템플릿 (회사 공통)
 
 근거: 사용자 토의(conversation-2026-06-23) — "어느 프로젝트에서도 동일 적용되는 하나의 템플릿". 대상: [[contributing_template]](신설, 루트 `pages/reference/`), [[index]](Reference 1행).
