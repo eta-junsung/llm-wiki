@@ -27,7 +27,7 @@ LP-AM263P 5개 ADC 인스턴스(ADC0~ADC4)에 eta 보드 J3 커넥터 6채널(Te
 | **A1** | 단채널 검증 | 단일 핀(AIN0) raw count → voltage, UART 출력 확인 | ✓ |
 | **A1.5** | UART 주기화 + ADC 리팩토링 | 1초 주기 출력 + `src/eta_bsp/eta_adc.{c,h}` 다핀 확장 정리 | ✓ |
 | **A2** | 전채널 순차 읽기 | 6채널 전부 신호 레이블 붙여 UART 출력 | ✓ (6/6, 실보드 검증) |
-| **A3** | 신호별 스케일링 적용 | 변환식 구현 (센서 스펙 입수 후 진행) | ? |
+| **A3** | 신호별 스케일링 적용 | 변환식 구현 (센서 스펙 입수 후 진행) | △ |
 | **A4** | 실보드 교차검증 | 멀티미터/소스 기준값으로 ADC 출력 오차 정량화 | ✗ |
 
 상태 기호: `✓` 구현+검증 / `△` 구현됨·미검증 / `?` 추가 정보 필요 / `✗` 미구현
@@ -54,7 +54,7 @@ LP-AM263P 5개 ADC 인스턴스(ADC0~ADC4)에 eta 보드 J3 커넥터 6채널(Te
 ### A1 — 단채널 검증 ✓ (2026-06-05)
 
 - 단일 핀 **AIN0** 으로 ADC 변환 경로 검증 — **RTI 타이머 1 ms(1 kSPS) 주기 트리거 + EOC 인터럽트**에서 결과 read+flag, main 루프 consuming(ISR-flag 패턴). polling 원안에서 전환.
-- 변환: `voltage = (raw * 1.8) / 4095` [추정: Vref=1.8V, 12-bit, TRM 확인 필요]
+- 변환: `voltage = (raw * 3.3) / 4095` [Vref=3.3V 확정 — `ETA_ADC_VREFHI_MV=3300`, 2026-06-24]
 - UART(115200) 출력으로 수치 확인 — **검증 완료**.
 - **트리거 결선 함정**: SysConfig `enableIntr0`(Enable Compare Interrupt) 미설정 시 RTI INT0 이벤트 export가 막혀 ADC SOC 트리거 무동작. SW force로 변환 경로 생존 먼저 확인 후 트리거 결선 문제로 좁힘. 정본 [[am263p_adc_rti_trigger]].
 
@@ -84,15 +84,15 @@ LP-AM263P 5개 ADC 인스턴스(ADC0~ADC4)에 eta 보드 J3 커넥터 6채널(Te
 
 ### A3 — 신호별 스케일링 적용
 
-**A3은 센서 스펙 입수 후 진행.** [[adc_pinmap]] §미확인 항목 참조.
+**아키텍처 확정(2026-06-24)**: 물리량 변환은 `tools/gui/gui.py`의 `PHYSICAL_COEFF` 테이블 단일 소스. MCU는 raw/mV만 전송. 변환식 상세 → [[adc_scaling]].
 
-| 신호 | 변환 방향 | 필요 정보 |
-|------|---------|---------|
-| Temp_Module1/2 | voltage → °C | 모듈 출력 특성 (V/°C) |
-| GA_Vin | voltage → 실제 전압 | 분압비 |
-| I_LCC_SEN | voltage → 전류(A) | 센서 감도 mV/A, 오프셋 |
-| I_COIL_SEN | voltage → 전류(A) | 센서 감도 mV/A, 오프셋 |
-| GA_Iin_SEN | voltage → 전류(A) | 센서 감도 mV/A, 오프셋 |
+| 신호 | 상태 | 비고 |
+|------|------|------|
+| **I_COIL_SEN** | **✓ 완료·검증** | **SCALE≈6.770 A/V, OFFSET≈4.198 A. 검증: ADC_V=2.64V→22.07A(기대 22.1A) (2026-06-24, commit 7335418)** |
+| GA_Iin_SEN | ✗ 미교정 | 다음 세션 진행 예정 |
+| I_LCC_SEN | ✗ 미교정 | 센서 스펙 미입수 |
+| GA_Vin | ✗ 미교정 | 분압비 미입수 |
+| Temp_Module1/2 | ✗ 미교정 | 모듈 출력 특성(V/°C) 미입수 |
 
 ### A4 — 실보드 교차검증
 
@@ -112,12 +112,12 @@ A2 완료 — 6채널 ADC 실보드 검증, AIN hard `$assign` 승격, eta_adc.c
 
 ## 4. 블로커 / 추가 정보 대기
 
-- **A3 블로커**: 신호별 센서 스펙 미입수 — Temp 모듈 출력 특성, 전류 센서 감도, 분압비
+- **A3 잔여 블로커**: Temp_Module1/2 출력 특성(V/°C), GA_Vin 분압비, I_LCC_SEN·GA_Iin_SEN 감도 미입수. ~~I_COIL_SEN~~ ✅ 해소(2026-06-24).
 - **A0 전제**: LP-AM263P CCS 프로젝트 정상 동작 상태 (SysConfig 편집 가능)
 
 ---
 
 ## 5. 환원 후보
 
-- ADC 변환식 → `pages/concepts/adc_scaling.md` (A3 완료 후)
+- ~~ADC 변환식 → `pages/concepts/adc_scaling.md`~~ ✅ 환원됨: [[adc_scaling]] (I_COIL_SEN 완료, A3 전체 완료 시 나머지 채울 것)
 - ~~SysConfig ADC 설정 노하우 → concept 페이지~~ ✓ 환원됨: [[am263p_adc_rti_trigger]] (lp-am263p, AM263P 플랫폼 정본 — RTI 트리거 결선·측정 시점 함정·검증된 설계 패턴).

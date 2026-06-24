@@ -155,6 +155,7 @@
 
 ### Concepts
 
+- [[adc_scaling]] — **8kW WPT TX ADC 물리량 변환식 모음**: 아키텍처(GUI `PHYSICAL_COEFF` 단일소스·MCU raw/mV만 전송), **I_COIL_SEN ✓ 검증완료**(SCALE≈6.770 A/V, OFFSET≈4.198 A, CT버든저항 식), 나머지 4채널 placeholder(2026-06-24, commit 7335418)
 - [[team_briefing_8kw]] — **팀 업무보고 참고 자료(8kw)**: 주차별 보고 스냅샷 이력·작업 호(A0~A4)·ADC 6채널 완료 현재 위치·만난 문제표(트리거 결선·soft 재셔플)·다음(A3 스펙 대기/UART5 복구). 보고 직전 참고
 - [[build_methods]] — **두 가지 빌드 방법 진입 페이지**(2026-06-19): 방법1 개발자 CCS IDE 빌드(`Release/`) vs 방법2 HW 엔지니어 GUI gmake 빌드(`build/`, `gui.bat`→`launch_gui.ps1`→`gui.py`→`gmake -C build all`). 비교표(용도/진입점/빌드명령/산출물/플래시 소스) + 공통스택(CCS21/SDK_06, config.mk 3줄 이식) + syscfg 함정(`generated/` 커밋·gitignore 금지) + 새 .c 파일 양쪽(.cproject·FILES_common) 등록 + 플래시 공통(`run_flash_node_8kw.ps1 -Source release|build`, SW1=`0,0,1,1`)
 - [[jtag_flash_clean_host]] — **운영 함정 2종**: ①AM263P OSPI JTAG 굽기는 CCS IDE 완전 종료 후(IDE 상주 DSLite 경합 → 비일관 실패, 2026-06-05 실측). ②"Run > Flash Project" **금지** — SBL 미포함, 전원사이클 후 standalone 부팅 불가(2026-06-16). 올바른 경로: `tools/ospi_flash/run.bat` (구 `tools/jtag_flash/`, 2026-06-17 rename)
