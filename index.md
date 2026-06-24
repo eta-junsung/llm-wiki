@@ -175,3 +175,8 @@
 
 - [[pwm_leg2_isoform_report]] — PWM 레그2 dead-time 정밀화 + 레그1 동형화 검증 리포트 (branch pwm-deadtime, commit 4014901, 2026-06-11). EPWM0 fan-out + isoform. 4-DT sweep(100/150/250/400 ns) 전 항목 PASS. 원본 데이터 `raw/pwm_leg2_isoform/`
 - [[pwm_deadtime_knob_verify]] — `ETA_DEADTIME_NS` knob flash+boot silicon 검증 리포트 (v1_0e00, 2026-06-12). 100/150/250/400 ns 4점 16/16 PASS(≤2 ns, shoot-through 0). production 150 ns 확정. 원본 데이터 `raw/pwm_deadtime_knob_verify/`
+
+### Weekly Reports
+
+- [weekly_report_2026-06-09_16.md](teams/g/8kw-ev-wpt-tx/weekly_report_2026-06-09_16.md) — 주간 업무 보고 2026-06-09~16: PWM 전력제어 브링업(85kHz·dead-time 150ns 확정·EPWM0 fan-out·4-DT sweep PASS) + PC↔MCU UART 통신·GPIO 양방향 제어 완료
+- [weekly_report_2026-06-17_23.md](teams/g/8kw-ev-wpt-tx/weekly_report_2026-06-17_23.md) — 주간 업무 보고 2026-06-17~23: 툴체인 신스택 전환 완전 완료(CCS21/SDK_06, end-to-end PASS) + 새 테스트 머신 fresh-clone 검증 완료 + ADC A3 물리량 변환 착수(I_COIL_SEN·GA_Iin_SEN·GA_Vin 3채널)
