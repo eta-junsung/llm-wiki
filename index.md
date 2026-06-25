@@ -17,6 +17,14 @@
 - [[firmware_git_workflow]] — **펌웨어 Git 워크플로 표준(전사 공통)**: 트렁크 기반(`main` 단일)+annotated 릴리스 태그(SemVer `v0.x.y`). 핵심=**태그는 소스만 고정, 동일 바이너리는 고정 툴체인+의존성과 함께일 때만**(cf. [[sdk_ccs_toolchain_migration]]). **Tier 계층**: 지금 active=Tier 1(**PR 필수**·**Conventional Commits**·annotated 태그+git hash 임베드·**최소 CI 빌드 게이트**·repo `CONTRIBUTING.md`) / Tier 2(2번째 사람·v1.0.0→리뷰 require·코드서명) / Tier 3(다중 버전→`release/x.y`·Docker 툴체인 핀·west). CI 전제=헤드리스 빌드(TI gmake ✓·STM32CubeIDE 막힘 [[cubeide_cli_build_trap]], [[linux_migration]]와 정렬). 핫픽스 forward-only. **§3.1 머지 방식(squash 기본/rebase 예외/merge commit 금지)·§5 pre-1.0=테스트 grade·§8.4 CI informational→required 승격·§9 보드 구우면 무조건 태그**는 [[firmware_git_workflow_walkthrough]] 실습서 확정·보강
 - [[firmware_git_workflow_walkthrough]] — **트렁크 기반 한 사이클 실습 가이드**(초심자용, g-8kw-ev-wpt-tx 2026-06-24 3바퀴): 8단계 골격(가지→커밋→push→PR→CI→merge→삭제→태그) + 사이클 B(연습 squash `e76019b`)·A(실전 rebase+태그 `v0.1.0` `726008a..bec434d`)·C(PR 템플릿 squash `6d0556a`). **흔한 오해 박스**(로컬/원격 경계·왜 pull request·PR≠커밋 메시지·PR 컨벤션·PR 템플릿 펌웨어 항목)·**함정**(squash/rebase 후 `rev-list --count` 깨짐→`-D`·stale 가지 CONTRIBUTING 부재·ci.yml §8 인용 점검=일치 확인). [[firmware_git_workflow]] 짝
 
+### AI 툴링 / 저작 메타 (eta-ai-tools 마켓플레이스)
+
+- [[eta_meta_authoring_layer]] — **eta 마켓플레이스 저작 메타 층**: `eta`(`~/eta/eta-ai-tools`) plugin 셋(eta-harness 펌웨어를 *짠다*·eta-md-to-html 문서를 *변환한다*·**eta-meta** plugin·스킬을 *짓는다*) 중 eta-meta = 저작 도구 자리. 현재 [[skill_creator]]·[[skill_reviewer_agent]] 입주, 앞으로 command·agent creator도. **drift 호명**: README "2개"(eta-meta 누락)·manifest의 "house 골격" 문구(SKILL.md엔 없음)
+- [[harness_engineering_principles]] — **하네스 엔지니어링 세 원리**(책 *하네스 엔지니어링 with 클로드 코드*, eta-meta 모든 도구의 단일 설계 기준): 원리1 Push 3단계 description(동사·트리거·경계, ~250자, 라우터 예외)·원리2 Progressive Disclosure(3층 + 분리 3신호)·원리3 Why-First(이유 첨부+일반화+컨텍스트 절약 3원칙+명령형). 스킬 검토 루브릭 단일 소스=skill-creator SKILL.md(런타임). **비대칭**: 안티패턴이 원리2·3에 몰리고 원리1엔 없음
+- [[skill_creator]] — **skill-creator 스킬**(`eta-meta/skills/skill-creator/SKILL.md`, 완성·커밋됨): 세 원리만으로 빚고 **자기 자신이 세 원리 도그푸드**(막히면 이 파일을 본다)·스킬 검토 런타임 루브릭. **의도적으로 뺀 것**=ETA house 골격 강제·그릇 판별 게이트·TEMPLATE.md(본문 골격 비강제)
+- [[skill_authoring_pipeline]] — **스킬 저작 파이프라인**(author→review→verify→deploy): 단계 성격이 그릇을 가른다(eta-harness planner=skill·verifier=subagent 논리 그대로). author=stance(라이브 협의 잃지 않으려)·review=서브에이전트(자기 초안 자기검증 차단)·verify=워크플로(**미구현**, 2026-06-26 설계). **review(준수)≠verify(효능) 다른 축**. verify 충실도 한계=본문주입 근사라 호출테스트 미포착
+- [[skill_reviewer_agent]] — **reviewer 서브에이전트**(`eta-meta/agents/reviewer.md`, **초안·미검증**): 네 결정 — ①그릇=서브에이전트(Read/Grep/Glob만, 못 고침=호명만) ②루브릭=skill-creator SKILL.md 런타임 읽기(drift 방지) ③안티패턴 3종=잣대 아닌 **렌즈**(AP1 본문 길다/AP2 references 없는 씨앗/AP3 이유 없는 규칙) ④**비대칭 해소**: 원리1(description)은 명명 안티패턴 없이 루브릭으로 직접 점검
+
 ### Reference
 
 - [[instruments]] — 회사 공통 계측 장비 + 프로그래밍/디버그 프로브 인벤토리 (Keysight MSOX3104T·Saleae Logic Pro 16 / ST-Link V2·**J-Link V9.3 Plus SN69730359**(nRF 정본)·SAM-ICE SN24012600). **2026-06-15 §정정: J-Link OB SN1050329071 현존 미확인·프로브 식별은 ShowEmuList 실측 규율**. planner가 검증 경로에 인용

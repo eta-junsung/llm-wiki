@@ -4,6 +4,18 @@
 
 ---
 
+## [2026-06-25] ingest | eta-meta plugin (저작 메타 층) 환원 — 5페이지 신설
+
+근거: `~/eta/eta-ai-tools`(branch feature/eta-meta-skill-creator) 직독 — `eta-meta/skills/skill-creator/SKILL.md`·`eta-meta/agents/reviewer.md`·선례 `eta-harness/skills/planner/SKILL.md`·`agents/verifier.md`·`.claude-plugin/marketplace.json`·`eta-meta/.claude-plugin/plugin.json`·`README.md`. 자리 결정: 펌웨어 도메인 wiki에 툴링/메타 자리가 없어, 스키마상 cross-team 방법론 홈인 루트 `pages/concepts/`에 신설 + index.md 새 그룹 "AI 툴링 / 저작 메타".
+
+- **eta_meta_authoring_layer.md 신설**: eta 마켓플레이스 plugin 셋(짠다/변환한다/짓는다) 중 eta-meta = 저작 메타 층. 왜 별도 층인가(메타 작업을 펌웨어 harness에서 떼어냄)·앞으로 command·agent creator 입주.
+- **harness_engineering_principles.md 신설**: 책 세 원리 = 단일 설계 기준. 원리1 Push 3단계·원리2 Progressive Disclosure(분리 3신호)·원리3 Why-First(일반화·컨텍스트 절약 3원칙·명령형). 루브릭 단일 소스=skill-creator(런타임)·비대칭 호명.
+- **skill_creator.md 신설**: 세 원리 도그푸드·런타임 루브릭. 의도적 삭제 3종(house 골격 강제·그릇 판별 게이트·TEMPLATE.md)과 왜.
+- **skill_authoring_pipeline.md 신설**: author→review→verify→deploy. 단계 성격이 그릇 가름(stance/서브에이전트/워크플로). review(준수)≠verify(효능). verify 미구현(2026-06-26 설계)·충실도 한계.
+- **skill_reviewer_agent.md 신설**: 네 결정(서브에이전트 그릇·런타임 루브릭·안티패턴=렌즈·비대칭 해소). 초안·미검증.
+- **확정/미정 가름**: skill-creator=완성·커밋됨 / 파이프라인=설계 합의됨(verify 미구현) / reviewer=초안·미검증 — 각 페이지 frontmatter `status`로 표기.
+- **발견된 drift 2건(코드 기준 호명, eta_meta_authoring_layer에 기록)**: ①README "플러그인 2개"로 eta-meta 누락(marketplace.json은 3개) ②manifest description의 "house 골격" 문구가 SKILL.md 실제 범위(house 골격 삭제됨)보다 뒤처짐. 정본=코드(SKILL.md). repo 수정은 별도 작업, 미실행.
+
 ## [2026-06-25] ingest+lint | 8kw-ev-wpt-tx GUI 런치 구조 신설 + pc_monitor_gui 정정 4건
 
 근거: `tools/gui/`(launch.py·run-gui-{linux.sh,windows.bat}·gui.py) main 직접 확인(launcher commit `316e649`·gui.py `bec434d`, 탐색 2026-06-25). 대상: [[gui_launch_architecture]](신설), [[pc_monitor_gui]]·[[build_methods]]·[[windows_bat_ps1_launcher]]·[[index]] 정정.
