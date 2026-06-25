@@ -17,7 +17,7 @@ date: 2026-06-19
 |------|----------------------|------------------------|
 | **용도** | 개발자가 IDE 안에서 편집·디버그하며 빌드 | HW 엔지니어가 IDE 없이 빌드→플래시 원클릭 |
 | **방식** | CCS managed build(`.cproject`), Release 프로파일 | `gmake -C build all` (내부 호출) |
-| **진입점** | CCS IDE Build 버튼 | 루트 `gui.bat` 더블클릭 → `tools/gui/launch_gui.ps1` → `tools/gui/gui.py` |
+| **진입점** | CCS IDE Build 버튼 | `tools/gui/run-gui-{linux.sh,windows.bat}` 더블클릭 → `tools/gui/launch.py`(venv 부트스트랩) → `tools/gui/gui.py` ([[gui_launch_architecture]]) |
 | **빌드 명령** | CCS managed build (IDE 내부) | `gmake -C build all` |
 | **산출물** | `Release/8kw-ev-wpt-tx.mcelf` (+ `.out`/`.map`) | `build/8kw-ev-wpt-tx.mcelf` |
 | **플래시 소스** | `run_flash_node_8kw.ps1 -Source release` (기본값) | GUI가 `run_flash_node_8kw.ps1 -Source build` 호출 |
@@ -106,4 +106,5 @@ tools/ospi_flash/run_flash_node_8kw.ps1 -Source <release|build>
 - OSPI 부트모드 스트랩 (SW1 정답 `0,0,1,1`): [[ospi_boot_mode_strap]]
 - 툴체인 경로 배선·마이그레이션 함정: [[sdk_ccs_toolchain_migration]]
 - 방법 2 GUI 상세 (dead-time 빌드/플래시 컨트롤): [[pc_monitor_gui]]
+- 방법 2 런처 구조·배포 결정: [[gui_launch_architecture]]
 - 현재 위치·다음 시작점: [[status]]

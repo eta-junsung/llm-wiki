@@ -6,7 +6,9 @@ date: 2026-06-19
 
 # Windows GUI 런처 — ASCII .bat 래퍼 + PS .ps1 UTF-8 BOM
 
-> 파이썬 GUI 또는 임의 툴을 HW 엔지니어가 더블클릭으로 실행할 때 쓰는 검증된 패턴. 8kw-ev-wpt-tx `gui.bat` / `launch_gui.ps1`에서 실증(2026-06-19).
+> 파이썬 GUI 또는 임의 툴을 HW 엔지니어가 더블클릭으로 실행할 때 쓰는 검증된 **Windows 전용** 패턴. 8kw-ev-wpt-tx `gui.bat` / `launch_gui.ps1`에서 실증(2026-06-19).
+>
+> ⚠️ **historical (8kw 적용례)**: 8kw는 이후 OS 무관 `tools/gui/launch.py`(Python venv 부트스트랩) + thin shim 2개로 전환(`316e649`) — `gui.bat`/`launch_gui.ps1`은 repo에서 제거됨([[gui_launch_architecture]], [[linux_migration]] 동인). 아래 §1 cmd 토크나이저 함정·§3 .ps1 UTF-8 BOM은 **Windows .bat/.ps1을 쓰는 한 여전히 유효한 전사 공통 지식**이므로 참조로 보존한다. 신규 cross-OS 툴은 `launch.py` 방식 권장.
 
 ---
 
@@ -96,4 +98,6 @@ config_path = os.path.join(BASE_DIR, "config.json")
 
 ## 함께 보기
 
-- 이 패턴을 쓰는 프로젝트: [[pc_monitor_gui]] (8kw-ev-wpt-tx GUI)
+- [[gui_launch_architecture]] — 8kw가 이 패턴을 대체한 OS 무관 `launch.py` 부트스트랩 (현행)
+- [[pc_monitor_gui]] — 8kw-ev-wpt-tx GUI 앱 자체
+- [[linux_migration]] — `.ps1`/`.bat` → cross-OS 전환의 상위 동인

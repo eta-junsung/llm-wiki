@@ -4,6 +4,16 @@
 
 ---
 
+## [2026-06-25] ingest+lint | 8kw-ev-wpt-tx GUI 런치 구조 신설 + pc_monitor_gui 정정 4건
+
+근거: `tools/gui/`(launch.py·run-gui-{linux.sh,windows.bat}·gui.py) main 직접 확인(launcher commit `316e649`·gui.py `bec434d`, 탐색 2026-06-25). 대상: [[gui_launch_architecture]](신설), [[pc_monitor_gui]]·[[build_methods]]·[[windows_bat_ps1_launcher]]·[[index]] 정정.
+
+- **gui_launch_architecture.md 신설(8kw concepts)**: "어떻게 띄우나 + 왜 안 바꾸나". ①런치 구조=OS 무관 `launch.py` 부트스트랩(repo루트 2단계 위 해석·`.venv` 자동생성 `with_pip`·requirements 설치·venv python 실행·cwd=repo루트·argv passthrough, venv python 경로 OS분기) + thin shim 2개(launch.py 단일 소스). ②deadtime=write(`eta_tuning.h` regex, 100~500ns)→build(`gmake -C build all`)→flash(`tools/ospi_flash/run_flash_node_8kw.{ps1,sh}` OS분기) ⟹ **firmware 소스트리+build/+CCS+JTAG 개발등급 환경 의존**. ③결정=현행 유지, 브라우저/PyInstaller exe/단일명령 통합 불채택(제로설치 청중 부재·단일 아티팩트 번들 불가·OS 양쪽 더블클릭 단일파일 메커니즘 부재). ④lint(README). ⑤가설/모름.
+- **pc_monitor_gui.md 정정 4건(2026-06-25 main 실측 staleness)**: ①dead-time 범위 **100~400→100~500** ②FLASH_SCRIPT 경로 **`tools/jtag_flash/`→`tools/ospi_flash/`** + `.sh` OS 분기 추가(`powershell -File` / `bash`) ③gmake 탐색 "PATH→C:\ti 2단계"→**config.mk CCS_PATH 1순위 3단계** ④**PyInstaller exe 종전 "8kw-gui.exe ~39 MB 존재" 서술 무효** — `.spec`·`dist/`·exe 전부 repo 부재(frozen 분기·.gitignore만 intent-trace). 백로그 #4(배포 형태)=py+런처로 **결정됨** 처리. 런처 참조 `gui.bat`/`launch_gui.ps1`→`launch.py` 갱신·date·source 갱신.
+- **build_methods.md**: 방법2 진입점 `gui.bat→launch_gui.ps1`→`run-gui-{os}→launch.py`로 갱신 + [[gui_launch_architecture]] 링크.
+- **windows_bat_ps1_launcher.md**: 8kw 적용례 historical 표시(`gui.bat`/`launch_gui.ps1` repo 제거·`316e649` cross-OS 전환). cmd 토크나이저 함정·.ps1 UTF-8 BOM은 Windows 전사 공통 지식으로 보존. 함께보기에 [[gui_launch_architecture]]·[[linux_migration]] 추가.
+- **확인된 사실(file:line 실측)**: 현재 브랜치 **main**(README:3 "이 브랜치(`ubuntu`)" 오기)·README §6 GUI 실행=수동 pip3+`python3 gui.py`만(launch.py 미언급)·flash 스크립트 `tools/ospi_flash/`에 `.ps1`+`.sh`+`.js` 공존. README 수정은 repo 작업(별도, 미실행).
+
 ## [2026-06-24] 환원 | 트렁크 기반 Git 워크플로 실습 → walkthrough 신설 + 표준 4건 보강
 
 근거: g-8kw-ev-wpt-tx에서 트렁크 기반 워크플로를 사이클 3바퀴 직접 돌린 실습 세션(2026-06-24) + repo 직접 확인(git log·tag·ci.yml·PR 템플릿·치트시트). 대상: [[firmware_git_workflow_walkthrough]](신설, 루트 `pages/concepts/`), [[firmware_git_workflow]](§3.1·§5·§8.4·§9 보강 + walkthrough 상호링크), [[index]](2행).
