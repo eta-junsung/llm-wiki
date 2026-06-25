@@ -164,6 +164,7 @@
 
 ### Concepts
 
+- [[firmware_layering]] — **펌웨어 4레이어 아키텍처 (BSP/HAL/ALG/App)**: PR #5 전면 재구성(동작 불변, 2026-06-25). src/{bsp,hal,alg,app}/. 의존 방향 불변식(ALG는 HAL·SDK 모름). 네이밍 규칙. ALG 의도적 비어있음(eta_alg_crc16·eta_alg_convert만). gui.py:74 비자명 결합 경고(ETA_BSP_PWM_DEADTIME_NS regex 직접 편집)
 - [[adc_scaling]] — **8kW WPT TX ADC 물리량 변환식 모음**: GUI `PHYSICAL_COEFF` 단일소스·callable 비선형 확장(NTC), **5채널 완료**(Temp×2 NTC Beta·GA_Vin 저항분압·I_COIL_SEN CT버든·GA_Iin_SEN Hall-effect), I_LCC_SEN 미교정. 검증방법(직접전압 주입·LSB 흔들림). (2026-06-24)
 - [[team_briefing_8kw]] — **팀 업무보고 참고 자료(8kw)**: 주차별 보고 스냅샷 이력·작업 호(A0~A4)·ADC 6채널 완료 현재 위치·만난 문제표(트리거 결선·soft 재셔플)·다음(A3 스펙 대기/UART5 복구). 보고 직전 참고
 - [[build_methods]] — **두 가지 빌드 방법 진입 페이지**(2026-06-19): 방법1 개발자 CCS IDE 빌드(`Release/`) vs 방법2 HW 엔지니어 GUI gmake 빌드(`build/`, `gui.bat`→`launch_gui.ps1`→`gui.py`→`gmake -C build all`). 비교표(용도/진입점/빌드명령/산출물/플래시 소스) + 공통스택(CCS21/SDK_06, config.mk 3줄 이식) + syscfg 함정(`generated/` 커밋·gitignore 금지) + 새 .c 파일 양쪽(.cproject·FILES_common) 등록 + 플래시 공통(`run_flash_node_8kw.ps1 -Source release|build`, SW1=`0,0,1,1`)

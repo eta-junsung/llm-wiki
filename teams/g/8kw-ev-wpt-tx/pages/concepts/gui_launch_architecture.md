@@ -54,7 +54,7 @@ matplotlib==3.11.0
 
 GUI의 deadtime 컨트롤은 단순 시리얼 통신이 아니라 **소스 수정 → 빌드 → flash** 체인이다(`run_build_flash`). 상세 시퀀스는 [[pc_monitor_gui]] §Dead-time, 빌드 두 갈래는 [[build_methods]].
 
-- **write**: `src/eta_bsp/eta_tuning.h`의 `#define ETA_DEADTIME_NS <n>U`를 정규식 치환. 유효 범위 **100~500 ns**(`DEADTIME_MIN_NS`/`MAX_NS`).
+- **write**: `src/bsp/eta_bsp_pwm.h`의 `#define ETA_BSP_PWM_DEADTIME_NS <n>U`를 정규식 치환(`gui.py:74`). 유효 범위 **100~500 ns**(`DEADTIME_MIN_NS`/`MAX_NS`). ← 이전: `src/eta_bsp/eta_tuning.h`·`ETA_DEADTIME_NS` (PR #5 firmware-layering에서 이전됨).
 - **build**: `gmake -C build all`. gmake 탐색 3순위 — ①`build/config.mk`의 `CCS_PATH` → ②`PATH` → ③`C:\ti\ccs*\...\gmake.exe` 최신본.
 - **flash**: `FLASH_SCRIPT` 실행 — Windows `powershell -File`, 그 외 `bash`. 스크립트 = `tools/ospi_flash/run_flash_node_8kw.{ps1,sh}` (JTAG).
 
