@@ -24,9 +24,7 @@ date: 2026-06-26
 
 ~~**시립대 보드 전달 준비 (01·02·03)** — **완료 (2026-06-26)**: 핀맵·구동 절차·PC GUI 사용법 정리 및 보드 전달 완료.~~
 
-**다음 시작점 — (02 리팩토링) `ADD_SPI` 전역 전파 점검 → 실보드 재검증**:
-
-`ADD_SPI`가 `.emProject` `c_preprocessor_definitions` 전역으로 이동된 상태 — 의도치 않은 TU 전파 여부 확인(현 빌드 에러 0). 확인 후 J-Link로 02 플래시 → [[pc_uart_gui]]에서 ESB rx 카운트·comm_st 비트·헤더 마스크 정상 여부 검증. ([[ses_build_conventions]])
+**다음 시작점**:
 
 **예정 작업**:
 
@@ -115,5 +113,3 @@ date: 2026-06-26
 > 플래싱 셋업 함정 3개(libusb DLL·Zadig WinUSB 바인딩·pyOCD CTRL-AP 패치)와 트러블슈팅은 [[st_link_nrf52_flash]]에 정리됨. 추가 이슈/해결 공유 시 해당 페이지에 ingest.
 
 ## 미결 사항
-
-- (02 리팩토링) `ADD_SPI` 전역 전파 점검 — 다음 시작점으로 이동. ([[ses_build_conventions]])
