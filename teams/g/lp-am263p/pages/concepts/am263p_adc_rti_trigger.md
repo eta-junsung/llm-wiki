@@ -1,14 +1,15 @@
 ---
 tags: [concept, am263p, adc, rti, sysconfig, 정본]
-source: 2026-06-05 8kw-ev-wpt-tx ADC 브링업 실보드 실측 + TI MCU+SDK `examples/drivers/adc/adc_soc_rti`. 6채널(5 인스턴스) 확장 경과 추가 (2026-06-09 c512e3b)
+source: 2026-06-05 8kw-ev-wpt-tx ADC 브링업 실보드 실측 + TI MCU+SDK `examples/drivers/adc/adc_soc_rti`. 6채널(5 인스턴스) 확장 경과 추가 (2026-06-09 c512e3b). EPWM0_SOCA 트리거 경로 정본화 — branch feature/adc-trigger-epwm0(3e5f117) 코드 + SDK etpwm.h/adc.h + TRM 인용 (2026-06-26)
 date: 2026-06-26
 ---
 
-# am263p_adc_rti_trigger — AM263P ADC 브링업 노하우 (RTI 타이머 트리거)
+# am263p_adc_rti_trigger — AM263P ADC SOC 트리거 정본 (RTI · EPWM)
 
-> **AM263P 플랫폼 공통 ADC 노하우 정본.** RTI 타이머를 ADC SOC 주기 트리거로 쓸 때 빠지기 쉬운 SysConfig 결선과, JTAG/RAM 레지스터 검증의 측정 시점 함정.
-> 2026-06-05 8kw-ev-wpt-tx adc 브링업에서 단일 핀(AIN0) 1 kSPS로 검증된 내용. flash-time 도구 정본([[jtag_flash_harness]])과 동일 패턴 — AM263P 플랫폼 지식은 lp-am263p에 둔다.
-> 8kw 적용 호는 [[adc]], 핀맵은 [[adc_pinmap]].
+> **AM263P 플랫폼 공통 ADC 트리거 정본.** ADC SOC를 주기 트리거(RTI 타이머 §1 / EPWM SOC §5)로 구동할 때의 SysConfig 결선과, JTAG/RAM 레지스터 검증의 측정 시점 함정. RTI 경로와 EPWM 경로는 **활성화 메커니즘이 다르다** — §5 ★함정 주의.
+> 2026-06-05 8kw-ev-wpt-tx adc 브링업에서 단일 핀(AIN0) 1 kSPS RTI 트리거로 검증, 2026-06-26 EPWM0_SOCA 85 kHz로 전환(branch feature/adc-trigger-epwm0). flash-time 도구 정본([[jtag_flash_harness]])과 동일 패턴 — AM263P 플랫폼 지식은 lp-am263p에 둔다.
+> PPB HW 평균은 별도 정본 [[am263p_adc_ppb_averaging]]로 분리(§4는 요약·위임). 8kw 적용 호 [[adc]], 핀맵 [[adc_pinmap]].
+> ⚠️ **파일명은 역사적 이유로 `am263p_adc_rti_trigger`** (RTI 브링업에서 출발). 내용은 RTI+EPWM 일반 트리거 정본으로 확장됨 — 백링크 13곳 보존을 위해 `am263p_adc_trigger`로의 개명은 보류(향후 일괄 개명 후보).
 
 ---
 
@@ -58,52 +59,58 @@ date: 2026-06-26
 
 ---
 
-## 4. PPB 오버샘플링 / HW 평균 (AM263P ControlSS ADC)
+## 4. PPB 오버샘플링 / HW 평균 → 별도 정본으로 분리
 
-AM263P ADC의 PPB(Post-Processing Block)는 CPU 개입 없이 오버샘플 평균을 하드웨어로 계산한다. SW 이동평균 대비 **RAM 버퍼·루프 연산 불필요** — 제어루프에 논블로킹.
+PPB(Post-Processing Block) HW 평균은 **분량이 커져 전용 정본 [[am263p_adc_ppb_averaging]]로 분리**했다 (2026-06-26). 핵심만:
 
-### 동작 원리 (TRM §7.5.2.14.5)
+- PPB가 오버샘플 합/평균을 CPU 없이 계산. **2의 거듭제곱(최대 1024)일 때만** 비트시프트로 HW 자동 평균(`SHIFT=n` → `÷2^n`).
+- ISR을 EOC가 아니라 **OSINT(평균완료)**에 건다 → 8kw N=64(HW 확정)·85 kHz ⇒ ISR 1.33 kHz.
+- SDK v2 API: `ADC_setupPPB`/`setPPBCountLimit`/`setPPBShiftValue`/`readPPBSum`. 상세·라인 인용은 분리 정본 참조.
 
-- **PPB 1개가 SOC 1개에 연결**: `ADCPPBxCONFIG.CONFIG` = 연결 대상 SOC 번호. ADC 모듈당 PPB 4개(PPB1~4).
-- **누적**: 매 변환 후 `ADCPPBxPSUM`(누적합) · `ADCPPBxPMIN`(최솟값) · `ADCPPBxPMAX`(최댓값) · `ADCPPBxPCOUNT`(카운트) 업데이트.
-- **배치 완료 조건**: `ADCPPBxPCOUNT == ADCPPBxLIMIT` OR 외부 sync 이벤트 → partial registers를 final(`ADCPPBxSUM`/`MIN`/`MAX`/`COUNT`)로 이동 + `OSINTx` 인터럽트 발생.
-- **자동 평균**: `ADCPPBxLIMIT = 2^n`, `ADCPPBxCONFIG2.SHIFT = n` 설정 시 PPB가 `ADCPPBxPSUM / 2^n`를 `ADCPPBxSUM`에 적재. **최대 1024샘플(2^10)**. CPU 불필요.
-- **Outlier rejection** (선택적 SW 보조): `(SUM - MAX - MIN) / (COUNT - 2)`. ISR에서 계산.
+### ~~미검증(△)~~ → 해소 (2026-06-26)
 
-### 설정 요약
-
-| 레지스터 | 값 | 효과 |
-|----------|-----|------|
-| `ADCPPBxCONFIG.CONFIG` | SOC 번호 | PPB를 해당 SOC에 연결 |
-| `ADCPPBxLIMIT` | 2^n (1~1024) | 배치 크기(샘플 수) |
-| `ADCPPBxCONFIG2.SHIFT` | n | 자동 평균 right-shift — `ADCPPBxSUM` = 평균값 |
-| `ADCPPBxCONFIG2.SYNCINSEL` | EPWM syncout 번호(Table 7-118) | 외부 sync(EPWM 주기로 배치 정렬 가능) |
-
-### 미검증(△ — 다음 탐색 대상)
-
-- △ **ADC 인스턴스당 변환시간 실수치**: EPWM0 85 kHz = 11.7 µs/트리거. 5인스턴스(ADC0~ADC4) 순차 배정 시 각 인스턴스 변환시간 미측정 → 오버샘플 가능 횟수 산정에 필수. [[am263p_adc_instance_allocation]] §변환시간 참조.
-- △ **SDK PPB API 표면**: `ADC_setupPPB()` 등 함수명·인수 — SysConfig 위젯 매핑 미확인.
+- ~~△ ADC 인스턴스당 변환시간 실수치~~ → **확정**: 단일 변환 ≈ 315 ns(ADCCLK 50 MHz). 정적 산정 정본 [[am263p_adc_instance_allocation]] §변환시간 예산. 단 N은 트리거에 걸쳐 누적되므로 변환시간 예산과 무관(repeater와 대비).
+- ~~△ SDK PPB API 표면~~ → **확정**: 함수·인수·SysConfig 위젯 매핑 모두 [[am263p_adc_ppb_averaging]] §3에 인용 정리.
 
 ---
 
-## 5. EPWM0 트리거 전환 고려사항 + BSP 코드 함정
+## 5. EPWM SOC 트리거 경로 (정본 — 2026-06-26 전환 완료)
 
-### EPWM0 트리거 전환
+8kw가 RTI1(1 kSPS) → **EPWM0_SOCA(85.032 kHz)**로 트리거 전환(branch feature/adc-trigger-epwm0, commit `3e5f117`). EPWM0는 commit `4014901`에서 도입된 **output-less 더미 fan-out 마스터**(EPWM2/4/7 SYNC 기준 클럭).
 
-- **EPWM0 인스턴스**: commit `4014901`에서 도입된 output-less 더미 fan-out 마스터. EPWM2/4/7 SYNC 기준 클럭, 85.032 kHz.
-- **§1 export 게이트 함정 재점검 필수**: RTI 경로는 `enableIntr0` 켜서 INT0 이벤트 export 활성화가 핵심이었음. EPWM SOC 경로는 활성화 방식이 다름 — SysConfig에서 EPWM SOC 이벤트를 ADC SOC 트리거로 연결하는 경로 재확인.
-- △ **ADC1 SOC0+SOC1 라운드로빈**: RTI 단일 트리거로 SOC0→SOC1 라운드로빈 하던 동작이 EPWM 전환 후에도 동일하게 동작하는지 미확인.
+### ADC 쪽 결선 (RTI와 동일 메커니즘)
 
-### BSP 코드 주석 함정 (EPWM 전환 시 갱신 대상)
+- 각 ADC 인스턴스가 `ADCSOCxCTL.TRIGSEL`에서 트리거를 **독립 선택**한다 (TRM `ch07_5_controlss.md`:695,719 — "ADCSOCA or ADCSOCB from each ePWM module"). → **단일 EPWM0_SOCA가 5개 인스턴스에 fan-out.** RTI1을 5 인스턴스가 공유하던 것과 동일 메커니즘.
+- 값: `ADC_TRIGGER_EPWM0_SOCA = 0x08` (`adc/v2/adc.h`:235). SysConfig `soc0Trigger = "ADC_TRIGGER_EPWM0_SOCA"` (8kw `example.syscfg`:70,73,99,120,141,162 — 6 SOC 전부).
 
-`eta_bsp_adc.c` 주석에 "RTI1"이라 적혀 있지만 실제 코드는 `CONFIG_RTI0_BASE_ADDR`를 enable한다. SysConfig 논리명 `CONFIG_RTI0` = 물리 RTI1. EPWM 트리거로 전환 시 이 자원 서술도 함께 갱신할 것.
+### EPWM 쪽 결선 (SysConfig가 생성)
+
+- `EPWM_enableADCTrigger(base, EPWM_SOC_A)` (`epwm/v1/etpwm.h`:6232) + `EPWM_setADCTriggerSource(base, EPWM_SOC_A, EPWM_SOC_TBCTR_ZERO, 0)` (etpwm.h:6315; `EPWM_SOC_A=0` :1281, `EPWM_SOC_TBCTR_ZERO=1` :1296). up-down 카운터에서 **TBCTR_ZERO = 주기당 1회 = 트리거 레이트.**
+- 8kw에선 런타임 호출이 아니라 **SysConfig가 생성**: `epwm4`(=CONFIG_EPWM0) `epwmEventTrigger_EPWM_SOC_A_triggerEnable = true` + `..._triggerSource = "EPWM_SOC_TBCTR_ZERO"` (`example.syscfg`:228–229).
+
+### ★함정1 — RTI의 `enableIntr0` 게이트 함정은 EPWM에 적용 안 된다
+
+§1의 RTI 트리거는 `enableIntr0`(INT0 이벤트 export)를 켜야 ADC에 닿았다. **EPWM 경로엔 이 함정이 없다** — EPWM `ETSEL.SOCAEN`이 SOC 펄스를 트리거 XBAR로 **직접** 내보낸다(중간 게이트 없음). §1 RTI 함정을 EPWM에 투사하지 말 것.
+
+### ★함정2 — 실효 85 kHz는 런타임 override에서 나온다 (SysConfig 정적값 ≠ 실효값)
+
+`example.syscfg`의 EPWM0 정적 period=1000(`example.syscfg`:226)은 **100 kHz**다 (TBCLK=200 MHz·CLKDIV=1·HSPCLKDIV=1, up-down `Fpwm = 200M/(2×TBPRD)`). 실효 **85.032 kHz**는 런타임 override에서 나온다 — `eta_bsp_pwm.c`:19 `EPWM_setTimeBasePeriod(CONFIG_EPWM0_BASE_ADDR, ETA_PWM_TBPRD)`(`ETA_PWM_TBPRD=1176`, eta_bsp_pwm.h:68), `eta_app_main.c`:54 `eta_bsp_pwm_init()`이 `System_init/Board_init`(SysConfig 적용, main.c:46–47) **이후** 호출. ⇒ **N·변환시간 예산 계산은 런타임 85 kHz(11,760 ns/트리거) 기준**으로 잡을 것, syscfg 100 kHz 아님.
+
+### ~~△ ADC1 SOC0+SOC1 라운드로빈~~ → 확정 (EPWM 전환 후 동일 동작)
+
+RTI에서 SOC0→SOC1 라운드로빈 하던 동작은 **EPWM 전환 후에도 유지**된다. lockstep — 한 트리거를 공유하는 SOC들은 우선순위 순서로 모두 변환되므로([[am263p_adc_ppb_averaging]] §4), ADC1의 SOC0·SOC1이 한 EPWM0_SOCA에 직렬 변환되고 두 PPB가 같은 배치 경계를 갖는다. 코드: `example.syscfg`:75 `interrupt1SOCSource = ADC_INT_TRIGGER_OSINT2`(나중 완료하는 SOC1의 OSINT2를 INT1 소스로) → 한 ISR coherent read.
+
+### BSP 코드 함정 (해소됨)
+
+종전 "`eta_bsp_adc.c` 주석은 RTI1인데 코드는 `CONFIG_RTI0` enable" 함정은 **전환으로 해소** — `eta_bsp_adc.c`:194에서 "RTI1(CONFIG_RTI0) 카운터 시작 제거: ADC 트리거가 EPWM0_SOCA로 전환됨" 주석과 함께 RTI 카운터 시작 코드가 제거됨. ADC 트리거 자원 서술이 EPWM0와 일치.
 
 ---
 
 ## 관련 페이지
 
 - [[adc]] — 8kw-ev-wpt-tx ADC 작업 호(A0~A4). 이 노하우의 적용 현장.
-- [[am263p_adc_instance_allocation]] — ADC 인스턴스/채널 배치 결정 가이드라인.
+- [[am263p_adc_ppb_averaging]] — PPB HW 오버샘플 평균 정본(§4에서 분리). 트리거→OSINT ISR 결선의 후처리.
+- [[am263p_adc_instance_allocation]] — ADC 인스턴스/채널 배치 결정 가이드라인 + 변환시간 예산.
 - [[am263p_syscfg_soft_vs_hard_assign]] — 논리↔물리 인스턴스 배정 함정(soft 재배치).
 - [[adc_pinmap]] — 8kw eta 보드 J3 6채널 ADC 핀맵.
 - [[jtag_flash_harness]] — 동일 "AM263P 플랫폼 정본 in lp-am263p" 패턴. 측정/ground-truth 함정 형제 사례.

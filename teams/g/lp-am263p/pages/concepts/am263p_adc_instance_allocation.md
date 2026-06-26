@@ -1,7 +1,7 @@
 ---
 tags: [concept, am263p, adc, sysconfig, design-rule, platform]
-source: 사용자 제공 설계 규칙 (2026-06-08) — 8kw-ev-wpt-tx(adc 브랜치) J3.28/J3.27 ADC 핀 추가 + 실보드 검증에서 도출. 6채널 완성(commit c512e3b) 반영 (2026-06-09)
-date: 2026-06-09
+source: 사용자 제공 설계 규칙 (2026-06-08) — 8kw-ev-wpt-tx(adc 브랜치) J3.28/J3.27 ADC 핀 추가 + 실보드 검증에서 도출. 6채널 완성(commit c512e3b) 반영 (2026-06-09). 변환시간 예산 절 추가 — TRM ch07_5_controlss.md + SDK 클럭 인용 (2026-06-26, branch feature/adc-trigger-epwm0)
+date: 2026-06-26
 ---
 
 # AM263P ADC 인스턴스 vs SOC(채널) 배치 결정 가이드라인
@@ -33,6 +33,27 @@ date: 2026-06-09
 
 한 인스턴스에 SOC를 **과적재**해 **변환시간 합 > 트리거 주기**가 되면 → 다음 트리거 전에 시퀀스를 못 끝내 결과가 **밀리거나 덮어씌워진다(overflow).** 이게 유일한 실제 instability이고, **멀티 인스턴스로 분산하면 오히려 해소**된다.
 
+## ADC 변환시간 예산 (확정 — 정적 산정, 2026-06-26)
+
+> 종전 △미검증(수치)였던 "인스턴스당 변환시간 예산"을 TRM·SysConfig 인용으로 **정적 산정 확정**. (라이브 레지스터 실측은 미수행 — 아래 빈자리.)
+
+**클럭 체인:**
+- **SYSCLK = 200 MHz** = CONTROLSS_PLL/2 (TRM `ch07_5_controlss.md`:105; SDK `bootloader_soc.c`:508 `sysClkFreq = 200*1000000`; `soc_rcm.h` `SOC_RcmPeripheralClockSource_SYS_CLK` 주석 "System Clock (200Mhz)"). **ADC base clock = SYSCLK 직결** (TRM :303).
+- **prescaler ÷4** (`ADC_CLK_DIV_4_0`, 8kw `example.syscfg`:67) → **ADCCLK = 50 MHz (1 cyc = 20 ns)**. ADCCLK은 변환 phase에서만 active, S/H 윈도우 동안 gated off (TRM :303).
+
+**단일 변환 시간 = acquisition + conversion:**
+- **Acquisition window = (ACQPS+1) × SYSCLK cycle** — ★**ADCCLK 아니라 SYSCLK 도메인** (TRM :1017–1019). `ACQPS = 16`(TRM :1024 "이 설계에서 프로그래밍 가능한 최소 ACQPS = 16"; 8kw `example.syscfg`는 sampleWindow 미지정 → SysConfig 기본값 의존) → window = **17 × 5 ns = 85 ns**.
+- **Conversion phase ≈ 11.5 ADCCLK**(ADC_R0/1만 13.5) (TRM :305) → 11.5 × 20 ns = **230 ns**.
+- ⇒ **단일 변환 ≈ 85 + 230 = 315 ns**.
+
+**트리거 주기 예산 (8kw EPWM0_SOCA 85.032 kHz = 11,760 ns/트리거):**
+- 한 트리거에 한 인스턴스가 변환하는 SOC 수만큼만 직렬 — ADC0/2/3/4는 SOC0 단독(≈315 ns), **ADC1은 SOC0+SOC1 직렬 ≈ 630 ns**. 둘 다 11,760 ns에 여유. 이론상 한 인스턴스에 ~37 변환(11,760/315)까지 수용 → 현 배치는 overflow 마진 충분.
+- ★ PPB 오버샘플 N=64(HW 확정)는 **한 트리거당 N회가 아니라 N개 트리거에 걸쳐 누적**된다([[am263p_adc_ppb_averaging]]). 따라서 변환시간 예산은 트리거 *주기당 SOC 직렬합*으로만 따지면 되고, N과 무관하다. (repeater 모드였다면 N=64회를 한 트리거 안에 burst → 64×315 ns = 20 µs > 11.76 µs로 예산 초과 — 바로 이 점이 repeater 미채택 근거 [[adc]] A3.5.)
+
+**남은 빈자리:**
+- 데이터시트 최소 acquisition window(ns) 미인입 — TRM :1023이 "데이터시트가 최소 윈도우를 규정"으로 위임. 현재 85 ns가 그 최소를 만족하는지 미확인.
+- **라이브 레지스터 실측 미수행** — 위는 전부 정적 산정. 스코프/레지스터 readback으로 실제 변환 완료 시점 미측정.
+
 ## 8kw 현황 (예시)
 
 현재 [[adc_pinmap]] 배치 — **6채널 완성, 물리 인스턴스 5개**(commit c512e3b 기준):
@@ -49,8 +70,8 @@ date: 2026-06-09
 ## 사실 / 가설 / 모름 가름
 
 - **사실 (아키텍처)**: SAR 직렬(한 인스턴스 다중 SOC)/병렬(인스턴스 간)·인스턴스 독립(자체 S/H·시퀀서·결과레지스터·ADCINT). 인스턴스 추가 = +ISR/+int_xbar/+ready-flag.
-- **△ 미검증(수치)**: 인스턴스당 **변환시간 예산의 구체 수치 미산정** — overflow 한계를 정량적으로 못 박지 않음.
-- **△ 미검증(실측)**: **다중 인스턴스 동시 RTI 트리거의 정밀 동시성 미실측** — "동시 샘플"은 아키텍처 근거이며 스큐 상한을 스코프로 잰 적은 없음.
+- **사실 (변환시간 — 2026-06-26 확정)**: 단일 변환 ≈ **315 ns**(acq 85 ns + conv 230 ns), ADCCLK 50 MHz, acq는 SYSCLK 도메인. ~~△ 미검증(수치)~~ → 위 "ADC 변환시간 예산" 절에서 정적 산정 확정(TRM :105/:303/:305/:1017–1019/:1024 + `example.syscfg`:67). 단 **라이브 레지스터 실측은 미수행**.
+- **△ 미검증(실측)**: **다중 인스턴스 동시 트리거의 정밀 동시성 미실측** — "동시 샘플"은 아키텍처 근거이며 스큐 상한을 스코프로 잰 적은 없음. (트리거는 RTI1 → EPWM0_SOCA로 전환됨, [[am263p_adc_rti_trigger]] §5.)
 - 레지스터 수치 출처가 필요하면 [[am263p_trm]] ADC 챕터 demand-ingest.
 
 ## 관련 페이지
@@ -58,4 +79,5 @@ date: 2026-06-09
 - [[am263p_adc_rti_trigger]] — RTI 공통 트리거 결선·EOC ISR-flag 패턴(이 규칙의 "공통 트리거" 구현부). §3 다핀 확장의 "어떻게 정하는가"를 이 페이지가 보강.
 - [[am263p_syscfg_soft_vs_hard_assign]] — 논리 인스턴스명↔물리 페리페럴 배정 함정(soft 재배치). 인스턴스를 정한 뒤 **물리로 고정**하는 방법.
 - [[adc_pinmap]] — 8kw 실제 신호→인스턴스/채널 배치.
+- [[am263p_adc_ppb_averaging]] — PPB HW 오버샘플 평균. N은 트리거에 걸쳐 누적되므로 변환시간 예산과 무관(repeater와 대비).
 - [[am263p_trm]] — ADC 챕터(SOC 변환시간 = 트리거 주기 예산 계산용).
