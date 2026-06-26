@@ -30,10 +30,6 @@ date: 2026-06-26
 
 1. **SPI 폴링 주기 10ms → 5ms** (01-02, 03-04 양쪽): `PACKET_INTERVAL`(또는 `SPI_PACKET_INTERVAL_MS`) 변경 후 01·04 양쪽 실보드 재검증.
 2. **01·04 상호 SPI 링크 상태 인지**: 04-03 SPI 단절 시 01이 알도록, 01-02 SPI 단절 시 04가 알도록. 이를 위해 02·03이 자체적으로 SPI 통신 상태를 파악하는 메커니즘 필요 — 구체적인 구현 방향은 작업 진입 시 결정.
-2. **N=20 실측 검증**: `BLE_COMM_ST_MIN_COUNT=20`(=200ms 윈도우 기대 ~200개의 ~10%)가 실 RF 수신율 대비 적정한지 확인.
-3. **`_shared` 매크로 소유권 점검**: `PACKET_INTERVAL`(=10ms)은 `_shared`에 있으나 01만 호출(02/03은 ESB 1ms) → SPI 전용 분리/개명(`SPI_PACKET_INTERVAL_MS`) 후보. [[roadmaps/spi-esb-refactor]] §6.
-4. **회사보드 실장 시 LED3 매크로 전환**: 체크인 기본은 DK P0.19(active-low) — 회사 BLE_Module_Board에는 `LED3_PIN`을 P0.06(active-high)으로 수동 교체. [[tx_ble_module]].
-5. **(별트랙)** SPI_FAIL/ESB_FAIL 응답 — Warning/Fault 플래그·PWM 차단 상태 머신은 여전히 미구현.
 
 > ⚠️ 01 빌드는 **CubeIDE Ctrl+B 직접** — CLI 빌드 불가([[cubeide_cli_build_trap]]).
 
