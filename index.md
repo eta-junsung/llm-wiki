@@ -42,6 +42,10 @@
 - [roadmaps/04-tx-control-dummy.md](teams/c/oled_tv_software/roadmaps/04-tx-control-dummy.md) — `04_tx_control` 더미 작업 호(D0~D3) — 03 SPI_Loop 활성화 + STM32 SPI Master 더미 프로젝트. 최종 목표: 01→02→ESB→03→04 Vout Ref 전달 E2E 검증
 - [status.md](teams/c/oled_tv_software/status.md) — 기능별 구현 현황표·다음 시작점 (파이프라인이 커밋마다 갱신)
 
+### 업무 보고
+
+- [weekly_report_2026-06-19_25.md](teams/c/oled_tv_software/weekly_report_2026-06-19_25.md) — 주간 업무 보고 2026-06-19~25: 커스텀 보드 comm_st 재검증(4케이스+신규·02 seed 버그 수정·03_TX_ble 실보드 검증) + 시립대 보드 3종 전달 완료
+
 ### Entities
 
 - [[rx_control]] — STM32F103RCT6 보드, PWM 채널 매핑·BKIN 핀·SPI Master
