@@ -1,5 +1,5 @@
 ---
-date: 2026-06-25
+date: 2026-06-26
 ---
 
 
@@ -253,9 +253,9 @@ P1·P2(150/300ns 단일소스) 위에 **주파수 확정값(85 kHz) 반영 + 튜
 | UART 출력 1초 주기화 (A1.5) | ✓ | RTI2 독립 타이머 → flag → eta_uart5_loop. 주기=SysConfig nsecPerTick0(단일 진실원천) (8b85bda) |
 | ADC 6채널 완성 (A2) | ✓ | 5 인스턴스(ADC0~4), 6채널 raw→mV 실보드 검증. AIN 핀 hard `$assign` 승격 (c512e3b) |
 | eta_adc.c 테이블 주도 리팩토링 | ✓ | ISR/init/loop 통합, 332→232줄, 동작 불변 (c512e3b) |
-| 신호별 스케일링 (A3) | △ | **5채널 완료·검증**(I_COIL_SEN·GA_Iin_SEN·GA_Vin·Temp×2). I_LCC_SEN만 미교정(`— A`). GUI `PHYSICAL_COEFF` 단일 소스([[adc_scaling]]) |
+| 신호별 스케일링 (A3) | ✓ | 5채널 완료·검증(I_COIL_SEN·GA_Iin_SEN·GA_Vin·Temp×2). I_LCC_SEN 스펙 미입수로 드롭. GUI `PHYSICAL_COEFF` 단일 소스([[adc_scaling]]) |
 | **UART5 PC 텔레메트리 (바이너리 패킷 + GUI)** | ✓ | branch uart5(ba241fa·979699d). 18B 패킷(SOF/LEN/TYPE/SEQ/raw×6/CRC-16) RTI2 10Hz + PC GUI(`tools/gui/gui.py`). 실보드 COM13 10.067Hz·301프레임·0드롭/0CRC. 정본 [[uart5_packet_protocol]]·[[pc_monitor_gui]] |
-| UART5 차동 송신 (RS-485) | △ | 단독 루프백 PASS(TCA6416 P00/P14=LOW, J1.4↔J1.3, 2026-06-10). **485_EN DE 자동 토글 구현 완료(branch gpio)**. 잔여 = 8kw 보드 결합 RS-485 차동 검증 |
+| UART5 차동 송신 (RS-485) | ✓ | 단독 루프백 PASS(TCA6416 P00/P14=LOW, J1.4↔J1.3, 2026-06-10). 485_EN DE 자동 토글 구현 완료(branch gpio). 보드 결합 RS-485 차동 검증 드롭 |
 | **UART5 양방향 확장 (TYPE=0x02·0x10)** | ✓ | GPIO 상태 TX(TYPE=0x02 7B)·GPIO 커맨드 RX(TYPE=0x10 8B) 구현·실보드 왕복 검증 완료(2026-06-16). GUI GD_EN ON→GPIO93 HIGH Logic2 실측. UART5 RX 1바이트 fix([[uart5_rx_polled_1byte]]). 정본 [[uart5_packet_protocol]]·[[gpio_impl]] |
 | 실보드 교차검증 (A4) | ✗ | 멀티미터 기준값 교차 (A3 후) |
 | **PWM 전력제어 (P0~P4)** | ✓ (P1 4/4·P2 **완전 완료**·knob flash검증 ✓) | [[pwm]]. **4핀 HS1/LS1/HS2/LS2 ✓실보드 검증**. P2: `ETA_DEADTIME_NS` 단일소스(`8046744`). `d01fc0a`: 85kHz 고정(85.032kHz)·config 분리. **`4014901`: EPWM0 fan-out + isoform — ±2 ns, 4-DT sweep PASS**. **knob flash+boot silicon 검증(2026-06-12): 16/16 ≤2 ns, production 150 ns 확정**. 다음 P3 보호. 핀맵 [[pwm_pinmap]]. 리포트 [[pwm_leg2_isoform_report]]·[[pwm_deadtime_knob_verify]] |
@@ -281,12 +281,11 @@ P1·P2(150/300ns 단일소스) 위에 **주파수 확정값(85 kHz) 반영 + 튜
 - **tools/jtag_flash 정리 (다음 세션 예정)**: 폴더명 적정성 점검 + flash 경로 이원화 정책 수립(CCS/Release 개발자용 vs GUI/build HW 엔지니어용). 별도 세션에서 진행.
 - ~~GPIO 출력 미구현~~ — ✅ **완료(2026-06-16, branch gpio)**: `eta_gpio.{c,h}` 구현. GPIO91(J5.48) 10Hz 펄스·GPIO93(J4.33) HIGH 실보드 확인. PADCONFIG 런타임 mux + TCA6416A PRU_MUX_SEL. 상세 [[gpio_impl]].
 - ~~**GUI GPIO Control 왕복 검증 잔여**~~ — ✅ **완료(2026-06-16)**: GUI GD_EN ON → TYPE=0x10 → `eta_gpio_loop()` → GPIO93 HIGH. Logic2 실측 확인. branch gpio 커밋 예정.
-- **A3 물리량 변환**: ~~I_COIL_SEN~~ ✅ (7335418) / ~~GA_Iin_SEN·GA_Vin·Temp_Module1/2~~ ✅ **모두 완료(2026-06-24)**. **아키텍처 확정: 변환은 GUI `PHYSICAL_COEFF` 단일 소스(callable 비선형 확장 포함), MCU는 raw/mV만 전송**. 잔여: I_LCC_SEN 미교정(`— A`). 식·파라미터 [[adc_scaling]].
+
 - **Vref 3.3V 확정**: `ETA_ADC_VREFHI_MV=3300` + 사용자 확인(2026-06-24). [[adc_pinmap]] §ADC 파라미터.
-- **UART5 송신 논블로킹화 (신규 잔여)**: 현재 패킷 송신이 **polled blocking**(`eta_uart5.c`). 제어루프와 병행하려면 콜백/DMA 논블로킹 전환 필요. ([[uart5_packet_protocol]] §전송)
-- **UART5 Phase 2 — 8kw 보드 결합 RS-485 차동 (잔여)**: 단독 루프백(2026-06-10)·PC 텔레메트리(2026-06-11) PASS. **DE 자동 토글(`EN_485`=GPIO91) 구현 완료(2026-06-16)**. 잔여 = 8kw 보드 결합 시 THVD1400 U13 차동 라인 실물 검증. 정본 [[lp_am263p_uart_epwm_mux]]·[[uart5_packet_protocol]]·[[gpio_impl]].
+
 - **UART5 PC 도달 경로 제약 (참조)**: UART5는 온보드 XDS110 가상 COM에 안 실리고 **외부 CP210x(COM13, J1.4→THVD1400→J24)로만** PC 도달. ([[pc_monitor_gui]])
-- **물리량 변환 계수 미입수 (GUI Physical placeholder)**: A3 센서 스펙과 동일 블로커. GUI Physical 컬럼은 계수 테이블 단일 소스라 입수 시 한 곳만 수정(GA_Vin `— V`·전류 3채널 `— A`·온도 `—`). ([[pc_monitor_gui]]·[[adc_pinmap]])
+
 - ~~UART 출력 채널 하드코딩~~ — ✅ **해소(branch uart5)**: 구 `eta_uart5.c` 채널별 `DebugP_log` 텍스트 라인 → `eta_packet.c` 채널 루프 직렬화로 대체. ADC 채널 추가 시 출력 라인 수동 추가 불요(eta_adc.c 테이블과 동일하게 자동 추종).
 - ~~PWM 레그1 dead-time 단일소스 통일~~ — ✅ **해결(`8046744`)**: 두 레그 모두 `ETA_DEADTIME_NS` 하나로 수렴. 레그1=`eta_pwm_init()`이 `EPWM_setRisingEdgeDelayCount`/`setFallingEdgeDelayCount`로 RED/FED(=ETA_DEADTIME_COUNTS, SysConfig 기본 override), 레그2=CMPB 오프셋. 150/300ns 4ch 실측(레그1 150.3→300.4·레그2 150.0→300.0ns, shoot-through 0). 상세 [[pwm]] §dead-time 단일소스. (`d01fc0a`에서 단일소스 위치를 `eta_tuning.h`로 이전.)
 - ~~PWM 주파수 85 kHz 고정 / dead-time config 분리~~ — ✅ **완료(`d01fc0a`)**: 85.032 kHz 실측, dead-time 100/150/400 ns 스윕 PASS(shoot-through 0). 단일소스 `eta_tuning.h ETA_DEADTIME_NS`(100~400 ns `#error` 가드), 주파수·dead-time 모두 `eta_pwm_init()` 런타임 override로 SysConfig 면역.
@@ -294,6 +293,5 @@ P1·P2(150/300ns 단일소스) 위에 **주파수 확정값(85 kHz) 반영 + 튜
 - ~~PWM 레그2 dead-time 비대칭~~ — **✅ 해결(`4014901`)**: EPWM0 fan-out + isoform으로 ~22 ns → **±2 ns**. 최소 갭 ≥ 98 ns. 보드 단계 단일모듈화는 여전히 미래 개선 후보([[pwm_pinmap]] §향후). ([[am263p_epwm_module_sync_deadtime]])
 - **빌드 환경 주의 (HW 엔지니어 워크플로우)**: CCS 생성 `Release/makefile`·`Release/syscfg/`는 git 추적 안 함(`.gitignore`). **다른 노트북에서 git clone 후엔 CCS로 프로젝트 import**(=makefile·syscfg 로컬 재생성)해서 빌드. `build/makefile`·`build/config.mk`는 git 추적 유지 — HW 엔지니어 GUI gmake 워크플로우용. 단 **`eta_tuning.h` 변경은 순수 C 컴파일로 반영**되어 syscfg 재생성 불요 — 런타임 override 방식의 이점. `docs/`·`tools/`·`build/`는 CCS Exclude from Build(`.cproject` 영속화) → `Release/` 하위 미러 트리 재생성 차단됨.
 - **PWM 회로도 net 라벨 함정 (정본 기록 유지)**: 회로도 net 라벨("EPWM4_B"/"EPWM7_A")과 silicon 채널(EPWM4_A/EPWM7_B) suffix **반대** — 펌웨어 정본=silicon 채널(UG Mode0·pinmux.csv 교차확인). 라벨에 끌려가지 말 것([[pwm_pinmap]]).
-- **PWM 게이트 극성 회로도 미확인**: active-high 가정으로 4핀 검증 통과(shoot-through 0) → 가정 실보드 실증. **회로도 원본으로 극성 확인은 잔여**. shutdown 입력 미확인.
-- **PWM 잔여 스펙**: ~~스위칭 주파수~~ **85 kHz 고정·구현·실측 확정(`d01fc0a`)**. ~~dead-time 단일소스/스윕 인프라~~ ✅ 완료. 잔여 = **보호(trip) 신호 소스 미정(P3 선결)** · dead-time 최종값 고정(위 항목).
+
 - ~~레그2 두 모듈 동기 dead-time 비표준 구현~~ — **해결**(EPWM4→EPWM7 SYNC+CMPB 오프셋, shoot-through 0 실측). 단 향후 보드 리비전 시 한 모듈로 묶도록 수정 요청 예정([[pwm_pinmap]] §향후).
