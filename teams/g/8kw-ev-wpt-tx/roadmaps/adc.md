@@ -1,6 +1,6 @@
 ---
 tags: [roadmap, adc, 8kw-ev-wpt-tx, living-doc]
-date: 2026-06-09
+date: 2026-06-26
 ---
 
 # adc — 8kW WPT TX 보드 ADC 브링업 작업 호 (A0~A4)
@@ -28,7 +28,7 @@ LP-AM263P 5개 ADC 인스턴스(ADC0~ADC4)에 eta 보드 J3 커넥터 6채널(Te
 | **A1.5** | UART 주기화 + ADC 리팩토링 | 1초 주기 출력 + `src/eta_bsp/eta_adc.{c,h}` 다핀 확장 정리 | ✓ |
 | **A2** | 전채널 순차 읽기 | 6채널 전부 신호 레이블 붙여 UART 출력 | ✓ (6/6, 실보드 검증) |
 | **A3** | 신호별 스케일링 적용 | 변환식 구현 (센서 스펙 입수 후 진행) | ✓ (5/6채널, I_LCC_SEN 드롭) |
-| **A3.5** | ADC SOC 트리거 RTI→EPWM0 + PPB HW 평균 | EPWM0(85 kHz) 트리거 + PPB 오버샘플 평균값 실보드 검증 | ✗ |
+| **A3.5** | ADC SOC 트리거 RTI→EPWM0 + PPB HW 평균 | EPWM0(85 kHz) 트리거 + PPB 오버샘플 평균값 실보드 검증 | ✓ (HW 검증, N=64 확정) |
 | **A4** | 실보드 교차검증 | 멀티미터/소스 기준값으로 ADC 출력 오차 정량화 | ✗ |
 
 상태 기호: `✓` 구현+검증 / `△` 구현됨·미검증 / `?` 추가 정보 필요 / `✗` 미구현
@@ -97,18 +97,23 @@ LP-AM263P 5개 ADC 인스턴스(ADC0~ADC4)에 eta 보드 J3 커넥터 6채널(Te
 
 변환식 상세·검증 데이터포인트 → [[adc_scaling]].
 
-### A3.5 — ADC SOC 트리거 RTI→EPWM0 전환 + PPB HW 평균 필터
+### A3.5 — ADC SOC 트리거 RTI→EPWM0 전환 + PPB HW 평균 필터 ✓ (HW 검증, N=64 확정, 2026-06-26)
 
-**방향 변경(2026-06-26)**: 기존 순위 2(SW 필터)·순위 3(트리거 전환) 통합, 순서 뒤집음.
+**완료(main, PR #6 `d673e74`)**: 6채널 노이즈를 **CPU-free HW 평균**으로 처리. 트리거 EPWM0_SOCA 85.032 kHz, 방식 = **PPB 누적 평균**(repeater 안 씀). HW 노이즈 측정으로 **N=64 확정**.
 
-1. **트리거 전환 선행** — RTI1(1 kSPS) → EPWM0(85.032 kHz). EPWM0는 commit `4014901`에서 도입된 output-less 더미 fan-out 마스터(EPWM2/4/7 SYNC 기준). 전환 시 트리거 export 게이트 함정([[am263p_adc_rti_trigger]] §1) 재점검 필수 — RTI 경로와 EPWM SOC 경로 활성화 방식이 다름.
+1. **트리거 전환 ✓ (commit `3e5f117`)** — RTI1(1 kSPS) → EPWM0_SOCA(85.032 kHz). 6 SOC 전부 `soc0Trigger=ADC_TRIGGER_EPWM0_SOCA`(`example.syscfg`:70 등). RTI 카운터 시작 코드 제거(`eta_bsp_adc.c`:194). ★RTI의 `enableIntr0` export 게이트 함정은 EPWM에 적용 안 됨 — `ETSEL.SOCAEN`이 트리거 XBAR로 직접 출력. 경로·함정 정본 [[am263p_adc_rti_trigger]] §5.
 
-2. **PPB HW 평균 후행** — AM263P ControlSS ADC PPB 오버샘플링. `ADCPPBxLIMIT=2^n`, `ADCPPBxCONFIG2.SHIFT=n` 설정으로 PPB가 2^n 샘플 누적 후 CPU 개입 없이 자동 평균(최대 1024샘플). SW 이동평균 대비 RAM 버퍼·루프 연산 불필요. HW로 못 잡는 잔여 노이즈에만 SW 필터 보완. 정본 [[am263p_adc_rti_trigger]] §4.
+2. **PPB HW 평균 ✓ (commit `4cffbe1`, N은 #6에서 64로 확정)** — 6채널 전부 PPB 누적 평균. **N=64 확정**(출력 1.33 kHz, 노이즈 √64=÷8, 그룹지연 ~370 µs). ISR을 EOC→OSINT로 변경, read는 `ADC_readResult`→`ADC_readPPBSum`. 정본 [[am263p_adc_ppb_averaging]].
 
-**미검증(△ — 다음 탐색 대상)**:
-- △ ADC 인스턴스당 변환시간 실수치 → 85 kHz(11.7 µs/트리거) 안에 오버샘플 가능 횟수 산정 필수([[am263p_adc_instance_allocation]]).
-- △ SDK PPB API(`ADC_setupPPB` 등) · SysConfig 위젯 매핑.
-- △ ADC1 SOC0+SOC1 라운드로빈 — EPWM 트리거 전환 후에도 동일 동작인지 확인 필요.
+3. **N 튜닝 손잡이 ✓ (commit `532e0eb`)** — `src/bsp/eta_bsp_adc.h:28`의 `ETA_ADC_OVERSAMPLE_LOG2` 단일 매크로(현재 `6U`→N=64; 5→32, 7→128, ≤10). `eta_bsp_adc_init()`이 전 PPB에 limit=2^LOG2·shift=LOG2 런타임 적용(eta_bsp_pwm.c TBPRD override와 동일 패턴). **GUI 통합 없음** — 코드 직접 수정 후 재빌드-flash.
+
+**repeater 미채택 근거**: ① 과전류·과전압 보호는 HW 비교기 담당, ② 조정루프 대역폭 수백 Hz↓(기존 1 kSPS로도 동작), ③ 85 kHz에서 repeater N=64는 64×315 ns = 20 µs > 11.76 µs 주기로 변환시간 예산 초과([[am263p_adc_instance_allocation]] §변환시간 예산). PPB 누적은 N을 트리거에 걸쳐 분산하므로 예산과 무관.
+
+**~~미검증(△)~~ → 전부 해소(2026-06-26)**:
+- ~~△ ADC 인스턴스당 변환시간 실수치~~ → **확정**: 단일 변환 ≈ 315 ns(acq 85 ns + conv 230 ns, ADCCLK 50 MHz). 정적 산정 [[am263p_adc_instance_allocation]] §변환시간 예산.
+- ~~△ SDK PPB API~~ → **확정**: `ADC_setupPPB`/`setPPBCountLimit`/`setPPBShiftValue`/`readPPBSum` 인용 정리 [[am263p_adc_ppb_averaging]] §3.
+- ~~△ ADC1 SOC0+SOC1 라운드로빈~~ → **확정**: EPWM 전환 후 동일(lockstep, OSINT2→INT1). [[am263p_adc_rti_trigger]] §5.
+- ~~△ 노이즈 감소량 실측~~ → **확정(HW)**: 실보드 측정으로 **N=64 채택**(√64=÷8). 6채널 0/3.3V 추종·OSINT ISR(N=64 ⇒ 1.33 kHz) 실측 OK. 이 측정 결과가 N 32→64 상향 근거 — main PR #6 `d673e74`.
 
 ---
 
@@ -124,14 +129,15 @@ LP-AM263P 5개 ADC 인스턴스(ADC0~ADC4)에 eta 보드 J3 커넥터 6채널(Te
 
 → [[status]] 단일 소스.
 
-A2 완료(2026-06-09, c512e3b) · A3 완료(5/6채널, I_LCC_SEN 드롭, 2026-06-26). 다음: A3.5(트리거 RTI→EPWM0 + PPB HW 평균) → A4 교차검증.
+A2 완료(2026-06-09, c512e3b) · A3 완료(5/6채널, I_LCC_SEN 드롭, 2026-06-26) · A3.5 **완료**(트리거 EPWM0_SOCA + PPB HW 평균 N=64 HW 확정, main PR #6 `d673e74`). 다음: A4 교차검증.
 
 ---
 
 ## 4. 블로커 / 추가 정보 대기
 
 - ~~**A3 블로커**~~ — I_LCC_SEN 드롭으로 해소(2026-06-26). A3 완료 처리.
-- **A3.5 미검증**: △ ADC 인스턴스당 변환시간 실수치. △ SDK PPB API 표면. 다음 탐색 대상([[am263p_adc_rti_trigger]] §4).
+- ~~**A3.5 지식 미검증**(변환시간·PPB API)~~ — 해소(2026-06-26): 변환시간 ≈315 ns 정적 확정([[am263p_adc_instance_allocation]]), PPB API 정리([[am263p_adc_ppb_averaging]]).
+- ~~**A3.5 HW 실측 잔여**(노이즈 감소량)~~ — ✅ 해소(2026-06-26): HW 측정으로 **N=64 확정**(√64=÷8). main PR #6 `d673e74`. A3.5 ✓.
 - **A0 전제**: LP-AM263P CCS 프로젝트 정상 동작 상태 (SysConfig 편집 가능)
 
 ---
@@ -139,4 +145,32 @@ A2 완료(2026-06-09, c512e3b) · A3 완료(5/6채널, I_LCC_SEN 드롭, 2026-06
 ## 5. 환원 후보
 
 - ~~ADC 변환식 → `pages/concepts/adc_scaling.md`~~ ✅ 환원됨: [[adc_scaling]] (I_COIL_SEN 완료, A3 전체 완료 시 나머지 채울 것)
-- ~~SysConfig ADC 설정 노하우 → concept 페이지~~ ✓ 환원됨: [[am263p_adc_rti_trigger]] (lp-am263p, AM263P 플랫폼 정본 — RTI 트리거 결선·측정 시점 함정·검증된 설계 패턴).
+- ~~SysConfig ADC 설정 노하우 → concept 페이지~~ ✓ 환원됨: [[am263p_adc_rti_trigger]] (lp-am263p, AM263P 플랫폼 정본 — RTI·EPWM 트리거 결선·측정 시점 함정·검증된 설계 패턴).
+- ~~PPB HW 오버샘플 평균 → concept 페이지~~ ✓ 환원됨: [[am263p_adc_ppb_averaging]] (lp-am263p, AM263P 플랫폼 정본 — TRM·SDK API 인용, 2026-06-26 신설).
+- ~~ADC 변환시간 예산 → concept~~ ✓ 환원됨: [[am263p_adc_instance_allocation]] §변환시간 예산 (단일 변환 ≈315 ns 정적 확정).
+
+---
+
+## 6. 이슈 백로그
+
+A4 이후 추가 개선 후보. 스파이크 포착·노이즈 억제 향상.
+
+### #7 — ADC 실질 샘플링 85 kHz 확보
+
+| 항목 | 내용 |
+|------|------|
+| 현재 실질 샘플링 | ≈ 1.33 kHz (85 kHz ÷ N=64) |
+| 목표 | 85 kHz 실샘플링 — 스위칭 전류·전압 스파이크를 빠짐없이 포착 |
+| 손잡이 | `ETA_ADC_OVERSAMPLE_LOG2` (`src/bsp/eta_bsp_adc.h:28`) → `0`(N=1)으로 내린 뒤 실보드 노이즈 실측 |
+| 후속 | 노이즈 허용 초과 시 → #8 SW 이동평균으로 이동 |
+
+### #8 — HW 블록평균 → SW 이동평균 전환 검토
+
+관련: #7 (실질 85 kHz 샘플링 선행 필요).
+
+| 항목 | 내용 |
+|------|------|
+| HW PPB 현재 | N=64 블록평균 → 그룹지연 ~370 µs, 출력 1.33 kHz |
+| 제안 | SW ring buffer 이동평균 — 매 샘플마다 값 갱신, 스파이크 감지 + 노이즈 억제 동시 달성 |
+| CPU 부하 추정 | ISR @85 kHz × 6채널 ≈ 510,000 ISR/s, R5F @400 MHz ≈ 784 사이클/ISR 예산 [추정] |
+| 미결 | R5F CPU 부하 허용 범위 실측, 윈도우 크기 N 튜닝 |

@@ -1,36 +1,41 @@
 ---
 tags: [concept, build, flash, ccs, gmake, gui, workflow, am263p, 8kw-ev-wpt-tx]
-source: 코드 분석 — build/makefile · build/config.mk · tools/gui/gui.py · tools/ospi_flash/run_flash_node_8kw.ps1 · flash_node_8kw.js 직접 확인 (2026-06-19, 신스택 CCS21/SDK_06)
-date: 2026-06-19
+source: 코드 분석 — build/makefile · build/config.mk · tools/gui/gui.py · tools/ospi_flash/run_flash_node_8kw.ps1 · flash_node_8kw.js 직접 확인 (2026-06-19, 신스택 CCS21/SDK_06); PR #10 갱신(2026-06-26)
+date: 2026-06-26
 ---
 
-# 두 가지 빌드 방법 — 개발자(CCS IDE) vs HW 엔지니어(GUI gmake)
+# 빌드·플래시·편집 — gmake 단일 빌드 + 역할 분리
 
-> **8kw-ev-wpt-tx 정본 — "이거 어떻게 빌드·플래시하나" 진입 페이지.** 펌웨어를 빌드하는 길은 둘이다: 개발자가 IDE 안에서 빌드하는 **CCS IDE 빌드(`Release/`)**, HW 엔지니어가 IDE 없이 GUI로 빌드→플래시까지 한 번에 하는 **GUI gmake 빌드(`build/`)**. 두 길은 **동일한 `example.syscfg` 하나**를 입력으로 쓰고, 플래시 다운스트림도 같은 스크립트를 공유한다.
-> 생성물 의존 메커니즘·함정의 심층은 [[syscfg_build_model]], flash 툴링 메커니즘은 [[ospi_flash_tooling]], 툴체인 경로 배선은 [[sdk_ccs_toolchain_migration]].
+> **8kw-ev-wpt-tx 정본 — "이거 어떻게 빌드·플래시하나" 진입 페이지.**
+> PR #10(2026-06-26)에서 빌드를 **gmake 단일 경로**로 통합했다. CCS IDE 빌드(`Release/`)는 **휴면(dormant)**. 역할 분리 전체 그림은 [[devenv_roles]].
+> SysConfig 생성물 의존 모델·함정은 [[syscfg_build_model]], flash 툴링 메커니즘은 [[ospi_flash_tooling]], 툴체인 경로 배선은 [[sdk_ccs_toolchain_migration]].
 
 ---
 
-## 1. 방법1 vs 방법2 — 한눈 비교
+## 1. 빌드 방식 (현재: gmake 단일)
 
-| 항목 | 방법 1 — CCS IDE 빌드 | 방법 2 — GUI gmake 빌드 |
-|------|----------------------|------------------------|
-| **용도** | 개발자가 IDE 안에서 편집·디버그하며 빌드 | HW 엔지니어가 IDE 없이 빌드→플래시 원클릭 |
-| **방식** | CCS managed build(`.cproject`), Release 프로파일 | `gmake -C build all` (내부 호출) |
-| **진입점** | CCS IDE Build 버튼 | `tools/gui/run-gui-{linux.sh,windows.bat}` 더블클릭 → `tools/gui/launch.py`(venv 부트스트랩) → `tools/gui/gui.py` ([[gui_launch_architecture]]) |
-| **빌드 명령** | CCS managed build (IDE 내부) | `gmake -C build all` |
-| **산출물** | `Release/8kw-ev-wpt-tx.mcelf` (+ `.out`/`.map`) | `build/8kw-ev-wpt-tx.mcelf` |
-| **플래시 소스** | `run_flash_node_8kw.ps1 -Source release` (기본값) | GUI가 `run_flash_node_8kw.ps1 -Source build` 호출 |
+| 항목 | gmake 빌드 ✓ | CCS IDE 빌드 (휴면) |
+|------|-------------|------------------|
+| **명령** | `gmake -C build all` | CCS managed build (`.cproject`) |
+| **산출물** | `build/8kw-ev-wpt-tx.out` + `.mcelf` | `Release/8kw-ev-wpt-tx.out` + `.mcelf` |
+| **진입점** | 터미널 직접, 또는 GUI `--build` | CCS IDE Build 버튼 |
+| **상태** | **활성** | **휴면(dormant, PR #10 2026-06-26)** |
 
-방법 2의 `gmake.exe` 탐색 순서 = `build/config.mk`의 `CCS_PATH` → `<CCS>/utils/bin/gmake.exe`.
+flash 스크립트는 항상 `build/` 산출물을 사용 — `-Source` 인자 없음(`flash_node_8kw.js:51`).
 
-### 방법 2 — CLI 동등 명령 (헤드리스)
+`gmake.exe` 탐색 순서 = `build/config.mk`의 `CCS_PATH` → `PATH` → `C:\ti\ccs*\...\gmake.exe` 최신본.
 
-GUI 없이 같은 일을 명령줄로:
+### CLI 명령 모음
 
 ```sh
+# 빌드
 gmake -C build all
-python tools/gui/gui.py --deadtime <ns> --write --build --flash
+
+# GUI (모니터·dead-time 빌드/플래시)
+python tools/gui/launch.py
+
+# headless dead-time 변경+빌드+플래시
+python tools/gui/launch.py --deadtime 150 --write --build --flash
 ```
 
 ---
@@ -67,44 +72,66 @@ python tools/gui/gui.py --deadtime <ns> --write --build --flash
 
 ---
 
-## 4. 새 소스 파일 추가 시 (반드시 강조)
+## 4. 새 소스 파일 추가 시
 
-**새 `.c` 파일은 두 빌드 시스템에 각각 등록해야 한다.** 한쪽만 추가하면 다른 빌드에서 미컴파일/링크 누락이 난다.
+CCS IDE 빌드가 휴면이므로 **gmake 쪽만 등록하면 된다.**
 
 | 빌드 | 등록 위치 |
 |------|-----------|
-| 방법 1 — CCS IDE | `.cproject`의 `sourceEntries` |
-| 방법 2 — gmake | `build/makefile`의 `FILES_common` (필요 시 `FILES_PATH_common` / `INCLUDES_common`) |
+| gmake (활성) | `build/makefile`의 `FILES_common` (필요 시 `FILES_PATH_common` / `INCLUDES_common`) |
+| CCS IDE (휴면) | `.cproject`의 `sourceEntries` — CCS 빌드가 필요할 때만 |
 
 ---
 
-## 5. 플래시 (두 방법 공통 다운스트림)
+## 5. 플래시
 
-두 방법 모두 같은 스크립트로 굽는다 — 차이는 `-Source` 인자뿐:
+flash 스크립트는 항상 `build/` 산출물을 굽는다(`flash_node_8kw.js:51`). `-Source` 인자는 더 이상 없다.
 
-```
-tools/ospi_flash/run_flash_node_8kw.ps1 -Source <release|build>
-```
+| OS | 명령 |
+|----|------|
+| Linux | `./tools/ospi_flash/run_flash_node_8kw.sh` |
+| Windows | `powershell -ExecutionPolicy Bypass -File tools\ospi_flash\run_flash_node_8kw.ps1` |
 
-**절차**: XDS110 JTAG 접속 → `ERASE_ALL` → SBL(`C:/ti/sbl_ospi_am263p.tiimage`) @0x00000000 → app `.mcelf` @0x00081000.
+**절차**: XDS110 JTAG 접속 → `ERASE_ALL` → SBL @0x00000000 → app `.mcelf` @0x00081000.
 
 **전제**:
 
-- 보드 JTAG 연결.
-- CCS 디버그 세션/IDE **미상주** — 플래시 스크립팅과 DSLite 백엔드가 경합한다 (상세 [[jtag_flash_clean_host]]).
-- **부팅 스트랩**: standalone 부팅은 **SW1 = `0,0,1,1`(xSPI 8D SFDP)**. `1,1,1,1`(4S)는 이 옥타 플래시(IS25LX256)에서 부팅 안 됨 (정본 [[ospi_boot_mode_strap]]).
+- 보드 JTAG 연결. `gmake -C build all` 완료.
+- CCS 디버그 세션/IDE **완전 종료** — DSLite 백엔드 경합 (상세 [[jtag_flash_clean_host]]).
+- **부팅 스트랩**: standalone 부팅은 **SW1 = `0,0,1,1`(xSPI 8D SFDP)** ([[ospi_boot_mode_strap]]).
 
-플래시 메커니즘(헬퍼 FW를 RAM에 올려 OSPI 굽기)·`--source` argv 분기 상세: [[ospi_flash_tooling]].
+플래시 메커니즘(헬퍼 FW를 RAM에 올려 OSPI 굽기) 상세: [[ospi_flash_tooling]].
+
+---
+
+## 6. CCS는 디버그·플래시 전용 (PR #10 확정)
+
+- **산출물명이 두 빌드에서 동일**: `build/8kw-ev-wpt-tx.out`·`Release/8kw-ev-wpt-tx.out` 동일 이름, 디렉터리로만 구분됨 (`build/makefile:27` `OUTNAME`, `:140` `.mcelf` 타겟).
+- **★ CCS 디버그는 gmake 산출물(`build/*.out`)만으로 성립한다.** 실보드에서 `build/*.out` 로드→브레이크포인트 소스 줄 바인딩→실행 시 hit 확인(2026-06-26). CCS 안에서 다시 빌드(managed build)할 의무 없음.
+- **완료(PR #10, 2026-06-26)**: 빌드를 gmake 단일로 통합, CCS는 디버그·flash 전용. [[devenv_roles]] 참조.
+
+## 7. VSCode + clangd 네비게이션
+
+빌드 후 `compile_commands.json`이 repo 루트에 생성된다(`build/makefile:180-190`). `.clangd`·`.vscode/settings.json`이 커밋돼 있어 초기 셋업은 아래로 충분:
+
+1. `llvm-vs-code-extensions.vscode-clangd` 확장 설치
+2. `gmake -C build all` 실행
+3. VSCode 재로드
+
+`--query-driver=**/bin/tiarmclang`(`.vscode/settings.json:2`)이 없으면 clangd가 tiarmclang 내장 헤더 경로를 인식하지 못한다.
+
+`compile_commands.json`은 git-ignore(머신별 절대경로 포함) — clone 후 빌드로 생성.
 
 ---
 
 ## 함께 보기
 
+- 역할 분리 전체 그림·비자명 사실 4개: [[devenv_roles]]
 - SysConfig 생성물 빌드 의존 모델·함정: [[syscfg_build_model]]
-- OSPI flash 툴링 메커니즘 + mcelf 소스 분기: [[ospi_flash_tooling]]
+- OSPI flash 툴링 메커니즘: [[ospi_flash_tooling]]
 - CCS IDE 종료 규율 (flash 전 전제): [[jtag_flash_clean_host]]
 - OSPI 부트모드 스트랩 (SW1 정답 `0,0,1,1`): [[ospi_boot_mode_strap]]
 - 툴체인 경로 배선·마이그레이션 함정: [[sdk_ccs_toolchain_migration]]
-- 방법 2 GUI 상세 (dead-time 빌드/플래시 컨트롤): [[pc_monitor_gui]]
-- 방법 2 런처 구조·배포 결정: [[gui_launch_architecture]]
+- GUI 상세 (dead-time 빌드/플래시 컨트롤): [[pc_monitor_gui]]
+- GUI 런처 구조·배포 결정: [[gui_launch_architecture]]
 - 현재 위치·다음 시작점: [[status]]

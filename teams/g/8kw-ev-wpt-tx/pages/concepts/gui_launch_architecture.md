@@ -1,7 +1,7 @@
 ---
 tags: [concept, gui, launcher, venv, bootstrap, deadtime, decision, 8kw-ev-wpt-tx]
-source: repo main 직접 확인 (tools/gui/launch.py·run-gui-{linux.sh,windows.bat}·gui.py, launcher 추가 commit 316e649·gui.py bec434d, 탐색 2026-06-25)
-date: 2026-06-25
+source: repo main 직접 확인 (tools/gui/launch.py·gui.py, commit 316e649·bec434d·67eac11, 2026-06-25/26)
+date: 2026-06-26
 subsystem: 8kw-ev-wpt-tx, host
 ---
 
@@ -14,12 +14,13 @@ subsystem: 8kw-ev-wpt-tx, host
 
 ## 1. 런치 구조 (사실)
 
-진입은 OS별 thin shim 2개, 실제 로직은 `launch.py` 단일 소스다.
+진입은 `launch.py` 단일 소스다.
 
 ```
-tools/gui/run-gui-linux.sh    (bash, 3줄)   ┐
-tools/gui/run-gui-windows.bat (cmd, py→python 폴백)  ├─→ tools/gui/launch.py ─→ (venv python) gui.py
+python tools/gui/launch.py  →  (venv python) gui.py
 ```
+
+OS별 thin shim(`run-gui-linux.sh`, `run-gui-windows.bat`)은 PR #10 commit `67eac11`(2026-06-26)에서 삭제됨. 더블클릭 래퍼로서의 역할만 하던 shim이었고, VSCode 터미널 단일 커맨드 워크플로로 전환함에 따라 제거. `launch.py`가 OS 분기를 내부에서 처리하므로 shim 없이도 동일 동작.
 
 ### `tools/gui/launch.py` — OS 무관 부트스트랩 (commit `316e649`)
 
@@ -32,14 +33,7 @@ tools/gui/run-gui-windows.bat (cmd, py→python 폴백)  ├─→ tools/gui/lau
 
 venv python 경로는 OS 분기 — Windows `.venv\Scripts\python.exe` / 그 외 `.venv/bin/python`(`_venv_python`).
 
-### shim 2개
-
-| shim | 내용 |
-|------|------|
-| `run-gui-linux.sh` | `DIR=$(dirname $0)` → `python3 "$DIR/launch.py" "$@"`. 주석 "Linux / macOS" ([모름] macOS 실검증 흔적 없음) |
-| `run-gui-windows.bat` | `where py` 성공 시 `py -3 "%~dp0launch.py" %*`, 아니면 `python` 폴백 |
-
-→ 두 shim 모두 `launch.py`를 부르는 wrapper일 뿐. **모든 실제 로직은 `launch.py` 단일 소스**.
+→ **모든 실제 로직은 `launch.py` 단일 소스.** shim은 삭제됨(commit `67eac11`).
 
 ### requirements (핀 고정)
 
