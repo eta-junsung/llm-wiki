@@ -26,17 +26,12 @@ date: 2026-06-26
 
 **다음 시작점 — (02 리팩토링) `ADD_SPI` 전역 전파 점검 → 실보드 재검증**:
 
-`ADD_SPI`가 `.emProject` `c_preprocessor_definitions` 전역으로 이동된 상태 — 의도치 않은 TU 전파 여부 확인(현 빌드 에러 0). 확인 후 J-Link로 02 플래시 → [[pc_uart_gui]]에서 ESB rx 카운트·comm_st 비트·헤더 마스크 정상 여부 검증.
+`ADD_SPI`가 `.emProject` `c_preprocessor_definitions` 전역으로 이동된 상태 — 의도치 않은 TU 전파 여부 확인(현 빌드 에러 0). 확인 후 J-Link로 02 플래시 → [[pc_uart_gui]]에서 ESB rx 카운트·comm_st 비트·헤더 마스크 정상 여부 검증. ([[ses_build_conventions]])
 
-`6fc8b92`(2026-06-12, 04-tx-control-dummy 브랜치): **02·03 BLE 릴레이 정리 + RX 방향 미연결 견고화**. 02 `protocol_init`에서 forward 버퍼(0x50/51/52)를 valid 헤더+LEN+CRC+zero payload로 seed(approach A RX 방향 대칭, TX 방향은 `e72b86e`에서 03 완료). `pkt_seed_buffers()` _shared 헬퍼 추출, `eta_spi.c/.h` _shared 공용화(02/03 바이트 동일). Monitor_Loop `seen_mask` 출력 게이트 제거 → 6줄 고정 스냅샷. [[app_protocol_module]] "릴레이 헤더 소유 원칙·02/03 통합 범위" 갱신.
+**예정 작업**:
 
-`35b94d0`(2026-06-10, 실보드 검증): 01_RX_control UART5 모니터 출력을 **텍스트 printf → 11B 바이너리 패킷 송출**로 전환(`print_packets`가 6헤더를 `pkt_build_*`→`uart_send`). COMM 텍스트 라인(`print_comm_line_on_change`) 삭제 — 링크 health는 0x10 status d0 **bit5(SPI)/bit6(ESB)**로 운반. host 도구 [[pc_uart_gui]](`tools/pc_uart_gui/uart_gui.py`, Python+Tkinter+pyserial): 단일 UART5로 11B HDR 동기+CRC 재동기 파싱, 2컬럼(TX 0x10~12/RX 0x50~52) 뷰, `Link: SPI/ESB [UP/DOWN]`, buck 입력칸→`buck <v>\r` 송신→0x51 `Tx_Buck_Vout_Ref` 확인. [[roadmaps/pc-gui]] G0~G3 완료. (직전 `2f2aa65`: COMM 라인 2인자·이벤트화 — `35b94d0`에서 그 텍스트 라인 자체가 폐기됨.)
-
-0. **(02 리팩토링) ADD_SPI 전역 전파 점검 → 실보드 재검증**: `ADD_SPI`가 `.emProject` `c_preprocessor_definitions` 전역으로 이동 — 의도치 않은 TU 전파 여부 확인(현 빌드 에러 0). 확인 후 J-Link로 02 플래시 → [[pc_uart_gui]]에서 ESB rx 카운트·comm_st 비트·헤더 마스크 정상 여부 검증. ([[ses_build_conventions]]) *(헤더명 이슈 → eta_ 전환(b92835c)으로 해소. [[nrf52_module_naming]])*
-
-0b. **(03 리팩토링) 실보드 검증**: `1d7f71a`(2026-06-11) 빌드 통과. 실보드 미검증 — TX 보드·오실로스코프 연결 후 ESB PTX 송출·ACK 수신·Monitor_Loop 정상 여부 확인. P0.17(`DBG_PIN_TX_ATTEMPT`)·P0.18(`DBG_PIN_TX_DONE`) 오실로로 ESB TX 타이밍 검증. ([[tx_ble_module]])
-
-1. **(검증) SPI 끊김 → 0x10 d0 bit5 = 0 낙하**: GUI `Link: SPI`가 이 비트로 표시되므로, SPI 단절 시 bit5가 정확히 0으로 떨어져 `SPI DOWN`이 뜨는지 실보드 확인. [[pc_uart_gui]].
+1. **SPI 폴링 주기 10ms → 5ms** (01-02, 03-04 양쪽): `PACKET_INTERVAL`(또는 `SPI_PACKET_INTERVAL_MS`) 변경 후 01·04 양쪽 실보드 재검증.
+2. **01·04 상호 SPI 링크 상태 인지**: 04-03 SPI 단절 시 01이 알도록, 01-02 SPI 단절 시 04가 알도록. 이를 위해 02·03이 자체적으로 SPI 통신 상태를 파악하는 메커니즘 필요 — 구체적인 구현 방향은 작업 진입 시 결정.
 2. **N=20 실측 검증**: `BLE_COMM_ST_MIN_COUNT=20`(=200ms 윈도우 기대 ~200개의 ~10%)가 실 RF 수신율 대비 적정한지 확인.
 3. **`_shared` 매크로 소유권 점검**: `PACKET_INTERVAL`(=10ms)은 `_shared`에 있으나 01만 호출(02/03은 ESB 1ms) → SPI 전용 분리/개명(`SPI_PACKET_INTERVAL_MS`) 후보. [[roadmaps/spi-esb-refactor]] §6.
 4. **회사보드 실장 시 LED3 매크로 전환**: 체크인 기본은 DK P0.19(active-low) — 회사 BLE_Module_Board에는 `LED3_PIN`을 P0.06(active-high)으로 수동 교체. [[tx_ble_module]].
@@ -121,24 +116,4 @@ date: 2026-06-26
 
 ## 미결 사항
 
-- ~~**(e2e) 01-02-03-04 전 체인 양방향 검증**~~ → **완료 (2026-06-17, `47e46db`)**: GUI `buck 12.00` → 04 TeraTerm(USB VCP, USART2) raw 1200 도달 확인. ([[roadmaps/04-tx-control-dummy]] D3)
-- ~~**04 Nucleo 포팅 (tx-dummy 브랜치)**~~ → **완료 (2026-06-17, `47e46db`)**: NUCLEO-F103RB(STM32F103RBT6) 포팅 완료. ld in-place 수정(128K/20K), startup·심볼 무변경, HSI 64MHz 전환, UART5→USART2(PA2/PA3, VCP) 이전. ([[roadmaps/04-tx-control-dummy]] §7)
-- ~~**(04 더미 D1→D2)**~~ → **완료 (2026-06-17)**: 03↔04 SPI 링크 검증 완료. ([[roadmaps/04-tx-control-dummy]] D2)
-- ~~**(04 더미 D3)** E2E Vout Ref~~ → **완료** (2026-06-16): GUI 바이너리 0x51 → 01 `pkt_apply_rx_cmd` → SPI → ESB → 03 Monitor `Tx_Buck_Vout_Ref` 정상 전파 확인. ([[roadmaps/04-tx-control-dummy]] D3, [[buck_vout_ref_command_path]])
-- **(정리)** 04 `.ioc` 파일명 `RX_control.ioc` → `TX_control.ioc` 개명 여부 결정.
-- (02 리팩토링) `ADD_SPI` 전역 전파 점검 — 원래 `main.c` 로컬 `#define` → `.emProject` `c_preprocessor_definitions` 전역 이동. 의도치 않은 TU 전파 여부 확인 필요. ([[ses_build_conventions]]) *(헤더명 이슈는 eta_ 전환(b92835c)으로 해소)*
-- ~~(03 리팩토링) 실보드 미검증~~ → **완료 (2026-06-19)**: ESB PTX 동작·P0.17/18 오실로 확인 완료. ([[tx_ble_module]])
-- ~~0x51 Zin·Tx Buck Vout Ref: 코드 Type 재확인~~ → **해소** (2026-06-16): `pkt_apply_rx_cmd()` u16 BE 확정.
-- **(01 정본) CAN 비트레이트 재확인**: HSI 전환으로 PCLK1 36→32 MHz 변경. 설계 목표 비트레이트(미확인)를 32MHz 기준으로 재계산·실측 필요 ([[sysclk_hsi_transition]])
-- (보류 M4) nRF52832 SPIS 최대 SCK 클럭 datasheet 미ingest — 9MHz 상향 재개 시 선결 ([[roadmap]] §4)
-- SPI_FAIL/ESB_FAIL 응답 — Warning/Fault 플래그·PWM 차단·상태 머신 미구현 ([[comm_state_monitoring]])
-- BLE_Comm_St `N=20` 실측 검증 — 실 RF 수신율 대비 적정성 미확인(`d2232fe`로 3→20 설정됨). STM32 모니터 rx 카운트가 `LOG_EN` 게이트로 미관측 (필요 시 임시 활성)
-- ~~02/03 COMM 라인 미와이어링~~ → **무의미**(`35b94d0`): COMM 텍스트 라인 자체가 폐기됨(링크 health는 0x10 d0 bit5/6 바이너리 운반). 02/03이 별도 COMM 라인 낼 이유 없음
-- ~~SPI 끊김 시 0x10 d0 bit5 → 0 낙하 실보드 확인~~ → **완료 (2026-06-17)**: SPI 점퍼 분리로 bit5 낙하·GUI `SPI DOWN` 확인. ([[comm_state_monitoring]] "SPI down → ESB down" 절)
-- ~~LED1(P0.09) cold-boot 확인~~ → **완료 (2026-06-18)**: active-HIGH 확정(`83bd9ca`, tx-dummy 브랜치). 02·03 실보드 검증 통과. 02 LED1 미점등은 HW 불량 아님 — firmware active-LOW 가정 버그였고 `LED1_ON=1u` 수정 후 정상 점등. ([[uto_nbk_52]], [[nfc_pins_gpio]])
-- ~~**(STEP 3 미완)** 커스텀 보드 SPI 배선 후 comm_st 재검증~~ → **완료 (2026-06-19)**: 4케이스 + 신규 케이스 확인, seed 수정 커밋, 03 실보드 검증 완료.
-- 회사 BLE_Module_Board 실장 시 LED3 매크로 P0.06(active-high) 전환 — 체크인 기본은 DK P0.19 ([[tx_ble_module]])
-- SPI 오류율 모니터 / spi_tx_busy 타임아웃 복구 실보드 장시간 안정성 검증
-- TX_ble stack_temp 실측 값 정상 여부 확인
-- (ESB) 실보드 장시간 안정성, GPIO 토글 핀 제거 여부, 01_RX_control ↔ 02_RX_esb UART 브리지 동작 확인
-- ~~01_RX_control `Monitor_Loop()` 주석처리 비활성(`175a8f7`)~~ → **해소** (`9be1a7a`): `protocol_loop()`의 `print_packets()`로 흡수돼 상시 ON ([[app_protocol_module]])
+- (02 리팩토링) `ADD_SPI` 전역 전파 점검 — 다음 시작점으로 이동. ([[ses_build_conventions]])
