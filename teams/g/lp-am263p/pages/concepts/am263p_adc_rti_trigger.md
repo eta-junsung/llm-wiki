@@ -1,7 +1,7 @@
 ---
 tags: [concept, am263p, adc, rti, sysconfig, 정본]
 source: 2026-06-05 8kw-ev-wpt-tx ADC 브링업 실보드 실측 + TI MCU+SDK `examples/drivers/adc/adc_soc_rti`. 6채널(5 인스턴스) 확장 경과 추가 (2026-06-09 c512e3b)
-date: 2026-06-09
+date: 2026-06-26
 ---
 
 # am263p_adc_rti_trigger — AM263P ADC 브링업 노하우 (RTI 타이머 트리거)
@@ -55,6 +55,48 @@ date: 2026-06-09
 
 - **어느 인스턴스/채널에 무엇을 배정하는가** → [[am263p_adc_instance_allocation]] (동시성 요구·변환시간 예산 기준, 안정성 아님).
 - **논리 인스턴스명을 물리에 고정하는 법** → [[am263p_syscfg_soft_vs_hard_assign]] (soft `$suggestSolution`은 인스턴스 추가 시 reshuffle돼 엉뚱한 핀을 읽음 — hard `$assign` 필수).
+
+---
+
+## 4. PPB 오버샘플링 / HW 평균 (AM263P ControlSS ADC)
+
+AM263P ADC의 PPB(Post-Processing Block)는 CPU 개입 없이 오버샘플 평균을 하드웨어로 계산한다. SW 이동평균 대비 **RAM 버퍼·루프 연산 불필요** — 제어루프에 논블로킹.
+
+### 동작 원리 (TRM §7.5.2.14.5)
+
+- **PPB 1개가 SOC 1개에 연결**: `ADCPPBxCONFIG.CONFIG` = 연결 대상 SOC 번호. ADC 모듈당 PPB 4개(PPB1~4).
+- **누적**: 매 변환 후 `ADCPPBxPSUM`(누적합) · `ADCPPBxPMIN`(최솟값) · `ADCPPBxPMAX`(최댓값) · `ADCPPBxPCOUNT`(카운트) 업데이트.
+- **배치 완료 조건**: `ADCPPBxPCOUNT == ADCPPBxLIMIT` OR 외부 sync 이벤트 → partial registers를 final(`ADCPPBxSUM`/`MIN`/`MAX`/`COUNT`)로 이동 + `OSINTx` 인터럽트 발생.
+- **자동 평균**: `ADCPPBxLIMIT = 2^n`, `ADCPPBxCONFIG2.SHIFT = n` 설정 시 PPB가 `ADCPPBxPSUM / 2^n`를 `ADCPPBxSUM`에 적재. **최대 1024샘플(2^10)**. CPU 불필요.
+- **Outlier rejection** (선택적 SW 보조): `(SUM - MAX - MIN) / (COUNT - 2)`. ISR에서 계산.
+
+### 설정 요약
+
+| 레지스터 | 값 | 효과 |
+|----------|-----|------|
+| `ADCPPBxCONFIG.CONFIG` | SOC 번호 | PPB를 해당 SOC에 연결 |
+| `ADCPPBxLIMIT` | 2^n (1~1024) | 배치 크기(샘플 수) |
+| `ADCPPBxCONFIG2.SHIFT` | n | 자동 평균 right-shift — `ADCPPBxSUM` = 평균값 |
+| `ADCPPBxCONFIG2.SYNCINSEL` | EPWM syncout 번호(Table 7-118) | 외부 sync(EPWM 주기로 배치 정렬 가능) |
+
+### 미검증(△ — 다음 탐색 대상)
+
+- △ **ADC 인스턴스당 변환시간 실수치**: EPWM0 85 kHz = 11.7 µs/트리거. 5인스턴스(ADC0~ADC4) 순차 배정 시 각 인스턴스 변환시간 미측정 → 오버샘플 가능 횟수 산정에 필수. [[am263p_adc_instance_allocation]] §변환시간 참조.
+- △ **SDK PPB API 표면**: `ADC_setupPPB()` 등 함수명·인수 — SysConfig 위젯 매핑 미확인.
+
+---
+
+## 5. EPWM0 트리거 전환 고려사항 + BSP 코드 함정
+
+### EPWM0 트리거 전환
+
+- **EPWM0 인스턴스**: commit `4014901`에서 도입된 output-less 더미 fan-out 마스터. EPWM2/4/7 SYNC 기준 클럭, 85.032 kHz.
+- **§1 export 게이트 함정 재점검 필수**: RTI 경로는 `enableIntr0` 켜서 INT0 이벤트 export 활성화가 핵심이었음. EPWM SOC 경로는 활성화 방식이 다름 — SysConfig에서 EPWM SOC 이벤트를 ADC SOC 트리거로 연결하는 경로 재확인.
+- △ **ADC1 SOC0+SOC1 라운드로빈**: RTI 단일 트리거로 SOC0→SOC1 라운드로빈 하던 동작이 EPWM 전환 후에도 동일하게 동작하는지 미확인.
+
+### BSP 코드 주석 함정 (EPWM 전환 시 갱신 대상)
+
+`eta_bsp_adc.c` 주석에 "RTI1"이라 적혀 있지만 실제 코드는 `CONFIG_RTI0_BASE_ADDR`를 enable한다. SysConfig 논리명 `CONFIG_RTI0` = 물리 RTI1. EPWM 트리거로 전환 시 이 자원 서술도 함께 갱신할 것.
 
 ---
 

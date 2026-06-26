@@ -27,7 +27,8 @@ LP-AM263P 5개 ADC 인스턴스(ADC0~ADC4)에 eta 보드 J3 커넥터 6채널(Te
 | **A1** | 단채널 검증 | 단일 핀(AIN0) raw count → voltage, UART 출력 확인 | ✓ |
 | **A1.5** | UART 주기화 + ADC 리팩토링 | 1초 주기 출력 + `src/eta_bsp/eta_adc.{c,h}` 다핀 확장 정리 | ✓ |
 | **A2** | 전채널 순차 읽기 | 6채널 전부 신호 레이블 붙여 UART 출력 | ✓ (6/6, 실보드 검증) |
-| **A3** | 신호별 스케일링 적용 | 변환식 구현 (센서 스펙 입수 후 진행) | △ |
+| **A3** | 신호별 스케일링 적용 | 변환식 구현 (센서 스펙 입수 후 진행) | ✓ (5/6채널, I_LCC_SEN 드롭) |
+| **A3.5** | ADC SOC 트리거 RTI→EPWM0 + PPB HW 평균 | EPWM0(85 kHz) 트리거 + PPB 오버샘플 평균값 실보드 검증 | ✗ |
 | **A4** | 실보드 교차검증 | 멀티미터/소스 기준값으로 ADC 출력 오차 정량화 | ✗ |
 
 상태 기호: `✓` 구현+검증 / `△` 구현됨·미검증 / `?` 추가 정보 필요 / `✗` 미구현
@@ -92,9 +93,24 @@ LP-AM263P 5개 ADC 인스턴스(ADC0~ADC4)에 eta 보드 J3 커넥터 6채널(Te
 | **GA_Iin_SEN** | **✓ 완료·검증** | Hall-effect. SCALE=10 A/V, OFFSET=−3.3 A (2026-06-24) |
 | **GA_Vin** | **✓ 완료·검증** | 저항분압+클리핑. SCALE≈353.39 V/V (2026-06-24) |
 | **Temp_Module1/2** | **✓ 완료·검증** | NTC Beta. R15=3kΩ, B=3433 (2026-06-24) |
-| I_LCC_SEN | ✗ 미교정 | 센서 스펙 미입수 (`— A`) |
+| I_LCC_SEN | — 드롭 | 센서 스펙 미입수, 제거(2026-06-26) |
 
 변환식 상세·검증 데이터포인트 → [[adc_scaling]].
+
+### A3.5 — ADC SOC 트리거 RTI→EPWM0 전환 + PPB HW 평균 필터
+
+**방향 변경(2026-06-26)**: 기존 순위 2(SW 필터)·순위 3(트리거 전환) 통합, 순서 뒤집음.
+
+1. **트리거 전환 선행** — RTI1(1 kSPS) → EPWM0(85.032 kHz). EPWM0는 commit `4014901`에서 도입된 output-less 더미 fan-out 마스터(EPWM2/4/7 SYNC 기준). 전환 시 트리거 export 게이트 함정([[am263p_adc_rti_trigger]] §1) 재점검 필수 — RTI 경로와 EPWM SOC 경로 활성화 방식이 다름.
+
+2. **PPB HW 평균 후행** — AM263P ControlSS ADC PPB 오버샘플링. `ADCPPBxLIMIT=2^n`, `ADCPPBxCONFIG2.SHIFT=n` 설정으로 PPB가 2^n 샘플 누적 후 CPU 개입 없이 자동 평균(최대 1024샘플). SW 이동평균 대비 RAM 버퍼·루프 연산 불필요. HW로 못 잡는 잔여 노이즈에만 SW 필터 보완. 정본 [[am263p_adc_rti_trigger]] §4.
+
+**미검증(△ — 다음 탐색 대상)**:
+- △ ADC 인스턴스당 변환시간 실수치 → 85 kHz(11.7 µs/트리거) 안에 오버샘플 가능 횟수 산정 필수([[am263p_adc_instance_allocation]]).
+- △ SDK PPB API(`ADC_setupPPB` 등) · SysConfig 위젯 매핑.
+- △ ADC1 SOC0+SOC1 라운드로빈 — EPWM 트리거 전환 후에도 동일 동작인지 확인 필요.
+
+---
 
 ### A4 — 실보드 교차검증
 
@@ -108,13 +124,14 @@ LP-AM263P 5개 ADC 인스턴스(ADC0~ADC4)에 eta 보드 J3 커넥터 6채널(Te
 
 → [[status]] 단일 소스.
 
-A2 완료 — 6채널 ADC 실보드 검증, AIN hard `$assign` 승격, eta_adc.c 테이블 리팩토링(2026-06-09, c512e3b). 다음: A3 스케일링(센서 스펙 대기·블로커) / UART5 차동 송신 복구(미해결) / A4 교차검증.
+A2 완료(2026-06-09, c512e3b) · A3 완료(5/6채널, I_LCC_SEN 드롭, 2026-06-26). 다음: A3.5(트리거 RTI→EPWM0 + PPB HW 평균) → A4 교차검증.
 
 ---
 
 ## 4. 블로커 / 추가 정보 대기
 
-- **A3 잔여 블로커**: I_LCC_SEN 센서 스펙만 미입수. ~~I_COIL_SEN~~ ✅ (2026-06-24) / ~~GA_Iin_SEN·GA_Vin·Temp_Module1/2~~ ✅ (2026-06-24) 해소.
+- ~~**A3 블로커**~~ — I_LCC_SEN 드롭으로 해소(2026-06-26). A3 완료 처리.
+- **A3.5 미검증**: △ ADC 인스턴스당 변환시간 실수치. △ SDK PPB API 표면. 다음 탐색 대상([[am263p_adc_rti_trigger]] §4).
 - **A0 전제**: LP-AM263P CCS 프로젝트 정상 동작 상태 (SysConfig 편집 가능)
 
 ---
