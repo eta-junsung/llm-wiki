@@ -1,5 +1,5 @@
 ---
-date: 2026-06-19
+date: 2026-06-26
 ---
 
 # oled_tv_software — 구현 현황
@@ -22,11 +22,11 @@ date: 2026-06-19
 - **02 `eta_protocol.c` seed 수정 commit & push** 완료 (미커밋 해소)
 - **03_TX_ble 실보드 검증** 완료 (ESB PTX 동작·P0.17/18 오실로 확인)
 
-**다음 시작점 — 시립대 보드 전달 준비 (01·02·03)**:
+~~**시립대 보드 전달 준비 (01·02·03)** — **완료 (2026-06-26)**: 핀맵·구동 절차·PC GUI 사용법 정리 및 보드 전달 완료.~~
 
-1. 각 보드 핀맵 정리 (SPI 배선·UART5·전원·디버그 핀)
-2. 각 보드 구동 확인 절차 정리 (플래싱·전원 투입 순서·정상 판별 기준)
-3. PC GUI 사용법 및 기타사항 정리 (`uart_gui.py` 실행·패널 설명·buck 설정·SPI/ESB 상태 해석)
+**다음 시작점 — (02 리팩토링) `ADD_SPI` 전역 전파 점검 → 실보드 재검증**:
+
+`ADD_SPI`가 `.emProject` `c_preprocessor_definitions` 전역으로 이동된 상태 — 의도치 않은 TU 전파 여부 확인(현 빌드 에러 0). 확인 후 J-Link로 02 플래시 → [[pc_uart_gui]]에서 ESB rx 카운트·comm_st 비트·헤더 마스크 정상 여부 검증.
 
 `6fc8b92`(2026-06-12, 04-tx-control-dummy 브랜치): **02·03 BLE 릴레이 정리 + RX 방향 미연결 견고화**. 02 `protocol_init`에서 forward 버퍼(0x50/51/52)를 valid 헤더+LEN+CRC+zero payload로 seed(approach A RX 방향 대칭, TX 방향은 `e72b86e`에서 03 완료). `pkt_seed_buffers()` _shared 헬퍼 추출, `eta_spi.c/.h` _shared 공용화(02/03 바이트 동일). Monitor_Loop `seen_mask` 출력 게이트 제거 → 6줄 고정 스냅샷. [[app_protocol_module]] "릴레이 헤더 소유 원칙·02/03 통합 범위" 갱신.
 
