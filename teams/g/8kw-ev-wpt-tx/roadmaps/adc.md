@@ -63,7 +63,7 @@ LP-AM263P 5개 ADC 인스턴스(ADC0~ADC4)에 eta 보드 J3 커넥터 6채널(Te
 
 ### A1.5 — UART 주기화 + ADC 코드 리팩토링 ✓ (2026-06-09)
 
-1. **UART 모니터링 주기화 ✓** — **RTI2 독립 타이머**(SysConfig 논리명 `CONFIG_RTI1`) compare0 ISR → flag → `eta_uart5_loop`이 **1초 주기 소비**(commit 8b85bda). ADC 트리거(RTI1)와 분리된 독립 타이머. 주기 값은 `#define`이 아니라 **SysConfig `nsecPerTick0=1e9`가 단일 진실원천**(헤더 주석이 desync 위험 #define 금지 명시).
+1. **UART 모니터링 주기화 ✓** — **RTI2 독립 타이머**(SysConfig 논리명 `CONFIG_RTI1`) compare0 ISR → flag → `eta_uart5_loop`이 **100 ms / 10 Hz 주기 소비** (`example.syscfg`:245–249; commit 8b85bda 도입 시 1초였으나 이후 10 Hz로 변경). ADC 트리거(RTI1)와 분리된 독립 타이머. 주기 값은 `#define`이 아니라 **SysConfig `nsecPerTick0`이 단일 진실원천**(헤더 주석이 desync 위험 #define 금지 명시).
 2. **ADC 코드 리팩토링 ✓** — **eta_bsp 레이어 도입**(commit a655de4, edddc31), 디렉토리 `src/eta_bsp/`, 파일 `eta_adc.{c,h}`. **eta_ 접두 + _loop 접미** 컨벤션. ISR은 raw만 저장, `eta_adc_loop`이 `(raw*3300)/4095` 정수 mV 변환(out-param 방식, commit 88d9deb). 다핀 일반화 구조.
 
 ### A2 — 전채널 순차 읽기 ✓ (6/6, 실보드 검증, 2026-06-09 commit c512e3b)
@@ -109,7 +109,7 @@ LP-AM263P 5개 ADC 인스턴스(ADC0~ADC4)에 eta 보드 J3 커넥터 6채널(Te
 
 3. **N 튜닝 손잡이 ✓ (commit `532e0eb`)** — `src/bsp/eta_bsp_adc.h:28`의 `ETA_ADC_OVERSAMPLE_LOG2` 단일 매크로(현재 `6U`→N=64; 5→32, 7→128, ≤10). `eta_bsp_adc_init()`이 전 PPB에 limit=2^LOG2·shift=LOG2 런타임 적용(eta_bsp_pwm.c TBPRD override와 동일 패턴). **GUI 통합 없음** — 코드 직접 수정 후 재빌드-flash.
 
-**repeater 미채택 근거**: ① 과전류·과전압 보호는 HW 비교기 담당, ② 조정루프 대역폭 수백 Hz↓(기존 1 kSPS로도 동작), ③ 85 kHz에서 repeater N=64는 64×315 ns = 20 µs > 11.76 µs 주기로 변환시간 예산 초과([[am263p_adc_instance_allocation]] §변환시간 예산). PPB 누적은 N을 트리거에 걸쳐 분산하므로 예산과 무관.
+**repeater 미채택 근거 (N=64 기준)**: ① 과전류·과전압 보호는 HW 비교기 담당, ② 조정루프 대역폭 수백 Hz↓(기존 1 kSPS로도 동작), ③ 85 kHz에서 repeater N=64는 64×315 ns = 20 µs > 11.76 µs 주기로 변환시간 예산 초과([[am263p_adc_instance_allocation]] §변환시간 예산). PPB 누적은 N을 트리거에 걸쳐 분산하므로 예산과 무관. ★**이 기각은 N=64 한정** — repeater N≤~16~32(≈5~10 µs)는 11.76 µs 예산에 들어오며, 순간 노이즈(백색·양자화)를 억제하는 저지연 HW 블록평균으로 살아있는 선택지([[am263p_adc_instance_allocation]] §변환시간 예산).
 
 **~~미검증(△)~~ → 전부 해소(2026-06-26)**:
 - ~~△ ADC 인스턴스당 변환시간 실수치~~ → **확정**: 단일 변환 ≈ 315 ns(acq 85 ns + conv 230 ns, ADCCLK 50 MHz). 정적 산정 [[am263p_adc_instance_allocation]] §변환시간 예산.
@@ -149,7 +149,29 @@ LP-AM263P 5개 ADC 인스턴스(ADC0~ADC4)에 eta 보드 J3 커넥터 6채널(Te
 
 > **#7(A5) 선행 필요**: A5 완료 후 착수.
 
-**배경**: A5·A6은 한 트레이드오프의 양면 — **"HW N↓(A5)" ↔ "SW 이동평균 보완(A6)"**. A5(N↓)로 실질 샘플링이 올라가면 HW 블록평균 노이즈 억제 효과가 줄어든다. SW ring buffer 이동평균이 대안 — 매 샘플마다 값 갱신으로 스파이크 감지 + 노이즈 억제를 동시에 달성한다.
+**설계 원리 — HW 블록평균(리피터 버스트)과 SW 이동평균의 직교성**
+
+두 필터는 **서로 다른 시간 축에서 동작**하며, 보완 관계로 같이 쓸 수 있다:
+
+| 방식 | 동작 창 | 노이즈 억제 대상 | 그룹지연 | 출력 레이트 | N 제약 |
+|------|---------|----------------|---------|------------|--------|
+| **리피터 버스트 / PPB 블록평균** | 한 트리거 시점의 좁은 창(burst 내 연속 변환) | 순간 노이즈(백색·양자화) | ≈ 버스트길이/2 ≈ 수 µs | 트리거 레이트(85 kHz) | 변환시간 예산에 묶임(≤~16~32) |
+| **SW 이동평균** | N개의 서로 다른 트리거 시점(N×11.76 µs) | 시간축 저역통과 | (M−1)/2 × 11.76 µs | 트리거 레이트(85 kHz, 매 샘플 갱신) | ADC 변환 예산과 무관 |
+
+> ★ **PPB 누적(현재 N=64)은 리피터 버스트와 다르다** — PPB 누적은 N회 트리거에 걸쳐 분산 누적 → 출력 85 kHz/N = 1.33 kHz. 리피터 버스트는 한 트리거 내 N회 연속 변환 → 출력 85 kHz 유지, 단 변환시간 예산 소모. 현재 방향(A5+A6)은 PPB N을 낮춰(혹은 N=1) SW 이동평균으로 시간축 필터를 대체하는 것.
+
+**이중경로 설계 정위**
+
+외부 제안 "이중경로 필터"는 사실상 A5+A6의 재서술:
+
+| 경로 | 입력 | 목적 | 구현 상태 |
+|------|------|------|---------|
+| **Fast Path** | 85 kHz raw(또는 최소 필터) 샘플 | PID 제어루프 입력 — 스파이크 포착 | 미구현 (`eta_alg_control`·`eta_hal_pwm` 미생성) |
+| **Slow Path** | 85 kHz SW 이동평균 출력 | OCP(과전류 보호) 모니터링 | 미구현 |
+
+현재 코드에 PID/OCP 받침대 없음 — Fast/Slow Path 분기는 향후 제어루프 설계 시 구현.
+
+**A5·A6 파라미터**
 
 | 항목 | 내용 |
 |------|------|

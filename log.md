@@ -4,6 +4,22 @@
 
 ---
 
+## [2026-06-29] ingest | 8kw-ev-wpt-tx ADC 필터 전환 검토 세션 발견 환원
+
+근거: ADC 필터 전환 검토 세션 (2026-06-29) — 6개 발견 환원.
+
+- **roadmaps/adc.md** (8kw-ev-wpt-tx):
+  - A1.5 텔레메트리 주기 "1초" → "100 ms / 10 Hz" 정정 (`example.syscfg`:245-249; commit 8b85bda 이후 변경).
+  - A3.5 repeater 기각 범위 명시: N=64 한정. N≤~16~32는 예산 내, 저지연 선택지로 살아있음.
+  - §A6 전면 재작성: HW 블록평균(PPB)↔SW 이동평균 직교성 원리표, 이중경로 설계(Fast Path→PID / Slow Path→OCP) 맥락, 파라미터 표.
+- **am263p_adc_ppb_averaging.md** (lp-am263p):
+  - §5 N 정본 주석 추가: SysConfig 주석 "32회"보다 런타임 `ETA_ADC_OVERSAMPLE_LOG2=6`(N=64)가 우선.
+  - §5 ADC1 ISR 발화 횟수 빈자리 추가: OSINT2만 INT1 소스 — 배치당 ISR 1회 추정, OSINT1 별도 인터럽트 여부 실측 미수행.
+- **am263p_adc_instance_allocation.md** (lp-am263p):
+  - 리피터 예산 모델 보강: 인스턴스당 리피터 2개·NSEL 독립, 비대칭 분배 가능(합 예산 ~37 변환/주기), 변환시간 정적 산정 한계 명시.
+  - repeater 기각 범위 정정: N=64 기각, N≤~16~32 유효.
+  - 차기 PCB 채널 배치 권고 추가: TEMP×2 한 인스턴스, I_COIL/GA_Iin/GA_Vin 별도 인스턴스. 펌웨어-only 변경 불확실(AIN 핀 라우팅 의존).
+
 ## [2026-06-29] 결정 | 8kw-ev-wpt-tx 다음 시작점 확정 — 블록평균→이동평균 전환
 
 근거: 사용자 결정 (2026-06-29).
