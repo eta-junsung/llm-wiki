@@ -4,6 +4,17 @@
 
 ---
 
+## [2026-06-29] 환원 | 8kw ADC 필터 전환 세션 — 리피터 버스트·EDMA·디버그 GPIO (B–F)
+
+근거: 8kw-ev-wpt-tx ADC 필터 전환 세션 (2026-06-29, branch `feature/adc-repeater-burst`). 모든 SDK/TRM/UG 인용은 서브에이전트 3개로 file:line 교차검증 (헤더 결함·EDMA dma_xbar·GPIO P07 출처 포함).
+
+- **신설 [[am263p_adc_repeater_burst]]** (lp-am263p 플랫폼): 트리거 리피터 오버샘플 버스트 SDK 사용법(`ADC_configureRepeater` adc.c:101–103, `ADC_RepeaterConfig` adc.h:797–802, `REPMODE_OVERSAMPLING=0x0`, `repCount=N−1`≤127, `TRIGGER_REPEATER1/2=0x7E/7F`, REPINST 2개/인스턴스 adc.h:773–774). ⚠️**SDK 헤더 결함**: `ADC_configureRepeater` 프로토타입이 adc.h에 없음 → 8kw 로컬 extern 우회(`eta_bsp_adc.c`:43–46). 누적 vs 버스트 대비·HW/SW 필터 직교성·버스트 N≤~41 예산.
+- **신설 [[am263p_edma_adc_offload]]** (lp-am263p 플랫폼, 결정 보류): ADC→EDMA HW 근거(TDMAEN ch07_5:2120, 결과레지스터 복제 :2467, 64채널). ★빈자리 해소: TRM엔 ADC가 DMA 트리거 소스 표에 **없으나**(ch04 ADC DMA Requests 부재) **SDK가 ADC INT를 dma_xbar 소스로 제공**(`dma_xbar_am263px.syscfg.js`:69–93) → 가능. EDMA 실익은 ISR 폭증 회피·burst 원자전송 둘뿐(85 kHz 실적재 전제), 캐시는 비용. 미실증·보류.
+- **신설 [[am263p_lp_debug_gpio]]** (lp-am263p 참조): J4 PR0_PRU0_GPIO0/1/2=GPIO93/94/95 Mode7(ug:1592–1594, pinmux.h:242–244), TS3DDR3812 1:2 mux(ug:911) + PRU_MUX_SEL=HIGH로 BP 헤더. ★P07/mask 0x80은 UG 본문 아닌 회로도+`eta_bsp_gpio.c`:44/47 근거. GPIO93=GD_EN 점유 → 디버그는 J4.31/GPIO95(commit `ef874d9`). 빈자리: J4.32(GPIO94) 헤더 무신호(회로도 미확인).
+- **갱신 [[adc]] §A5/§A6**: A5 ✗→△ — PPB 누적(N=64) → 리피터 버스트 블록평균(N=16, 출력 85 kHz/인스턴스) 전환·실보드 검증(branch). 3단계 구현순(버스트✓→SW 이동평균 ISR write→EDMA 게이트), 검증 교훈("3채널 死"=일시 잔류, 펌웨어 결함 아님), 채널 재배치 권고.
+- **갱신 [[status]]·[[roadmap]]**: 다음 시작점=리피터 버스트 노이즈 FFT→최종 N, 구현현황 A5 △, roadmap adc 호 A0~A6.
+- **F 정정**: 변환 cadence 315→285 ns·N≤16~32→≤41(adc.md·index.md), `eta_bsp_adc.h:28`→`:31`, ppb_averaging에 버스트 짝 cross-ref. (텔레메트리 100 ms·N 런타임 우선은 기존 정정 유지.)
+
 ## [2026-06-29] 환원 | lp-am263p ADC 변환시간 예산 정밀 산정 (리피터 N 상한)
 
 근거: AM263P ADC 리피터 N 상한 변환시간 정밀 산정 세션 (2026-06-29). TRM Table 7-123 + SDK adc.h/생성코드 인용 확인.

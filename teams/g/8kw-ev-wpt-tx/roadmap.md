@@ -20,7 +20,7 @@ date: 2026-06-25
 
 | task | 범위 | 호 | 상태 |
 |------|------|----|------|
-| **adc** | eta 보드 J3 6채널 ADC 브링업 (온도·전압·전류·선형) | A0~A4 → [[adc]] | A2 ✓·A3 ✓(5/6채널, I_LCC_SEN 드롭)·**A3.5 ✓**(트리거 EPWM0_SOCA + PPB HW 평균 N=64 HW 확정, main PR #6 `d673e74`). 다음 = A4 교차검증 |
+| **adc** | eta 보드 J3 6채널 ADC 브링업 (온도·전압·전류·선형) | A0~A6 → [[adc]] | A2 ✓·A3 ✓(5/6채널, I_LCC_SEN 드롭)·**A3.5 ✓**(EPWM0_SOCA + PPB 누적평균 N=64, main PR #6 `d673e74`)·**A5 △**(리피터 버스트 N=16 전환·검증, branch `feature/adc-repeater-burst`, 최종 N·FFT 미완). 다음 = A5 FFT 노이즈 실측→최종 N, 또는 A4 교차검증 |
 | **pwm** | EPWM 전력제어 (인버터 게이트 구동·보호·제어루프) | P0~P4 → [[pwm]] | **P1 ✓**(4핀 실보드 검증·shoot-through 0 `6e6b342`) **+ P2 ✓**(`ETA_DEADTIME_NS` 단일소스·150/300ns `8046744`, **85 kHz 고정·100/150/400ns 스윕 PASS·`eta_tuning.h` config 분리 `d01fc0a`**, 85.032 kHz 실측). 다음 = P3 보호 / dead-time 최종값(전력단 브링업) / 보호신호 스펙 |
 
 | **gpio** | GPIO 출력 브링업 (485_EN·GD_EN_seed) + UART5 양방향 확장 | G0~G1 → [[gpio_impl]] | **G0 ✓** (eta_gpio.{c,h}·실보드 검증·UART5 양방향·GUI GPIO Control, 2026-06-16). 잔여 = GUI 왕복 검증 완료 후 커밋 |

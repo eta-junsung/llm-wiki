@@ -30,7 +30,7 @@ LP-AM263P 5개 ADC 인스턴스(ADC0~ADC4)에 eta 보드 J3 커넥터 6채널(Te
 | **A3** | 신호별 스케일링 적용 | 변환식 구현 (센서 스펙 입수 후 진행) | ✓ (5/6채널, I_LCC_SEN 드롭) |
 | **A3.5** | ADC SOC 트리거 RTI→EPWM0 + PPB HW 평균 | EPWM0(85 kHz) 트리거 + PPB 오버샘플 평균값 실보드 검증 | ✓ (HW 검증, N=64 확정) |
 | **A4** | 실보드 교차검증 | 멀티미터/소스 기준값으로 ADC 출력 오차 정량화 | ✗ |
-| **A5** | ADC 실질 샘플링 85 kHz (#7) | `ETA_ADC_OVERSAMPLE_LOG2` 낮춰 실질 85 kHz 달성, 실보드 노이즈 실측. **A3.5(N=64) 재검토** | ✗ |
+| **A5** | ADC 실질 샘플링 85 kHz (#7) | `ETA_ADC_OVERSAMPLE_LOG2` 낮춰 실질 85 kHz 달성, 실보드 노이즈 실측. **A3.5(N=64) 재검토** | △ (리피터 버스트 전환 구현·검증, branch, 최종 N·노이즈 FFT 미완) |
 | **A6** | SW 이동평균 전환 (#8) | ring buffer 이동평균 구현·CPU 부하 실측. A5 선행 필요 | ✗ |
 
 상태 기호: `✓` 구현+검증 / `△` 구현됨·미검증 / `?` 추가 정보 필요 / `✗` 미구현
@@ -109,10 +109,10 @@ LP-AM263P 5개 ADC 인스턴스(ADC0~ADC4)에 eta 보드 J3 커넥터 6채널(Te
 
 3. **N 튜닝 손잡이 ✓ (commit `532e0eb`)** — `src/bsp/eta_bsp_adc.h:28`의 `ETA_ADC_OVERSAMPLE_LOG2` 단일 매크로(현재 `6U`→N=64; 5→32, 7→128, ≤10). `eta_bsp_adc_init()`이 전 PPB에 limit=2^LOG2·shift=LOG2 런타임 적용(eta_bsp_pwm.c TBPRD override와 동일 패턴). **GUI 통합 없음** — 코드 직접 수정 후 재빌드-flash.
 
-**repeater 미채택 근거 (N=64 기준)**: ① 과전류·과전압 보호는 HW 비교기 담당, ② 조정루프 대역폭 수백 Hz↓(기존 1 kSPS로도 동작), ③ 85 kHz에서 repeater N=64는 64×315 ns = 20 µs > 11.76 µs 주기로 변환시간 예산 초과([[am263p_adc_instance_allocation]] §변환시간 예산). PPB 누적은 N을 트리거에 걸쳐 분산하므로 예산과 무관. ★**이 기각은 N=64 한정** — repeater N≤~16~32(≈5~10 µs)는 11.76 µs 예산에 들어오며, 순간 노이즈(백색·양자화)를 억제하는 저지연 HW 블록평균으로 살아있는 선택지([[am263p_adc_instance_allocation]] §변환시간 예산).
+**repeater 미채택 근거 (N=64 기준, A3.5 시점)**: ① 과전류·과전압 보호는 HW 비교기 담당, ② 조정루프 대역폭 수백 Hz↓(기존 1 kSPS로도 동작), ③ 85 kHz에서 repeater N=64는 64×285 ns ≈ 18.2 µs > 11.76 µs 주기로 변환시간 예산 초과([[am263p_adc_instance_allocation]] §변환시간 예산 & 리피터 N 상한). PPB 누적은 N을 트리거에 걸쳐 분산하므로 예산과 무관. ★**이 기각은 N=64 한정** — repeater **N ≤ ~41**(cadence ~285 ns 기준)은 11.76 µs 예산에 들어오며, 순간 노이즈(백색·양자화)를 억제하는 저지연 HW 블록평균으로 살아있는 선택지. **A5에서 실제로 이 저-N 리피터 버스트(N=16)로 전환**([[am263p_adc_repeater_burst]]).
 
 **~~미검증(△)~~ → 전부 해소(2026-06-26)**:
-- ~~△ ADC 인스턴스당 변환시간 실수치~~ → **확정**: 단일 변환 ≈ 315 ns(acq 85 ns + conv 230 ns, ADCCLK 50 MHz). 정적 산정 [[am263p_adc_instance_allocation]] §변환시간 예산.
+- ~~△ ADC 인스턴스당 변환시간 실수치~~ → **확정**(2026-06-29 정밀 갱신): 1회 직렬 cadence ≈ 285 ns(tSH 80 ns + tEOC 205 ns, ADCCLK 50 MHz), 주기당 ~41 변환. (종전 315 ns·~37은 보수치로 정정.) 정적 산정 [[am263p_adc_instance_allocation]] §변환시간 예산 & 리피터 N 상한.
 - ~~△ SDK PPB API~~ → **확정**: `ADC_setupPPB`/`setPPBCountLimit`/`setPPBShiftValue`/`readPPBSum` 인용 정리 [[am263p_adc_ppb_averaging]] §3.
 - ~~△ ADC1 SOC0+SOC1 라운드로빈~~ → **확정**: EPWM 전환 후 동일(lockstep, OSINT2→INT1). [[am263p_adc_rti_trigger]] §5.
 - ~~△ 노이즈 감소량 실측~~ → **확정(HW)**: 실보드 측정으로 **N=64 채택**(√64=÷8). 6채널 0/3.3V 추종·OSINT ISR(N=64 ⇒ 1.33 kHz) 실측 OK. 이 측정 결과가 N 32→64 상향 근거 — main PR #6 `d673e74`.
@@ -131,19 +131,26 @@ LP-AM263P 5개 ADC 인스턴스(ADC0~ADC4)에 eta 보드 J3 커넥터 6채널(Te
 
 **목적**: 85 kHz 스위칭 전류·전압 스파이크를 빠짐없이 포착하기 위해 실질 샘플링을 85 kHz로 끌어올린다.
 
+**진척 — PPB 누적 → 리피터 버스트 블록평균 전환 (branch `feature/adc-repeater-burst`, commit `2af8642`, 실보드 검증)**:
+
+PPB *누적*(N=64, 출력 1.33 kHz = 85 kHz÷64)을 **리피터 *버스트* 블록평균**(N=16, 한 트리거 내 16회 백투백 → PPB 블록평균 → **출력 85 kHz/인스턴스 유지**)으로 전환. 메커니즘·SDK API·헤더 결함 정본 [[am263p_adc_repeater_burst]].
+
 | 항목 | 내용 |
 |------|------|
-| 현재 실질 샘플링 | ≈ 1.33 kHz (85 kHz ÷ N=64) |
-| 목표 | 85 kHz 실샘플링 달성 |
-| 손잡이 | `ETA_ADC_OVERSAMPLE_LOG2` (`src/bsp/eta_bsp_adc.h:28`) — 현재 `6U`(N=64) → `0`(N=1, 오버샘플 없음) |
-| A4 선후 관계 | [추정] 독립 진행 가능 — A4는 샘플링 레이트 의존 없는 정확도 검증, A5는 샘플링 레이트 변경. 단 A5가 ADC 출력 특성을 바꾸므로 A5 후 A4 재측정 필요성 발생 가능. **확인 필요** |
+| 전환 전(A3.5) | PPB 누적 N=64 → 실질 1.33 kHz |
+| 전환 후(A5) | 리피터 버스트 N=16 → **출력 85 kHz/인스턴스** (N 무관, 누적과 대비) |
+| 손잡이 | `ETA_ADC_OVERSAMPLE_LOG2` (`src/bsp/eta_bsp_adc.h:31`) — branch `4U`(N=16); main은 `6U`(N=64). `repCount=(1<<LOG2)−1`로 리피터에도 적용(`eta_bsp_adc.c`:210) |
+| 검증 | 스코프 OSINT 85 kHz 확인 + 6채널 라이브 갱신(0/3.3V) — branch (main 미머지) |
+| N=16 위상 | **측정 전 placeholder** (글로벌 손잡이 유지, ADC1 2 SOC 합 32 ≤ 예산 ~41). 최종 N은 FFT 노이즈 실측 후 확정 |
+| A4 선후 관계 | [추정] 독립 진행 가능 — A4는 샘플링 레이트 의존 없는 정확도 검증, A5는 레이트 변경. 단 A5가 ADC 출력 특성을 바꾸므로 A5 후 A4 재측정 필요성 발생 가능. **확인 필요** |
 
-**절차**:
-1. `ETA_ADC_OVERSAMPLE_LOG2`를 낮춰(예: `3`→N=8, `0`→N=1) 재빌드·flash.
-2. 실보드에서 노이즈 실측 — 허용 범위 여부 판단.
-3. 노이즈 허용 시 A5 완료. 초과 시 A6(SW 이동평균) 착수.
+**남은 절차**:
+1. 스코프 FFT로 노이즈 거동 측정 — **백색이면 √N 평균 유효**, **스위칭 상관 피크면 트리거 위상/동기(리피터 `repPhase`/`repSyncin`)가 더 큰 레버**. 이 측정으로 최종 N 확정.
+2. 노이즈 허용 시 A5 완료. 시간축 추가 억제 필요 시 A6(SW 이동평균) 착수.
 
-**완료 기준**: N을 낮춘 상태에서 실질 85 kHz 샘플링 실보드 확인, 노이즈 실측값 기록.
+**검증 교훈 (기록 가치)**: 전환 직후 "3채널(ADC0/3/4) 死" 증상이 관측됐으나, 死/生 인스턴스 레지스터가 byte 동일하고 재실행 시 6채널 정상 → **일시/잔류 상태(이전 플래시 잔재·관측 시점)였고 펌웨어 결함 아님.** 레지스터 증거와 증상이 불일치하면 재현·재플래시 먼저.
+
+**완료 기준**: 실질 85 kHz 샘플링 실보드 확인(✓ branch) + **노이즈 FFT 실측값 기록 + 최종 N 확정**(미완).
 
 ### A6 — SW 이동평균 전환 검토 (#8) ✗
 
@@ -155,7 +162,7 @@ LP-AM263P 5개 ADC 인스턴스(ADC0~ADC4)에 eta 보드 J3 커넥터 6채널(Te
 
 | 방식 | 동작 창 | 노이즈 억제 대상 | 그룹지연 | 출력 레이트 | N 제약 |
 |------|---------|----------------|---------|------------|--------|
-| **리피터 버스트 / PPB 블록평균** | 한 트리거 시점의 좁은 창(burst 내 연속 변환) | 순간 노이즈(백색·양자화) | ≈ 버스트길이/2 ≈ 수 µs | 트리거 레이트(85 kHz) | 변환시간 예산에 묶임(≤~16~32) |
+| **리피터 버스트 / PPB 블록평균** | 한 트리거 시점의 좁은 창(burst 내 연속 변환) | 순간 노이즈(백색·양자화) | ≈ 버스트길이/2 ≈ 수 µs | 트리거 레이트(85 kHz) | 변환시간 예산에 묶임(N ≤ ~41, [[am263p_adc_repeater_burst]]) |
 | **SW 이동평균** | N개의 서로 다른 트리거 시점(N×11.76 µs) | 시간축 저역통과 | (M−1)/2 × 11.76 µs | 트리거 레이트(85 kHz, 매 샘플 갱신) | ADC 변환 예산과 무관 |
 
 > ★ **PPB 누적(현재 N=64)은 리피터 버스트와 다르다** — PPB 누적은 N회 트리거에 걸쳐 분산 누적 → 출력 85 kHz/N = 1.33 kHz. 리피터 버스트는 한 트리거 내 N회 연속 변환 → 출력 85 kHz 유지, 단 변환시간 예산 소모. 현재 방향(A5+A6)은 PPB N을 낮춰(혹은 N=1) SW 이동평균으로 시간축 필터를 대체하는 것.
@@ -169,7 +176,12 @@ LP-AM263P 5개 ADC 인스턴스(ADC0~ADC4)에 eta 보드 J3 커넥터 6채널(Te
 | **Fast Path** | 85 kHz raw(또는 최소 필터) 샘플 | PID 제어루프 입력 — 스파이크 포착 | 미구현 (`eta_alg_control`·`eta_hal_pwm` 미생성) |
 | **Slow Path** | 85 kHz SW 이동평균 출력 | OCP(과전류 보호) 모니터링 | 미구현 |
 
-현재 코드에 PID/OCP 받침대 없음 — Fast/Slow Path 분기는 향후 제어루프 설계 시 구현.
+현재 코드에 PID/OCP 받침대 없음(`eta_alg_control`·`eta_hal_pwm` duty write 미생성) — Fast/Slow Path 분기는 P3/A3 풀린 뒤 제어루프 설계 시 구현. **지금 지을 수 있는 건 Slow Path(모니터링 SW 이동평균) + 리피터 버스트 전환뿐.**
+
+**전체 구현 순서 (3단계, 권장순)**:
+1. **리피터 버스트 전환** — ✓ 완료(branch, N=16, [[am263p_adc_repeater_burst]]).
+2. **SW 이동평균** (`eta_alg_filter` 신설, ALG 레이어) — **ISR write로 먼저 구현**해 DMA 검증과 분리. ★ 권장: 3보다 먼저.
+3. **블록평균값 ring buffer DMA(EDMA) 전송** — EDMA 게이트 선행 필요. ADC INT→DMA 크로스바 경로는 SDK상 가능 확인(미실증), 채택 판단은 ISR 폭증·DMA 경로 실측 후. 분석·빈자리 정본 [[am263p_edma_adc_offload]].
 
 **A5·A6 파라미터**
 
@@ -206,7 +218,10 @@ A2 완료(2026-06-09, c512e3b) · A3 완료(5/6채널, I_LCC_SEN 드롭, 2026-06
 - ~~ADC 변환식 → `pages/concepts/adc_scaling.md`~~ ✅ 환원됨: [[adc_scaling]] (I_COIL_SEN 완료, A3 전체 완료 시 나머지 채울 것)
 - ~~SysConfig ADC 설정 노하우 → concept 페이지~~ ✓ 환원됨: [[am263p_adc_rti_trigger]] (lp-am263p, AM263P 플랫폼 정본 — RTI·EPWM 트리거 결선·측정 시점 함정·검증된 설계 패턴).
 - ~~PPB HW 오버샘플 평균 → concept 페이지~~ ✓ 환원됨: [[am263p_adc_ppb_averaging]] (lp-am263p, AM263P 플랫폼 정본 — TRM·SDK API 인용, 2026-06-26 신설).
-- ~~ADC 변환시간 예산 → concept~~ ✓ 환원됨: [[am263p_adc_instance_allocation]] §변환시간 예산 (단일 변환 ≈315 ns 정적 확정).
+- ~~ADC 변환시간 예산 → concept~~ ✓ 환원됨: [[am263p_adc_instance_allocation]] §변환시간 예산 & 리피터 N 상한 (cadence ~285 ns·N 상한 ~41 정밀 산정, 2026-06-29).
+- ~~리피터 버스트 SDK 사용법·헤더 결함 → concept~~ ✓ 환원됨: [[am263p_adc_repeater_burst]] (lp-am263p, 2026-06-29 신설 — SDK API 인용·`ADC_configureRepeater` 헤더 결함·HW/SW 필터 직교성).
+- ~~EDMA ADC 적재 적합성 → concept~~ ✓ 환원됨: [[am263p_edma_adc_offload]] (lp-am263p, 2026-06-29 신설 — ADC INT가 DMA 크로스바 소스 SDK 확인, 채택 보류 분석).
+- 채널→인스턴스 재배치 권고(다음 보드 리비전: 온도 둘을 한 인스턴스로, 빠른 전류3·전압1을 단독 인스턴스로 → 제어채널 리피터 풀 깊이 확보) → [[am263p_adc_instance_allocation]] §8kw 현황 "다음 PCB 설계 권고". 펌웨어만으론 불가(물리핀 고정), HW 엔지니어 요청 사항.
 
 ---
 
