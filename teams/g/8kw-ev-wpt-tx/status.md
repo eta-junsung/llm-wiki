@@ -33,7 +33,7 @@ src/
 - **`3e5f117` 트리거 전환**: 6 SOC 전부 `soc0Trigger=ADC_TRIGGER_EPWM0_SOCA`(`example.syscfg`:70 등). RTI 카운터 시작 코드 제거(`eta_bsp_adc.c`:194). EPWM0(=CONFIG_EPWM0)는 `4014901` 도입 output-less fan-out 마스터, SOC_A 트리거 `EPWM_SOC_TBCTR_ZERO`(`example.syscfg`:228–229). ★RTI의 `enableIntr0` export 게이트 함정은 **EPWM에 적용 안 됨** — `ETSEL.SOCAEN`이 트리거 XBAR 직접 출력. ★실효 85 kHz는 런타임 override(`eta_bsp_pwm.c`:19 TBPRD=1176)에서 — syscfg 정적 period=1000은 100 kHz. 정본 [[am263p_adc_rti_trigger]] §5.
 - **`4cffbe1`+#6 PPB 평균 N=64**: 6채널 PPB 누적 평균. ISR을 EOC→OSINT로(`ADC_readResult`→`ADC_readPPBSum`). 출력 1.33 kHz, 노이즈 √64=÷8, 그룹지연 ~370 µs. ADC1은 SOC0+SOC1 lockstep(OSINT2→INT1). 정본 [[am263p_adc_ppb_averaging]].
 - **`532e0eb` N 단일 손잡이**: `eta_bsp_adc.h:28` `ETA_ADC_OVERSAMPLE_LOG2 (6U)` 매크로 하나로 N 제어(6→64, 5→32, ≤10, `_Static_assert`). `eta_bsp_adc_init()`이 전 PPB에 limit/shift 런타임 적용. GUI 통합 없음 — 코드 직접 수정 후 재빌드-flash.
-- **repeater 미채택 근거**: 과전류·과전압 보호는 HW 비교기 담당 + 조정루프 대역폭 수백 Hz↓ + 85 kHz에서 repeater N=64는 64×315 ns=20 µs > 11.76 µs 주기로 변환시간 예산 초과([[am263p_adc_instance_allocation]] §변환시간 예산).
+- **repeater 미채택 근거**: 과전류·과전압 보호는 HW 비교기 담당 + 조정루프 대역폭 수백 Hz↓ + 85 kHz에서 repeater **N=64**는 64×285 ns ≈ 18.2 µs > 11.76 µs 주기로 변환시간 예산 초과(정밀 산정 2026-06-29, [[am263p_adc_instance_allocation]] §변환시간 예산 & 리피터 N 상한). ★ **단 기각된 건 N=64이지 리피터 자체가 아님 — N ≤ ~41은 예산 내라 저-N 리피터는 살아있는 선택지**(A5 샘플링 재작업 시 후보).
 - **검증 ✓**: 6채널 0/3.3V 추종 OK, OSINT ISR 1.33 kHz 실측 OK, **HW 노이즈 측정으로 N=64 채택**(√64=÷8). A3.5 완료 — 남은 ADC 일은 A4 교차검증.
 
 ## 직전 완료 — 펌웨어 4레이어 재구성 (PR #5, 동작 불변, 2026-06-25)
@@ -291,6 +291,7 @@ P1·P2(150/300ns 단일소스) 위에 **주파수 확정값(85 kHz) 반영 + 튜
    - **A5 (#7 ADC 실질 샘플링 85 kHz)**: `ETA_ADC_OVERSAMPLE_LOG2`(`src/bsp/eta_bsp_adc.h:28`) 낮춰 실질 85 kHz 달성 + 노이즈 실측. A4와 [추정] 독립(확인 필요). A3.5(N=64 HW-first) 재검토 방향. 로드맵 [[adc]] §A5.
    - **A6 (#8 SW 이동평균 전환 검토)**: SW ring buffer 이동평균(매 샘플 갱신, 스파이크+노이즈 동시). A5 선행 필요. CPU 부하 실측 필요(R5F @400 MHz, ~784 사이클/ISR [추정]), 윈도우 N 튜닝. 로드맵 [[adc]] §A6.
    - A5·A6은 "HW N↓" ↔ "SW 이동평균 보완" 트레이드오프의 양면.
+   - **변환시간 예산 정밀 산정(2026-06-29)**: 1회 직렬 cadence ≈ 285 ns(tSH 80 ns + tEOC 205 ns, Table 7-123 PRESCALE=6), 11.76 µs 주기당 ~**41 변환** 수용 → 리피터 N 상한 ~41(단일채널)/합≤41(ADC1). 종전 ~37(315 ns 보수치)에서 상향. **저-N(≤~41) 리피터는 A5 후보로 살아있음**. 전부 정적 산정·라이브 실측 미수행. 정본 [[am263p_adc_instance_allocation]] §변환시간 예산 & 리피터 N 상한.
 4. **GUI 화면 녹화 기능 (순위 4, nice-to-have)**: GUI 라이브 화면 녹화. **최저 우선순위 — 있으면 좋고 없으면 말고.** ([[pc_monitor_gui]])
 
 - ~~**toolchain 실보드 부팅 검증**~~ — ✅ **완료(2026-06-19)**: end-to-end PASS(gui.bat → flash → 전원사이클 → deadtime 측정). 정본 [[sdk_ccs_toolchain_migration]]·[[ospi_boot_mode_strap]].

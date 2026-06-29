@@ -1,6 +1,6 @@
 ---
 tags: [concept, am263p, adc, sysconfig, design-rule, platform]
-source: 사용자 제공 설계 규칙 (2026-06-08) — 8kw-ev-wpt-tx(adc 브랜치) J3.28/J3.27 ADC 핀 추가 + 실보드 검증에서 도출. 6채널 완성(commit c512e3b) 반영 (2026-06-09). 변환시간 예산 절 추가 — TRM ch07_5_controlss.md + SDK 클럭 인용 (2026-06-26). 리피터 예산 비대칭 분배 보강 + 차기 채널 배치 권고 추가 (2026-06-29, ADC 필터 전환 검토 세션)
+source: 사용자 제공 설계 규칙 (2026-06-08) — 8kw-ev-wpt-tx(adc 브랜치) J3.28/J3.27 ADC 핀 추가 + 실보드 검증에서 도출. 6채널 완성(commit c512e3b) 반영 (2026-06-09). 변환시간 예산 절 추가 — TRM ch07_5_controlss.md + SDK 클럭 인용 (2026-06-26). 리피터 예산 비대칭 분배 보강 + 차기 채널 배치 권고 추가 (2026-06-29, ADC 필터 전환 검토 세션). 변환시간 예산 절을 TRM Table 7-123 정밀값으로 갱신·정정 — tSH=80ns(ACQPS=15)·tEOC=205ns·tLAT=220ns, cadence≈285ns, N 상한 ~41 (2026-06-29, 리피터 N 상한 정밀 산정 세션)
 date: 2026-06-29
 ---
 
@@ -33,27 +33,56 @@ date: 2026-06-29
 
 한 인스턴스에 SOC를 **과적재**해 **변환시간 합 > 트리거 주기**가 되면 → 다음 트리거 전에 시퀀스를 못 끝내 결과가 **밀리거나 덮어씌워진다(overflow).** 이게 유일한 실제 instability이고, **멀티 인스턴스로 분산하면 오히려 해소**된다.
 
-## ADC 변환시간 예산 (확정 — 정적 산정, 2026-06-26)
+## ADC 변환시간 예산 & 리피터 N 상한 (정밀 산정 — 정적, 2026-06-29 갱신)
 
-> 종전 △미검증(수치)였던 "인스턴스당 변환시간 예산"을 TRM·SysConfig 인용으로 **정적 산정 확정**. (라이브 레지스터 실측은 미수행 — 아래 빈자리.)
+> 종전 2026-06-26 정적 산정(단일변환 ~315 ns·~37 변환/주기)을 TRM **Table 7-123** 정밀값으로 **갱신·정정**. 종전 수치는 **틀린 게 아니라 보수(과대)** — 정밀 cadence는 더 작아 N 상한이 ~41로 늘어난다. (라이브 레지스터 실측은 여전히 미수행 — 아래 빈자리.)
 
-**클럭 체인:**
-- **SYSCLK = 200 MHz** = CONTROLSS_PLL/2 (TRM `ch07_5_controlss.md`:105; SDK `bootloader_soc.c`:508 `sysClkFreq = 200*1000000`; `soc_rcm.h` `SOC_RcmPeripheralClockSource_SYS_CLK` 주석 "System Clock (200Mhz)"). **ADC base clock = SYSCLK 직결** (TRM :303).
-- **prescaler ÷4** (`ADC_CLK_DIV_4_0`, 8kw `example.syscfg`:67) → **ADCCLK = 50 MHz (1 cyc = 20 ns)**. ADCCLK은 변환 phase에서만 active, S/H 윈도우 동안 gated off (TRM :303).
+**리피터 N 상한을 결정하는 모델**
 
-**단일 변환 시간 = acquisition + conversion:**
-- **Acquisition window = (ACQPS+1) × SYSCLK cycle** — ★**ADCCLK 아니라 SYSCLK 도메인** (TRM :1017–1019). `ACQPS = 16`(TRM :1024 "이 설계에서 프로그래밍 가능한 최소 ACQPS = 16"; 8kw `example.syscfg`는 sampleWindow 미지정 → SysConfig 기본값 의존) → window = **17 × 5 ns = 85 ns**.
-- **Conversion phase ≈ 11.5 ADCCLK**(ADC_R0/1만 13.5) (TRM :305) → 11.5 × 20 ns = **230 ns**.
-- ⇒ **단일 변환 ≈ 85 + 230 = 315 ns**.
+리피터(트리거 리피터 = NSEL+1 back-to-back 버스트, TRM `ch07_5_controlss.md`:751–789·:789)의 N 상한은 다음 부등식에서 나온다:
 
-**트리거 주기 예산 (8kw EPWM0_SOCA 85.032 kHz = 11,760 ns/트리거):**
-- 한 트리거에 한 인스턴스가 변환하는 SOC 수만큼만 직렬 — ADC0/2/3/4는 SOC0 단독(≈315 ns), **ADC1은 SOC0+SOC1 직렬 ≈ 630 ns**. 둘 다 11,760 ns에 여유. 인스턴스당 SAR 변환엔진 1개이므로 인스턴스 내 모든 SOC가 순차 공유. 이론상 한 인스턴스에 **~37 변환(11,760/315)까지 수용** → 현 배치는 overflow 마진 충분.
-- **리피터 예산 모델**: 리피터 모듈은 인스턴스당 2개이며 각각 NSEL 독립(TRM `ch07_5_controlss.md`:751–789). "2채널이면 리피터 상한 ÷2"라는 해석은 두 채널에 **균등한** 깊은 버스트를 줄 때만 성립. **합 예산(~37 변환/주기) 안에서 비대칭 분배 가능** — 예: 채널A N=24 + 채널B N=8, 합 32×315 ns ≈ 10 µs < 11.76 µs. ★ 변환시간 ≈315 ns는 정적 산정이며 라이브 실측 미수행(아래 빈자리).
-- ★ PPB 오버샘플 N=64(HW 확정)는 **한 트리거당 N회가 아니라 N개 트리거에 걸쳐 누적**된다([[am263p_adc_ppb_averaging]]). 따라서 변환시간 예산은 트리거 *주기당 SOC 직렬합*으로만 따지면 되고, N과 무관하다. (repeater 모드였다면 N=64회를 한 트리거 안에 burst → 64×315 ns = 20 µs > 11.76 µs로 예산 초과 — 바로 이 점이 repeater 미채택 근거 [[adc]] A3.5. ★ 단, N≤~16~32는 예산 내 — [[adc]] A3.5 기각 주석 참조.)
+> **Σ(인스턴스 내 모든 SOC의 리피트 횟수) × (1회 직렬 cadence) ≤ 트리거 주기**
 
-**남은 빈자리:**
-- 데이터시트 최소 acquisition window(ns) 미인입 — TRM :1023이 "데이터시트가 최소 윈도우를 규정"으로 위임. 현재 85 ns가 그 최소를 만족하는지 미확인.
-- **라이브 레지스터 실측 미수행** — 위는 전부 정적 산정. 스코프/레지스터 readback으로 실제 변환 완료 시점 미측정.
+세 항의 결정 인자:
+- ① **트리거 주기** = ADC 샘플레이트(8kw EPWM0_SOCA 85.032 kHz → **11,760 ns**).
+- ② **1회 직렬 cadence** = tSH + tEOC. 이를 다시 결정하는 것: **SYSCLK**(tSH·tEOC 모두 SYSCLK 도메인) · **ADCCLK prescaler(÷4)** · **ACQPS/S+H 윈도우** · **분해능(12bit 고정)** · **tLAT 마감 보정**(직렬 N개 중 마지막은 결과 래치까지).
+- ③ **인스턴스 내 SOC 개수** — SAR 엔진 1개를 공유하므로, 한 채널(SOC)의 N은 같은 인스턴스의 다른 SOC들과 **합 예산을 나눠** 쓴다.
+
+**클럭 체인 (읽어 확인):**
+- **SYSCLK = 200 MHz** (1 cyc = 5 ns) = CONTROLSS_PLL/2. **ADC base clock = SYSCLK 직결** (TRM :303 "The base ADC clock is provided directly by the system clock (SYSCLK)").
+- **prescaler ÷4** — `ADC_CLK_DIV_4_0`(8kw `example.syscfg`:67); 이 enum 값 = **6** = `ADCCTL2.PRESCALE` 필드값(SDK `source/drivers/adc/v2/adc.h`:185 "ADCCLK = (input clock) / 4.0") → **ADCCLK = 50 MHz** (1 cyc = 20 ns). ADCCLK은 변환 phase에만 active, S+H 윈도우 동안 gated off (TRM :303).
+
+**1회 직렬 cadence (SYSCLK 도메인 정밀값 — Table 7-123 PRESCALE=6 행, :2171):**
+- **tSH = (ACQPS+1) × SYSCLK = 16 × 5 ns = 80 ns.** ACQPS 레지스터값 = **15**. 근거: 생성 코드 `ADC_setupSOC(.., 16)`의 마지막 인자 sampleWindow=16(`Release/syscfg/ti_drivers_open_close.c`:134 등 전 SOC), SDK가 레지스터에 `sampleWindow − 1`을 기록(`adc/v2/adc.h`:920; 의미 :888 "acquisition window duration in SYSCLK cycles") → ACQPS=15. tSH 정의: Table 7-122 :2116 "(ACQPS + 1) SYSCLK cycles".
+- **tEOC = 41 SYSCLK = 205 ns** — S+H 끝 ~ 다음 변환 S+H 시작 가능 시점 (Table 7-123 :2171 PRESCALE=6 행; 정의 Table 7-122 :2118).
+- **tLAT = 44 SYSCLK = 220 ns** — S+H 끝 ~ 결과 ADCRESULTx 래치 (:2171 / 정의 :2117).
+- ⇒ **1회 직렬 cadence ≈ tSH + tEOC = 80 + 205 = 285 ns** (다음 변환이 시작 가능한 간격). 직렬 N개 중 마지막은 tLAT(220 ns)까지여서 +15 ns 마감 보정 — **미적용**(아래 빈자리).
+
+**주기당 변환 / N 상한:**
+- 주기당 최대 변환 ≈ 11,760 / 285 ≈ **41**.
+- **단일채널 인스턴스(ADC0/2/3/4)**: 한 SOC의 리피트 ~**41**까지.
+- **ADC1(SOC0+SOC1, 2 SOC)**: 두 SOC의 리피트 **합 ≤ ~41** — 균등 분배 강제 아님, **비대칭 가능**(예: SOC0 N=30 + SOC1 N=10, 합 40×285 ≈ 11.4 µs < 11.76 µs).
+- 리피터 모듈은 인스턴스당 **2개**·각 NSEL 독립(TRM :753). "2채널이면 상한 ÷2"는 두 채널에 **균등한** 깊은 버스트일 때만 성립 — **합 예산 안의 비대칭 분배**가 정확한 모델.
+
+**현 배치 overflow 마진 (리피터 미사용, PPB 누적 모드):**
+- 8kw 현 운용은 트리거당 SOC 단발 — ADC0/2/3/4는 SOC0 1회(≈285 ns), **ADC1은 SOC0+SOC1 직렬 ≈ 570 ns**(=285×2; 마지막 +15 ns 마감 보정 미적용). 둘 다 11,760 ns에 마진 충분.
+- ★ PPB 오버샘플(8kw N=64, 런타임 매크로 `ETA_ADC_OVERSAMPLE_LOG2=6`이 SysConfig 기본값 32를 덮어씀 — [[am263p_adc_ppb_averaging]] §5)은 **한 트리거당 N회가 아니라 N개 트리거에 걸쳐 누적**된다. 따라서 변환시간 예산은 *주기당 SOC 직렬합*으로만 따지면 되고, **N과 무관**하다.
+
+**리피터 N=64 기각 ≠ 리피터 기각 (정본 명시):**
+- 리피터 버스트는 N회를 **한 트리거 안에** 몰아넣는다: N=64 → 64×285 ≈ **18.2 µs > 11.76 µs** → 예산 초과 → **N=64 기각** (근거 [[am263p_adc_rti_trigger]] §5·[[adc]] A3.5).
+- 그러나 **N ≤ ~41은 예산 내** → **저-N 리피터는 살아있는 선택지** — 기각된 건 N=64이지 리피터 자체가 아니다. (현 채택은 PPB 누적; 리피터는 미채택이나 폐기 아님.)
+
+**종전 wiki 정정 (코드/TRM 표가 정본):**
+- ~~"ACQPS = 16, window = 85 ns"~~ → **오인.** SysConfig sampleWindow=16이고 SDK가 −1을 기록 → ACQPS 레지스터=**15**, tSH = (15+1)×5 = **80 ns**.
+- ~~"Conversion ≈ 11.5 ADCCLK → 230 ns"~~ → Table 7-123 정밀값 **tEOC = 41 SYSCLK = 205 ns**가 정본. (TRM :305의 "≈11.5 ADCCLK"는 approximate 서술; 정밀표가 우선.)
+- ~~"단일 변환 ≈ 315 ns → ~37 변환/주기"~~ → 과대(보수) 변환시간 기반. **틀린 게 아니라 보수치**; 정밀 cadence ≈ 285 ns → ~**41**/주기. 둘 다 정적 산정.
+- (정정 아님·일치 확인) "ADCCLK 50 MHz" = 200÷4 — 합치.
+
+**남은 빈자리 (봉합 말고 호명):**
+- **변환 phase 사이클 정의 TRM 내부 불일치**: :305 "≈11.5 ADCCLK" vs :2088 "≈10.5 ADCCLK" (둘 다 approximate). 정밀표 Table 7-123(SYSCLK 절대값)을 정본으로 우회했으나, **ADCCLK 환산 정의는 미확정**.
+- **마지막 변환 마감 공식 미확정**: 직렬 N개 총시간을 (N−1)(tSH+tEOC) + (tSH+tLAT)로 봐야 하는지 — 마지막 cadence를 tEOC(205)→tLAT(220)로 보면 **N 상한을 1~2 깎을 수 있음**.
+- **데이터시트(SPRSxxx) 최소 S+H 윈도우(ns) 미인입** — 현 tSH=80 ns가 12bit 최소 요구를 만족하는지, 리피터 burst에서 tSH 단축 여지 있는지 **미확인**. (TRM :890/:2088이 "데이터시트가 최소 윈도우를 규정"으로 위임.)
+- **전 항목 라이브 실측 미수행** — 스코프/레지스터 readback 미수행. 정적 산정이라 **~37~41은 불확실폭 안**.
 
 ## 8kw 현황 (예시)
 
@@ -75,7 +104,7 @@ date: 2026-06-29
 ## 사실 / 가설 / 모름 가름
 
 - **사실 (아키텍처)**: SAR 직렬(한 인스턴스 다중 SOC)/병렬(인스턴스 간)·인스턴스 독립(자체 S/H·시퀀서·결과레지스터·ADCINT). 인스턴스 추가 = +ISR/+int_xbar/+ready-flag.
-- **사실 (변환시간 — 2026-06-26 확정)**: 단일 변환 ≈ **315 ns**(acq 85 ns + conv 230 ns), ADCCLK 50 MHz, acq는 SYSCLK 도메인. ~~△ 미검증(수치)~~ → 위 "ADC 변환시간 예산" 절에서 정적 산정 확정(TRM :105/:303/:305/:1017–1019/:1024 + `example.syscfg`:67). 단 **라이브 레지스터 실측은 미수행**.
+- **사실 (변환시간 — 2026-06-29 정밀 갱신)**: 1회 직렬 cadence ≈ **285 ns**(tSH 80 ns + tEOC 205 ns), tLAT 220 ns, ADCCLK 50 MHz, tSH는 SYSCLK 도메인·ACQPS=15. 주기당 ~**41 변환**, 리피터 N 상한 ~41(단일채널)/합≤41(ADC1). ~~종전 단일변환 315 ns·~37 변환~~ → 보수치였고 Table 7-123 정밀값으로 정정(위 "ADC 변환시간 예산 & 리피터 N 상한" 절: TRM :303/:2088/:2116–2118/:2171 + `adc/v2/adc.h`:185·:920 + `ti_drivers_open_close.c`:134). 단 **라이브 레지스터 실측은 미수행**.
 - **△ 미검증(실측)**: **다중 인스턴스 동시 트리거의 정밀 동시성 미실측** — "동시 샘플"은 아키텍처 근거이며 스큐 상한을 스코프로 잰 적은 없음. (트리거는 RTI1 → EPWM0_SOCA로 전환됨, [[am263p_adc_rti_trigger]] §5.)
 - 레지스터 수치 출처가 필요하면 [[am263p_trm]] ADC 챕터 demand-ingest.
 
