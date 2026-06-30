@@ -11,7 +11,7 @@ date: 2026-06-29
 
 ## 소스 레이아웃
 
-**PR #5 (`feature/firmware-layering`, `0830b5f`·`9cd0181`, 2026-06-25)에서 BSP·HAL·ALG·App 4레이어로 전면 재구성 완료.** 동작 불변(순수 재구성), 실보드 검증 통과. 구조 상세 → [[firmware_layering]].
+**PR #5 (`feature/firmware-layering`, `0830b5f`·`9cd0181`, 2026-06-25)에서 BSP·HAL·ALG·App 4레이어로 전면 재구성 완료.** 동작 불변(순수 재구성), 실보드 검증 통과. 구조 상세 → [[firmware_layering_8kw]].
 
 ```
 src/
@@ -45,7 +45,7 @@ PR #5 (`feature/firmware-layering`, commits `0830b5f`·`9cd0181`). 단일 `src/e
 - **tuning knob 위치 이전**: `ETA_DEADTIME_NS` in `eta_tuning.h` → `ETA_BSP_PWM_DEADTIME_NS` in `src/bsp/eta_bsp_pwm.h`.
 - 실보드: ADC·GPIO·PWM deadtime 전부 동일 동작 확인. 디스어셈블로 deadtime 값 바이너리 박힘 확인.
 
-구조 상세 → [[firmware_layering]].
+구조 상세 → [[firmware_layering_8kw]].
 
 ## 직전 완료 — A2: 6채널 ADC 완성 (실보드 검증 완료, commit c512e3b)
 
@@ -264,7 +264,7 @@ P1·P2(150/300ns 단일소스) 위에 **주파수 확정값(85 kHz) 반영 + 튜
 |------|------|------|
 | CCS 프로젝트 스캐폴드 (A0 전제) | ✓ | hello_world 기반, Release 빌드 통과 |
 | eta_bsp 레이어 도입 | ✓ | `src/eta_bsp/`, eta_ 접두·_loop 접미 (a655de4, edddc31) |
-| **펌웨어 4레이어 재구성 (BSP/HAL/ALG/App)** | ✓ | PR #5 (`0830b5f`·`9cd0181`). 동작 불변 실보드 검증. src/{bsp,hal,alg,app}/. 정본 [[firmware_layering]] |
+| **펌웨어 4레이어 재구성 (BSP/HAL/ALG/App)** | ✓ | PR #5 (`0830b5f`·`9cd0181`). 동작 불변 실보드 검증. src/{bsp,hal,alg,app}/. 정본 [[firmware_layering_8kw]] |
 | 단채널 실보드 검증 (A1) | ✓ | AIN0, RTI 1 kSPS + EOC ISR (2026-06-05) |
 | UART 출력 1초 주기화 (A1.5) | ✓ | RTI2 독립 타이머 → flag → eta_uart5_loop. 주기=SysConfig nsecPerTick0(단일 진실원천) (8b85bda) |
 | ADC 6채널 완성 (A2) | ✓ | 5 인스턴스(ADC0~4), 6채널 raw→mV 실보드 검증. AIN 핀 hard `$assign` 승격 (c512e3b) |
