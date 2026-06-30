@@ -4,6 +4,16 @@
 
 ---
 
+## [2026-06-30] ingest | 8kw 보드 회로도(Ver 1.0E00) + ADC 노이즈 FFT 프로브 결정
+
+근거: 사용자 질의 — 다음 작업으로 스코프 FFT를 수행해 ADC 평균 N을 튜닝할지 트리거 위상을 조절할지 결정. 회로도가 wiki에 없어 ingest. 원본 `projects/g/8kw-ev-wpt-tx/docs/8kw_inverter_board_260506.pdf`.
+
+- **원본 복사**: `teams/g/8kw-ev-wpt-tx/raw/8kw_inverter_board_260506.pdf` (first-ingest-wins — 다른 프로젝트는 [[board_schematic_v1_0e00]] 백링크).
+- **신설 [[board_schematic_v1_0e00]]** (source): 6시트 ingest. 풀브리지 SiC 모듈 U6/U7(FF8MR12W1M1H)·게이트드라이버 U8/U9(FR20205VBDN)·DC링크 스너버. **ADC 센서 신호체인 표**(GA_Vin=U16 AMC0311 절연증폭기/DC버스, GA_Iin=U1 TMCS1126 Hall/입력DC전류, I_COIL=T1 PA6322 CT/85kHz 공진전류, Temp×2=모듈 NTC). MCU핀 입력 RC 100Ω+~1.33nF → **fc≈1.2MHz로 85kHz 미감쇠**. HW 보호 인터록(TLV3231 비교기+SN74HCS21/SN74LVC1G08→GD_EN). 접지 도메인(DGND=ADC 절연측 안전 / PRI_GND=HV 금지).
+- **신설 [[adc_noise_fft_probe]]** (concept, 측정 전 계획): 결정 로직 정합 — 백색→N↑ / 스위칭 상관(85kHz 고조파)→트리거 위상. ★사용자 모델 보강 근거: ADC 트리거가 EPWM0_SOCA에 위상고정 → 스위칭 상관 노이즈는 매주기 coherent → √N 평균 무효 → 위상이 유일 레버(역으로 백색이면 위상 무의미·N만 유효). 프로브 포인트(GA_Vin J3.26·GA_Iin J3.29 DC핀 최적, I_COIL J3.28 부적합=85kHz가 신호), 타이밍 마커(HS1 J4.39 트리거 + 디버그 GPIO95 J4.31 OSINT 토글=샘플순간 마커), MSOX3104T 설정(Hanning·0~500kHz·RMS평균·짧은 GND), 결정 트리. 버스트 N=16=4.56µs≈주기 39% → 위상+저N 상호작용.
+- **갱신 [[adc_pinmap]]**: source에 회로도 ingest 완료·센서 신호체인 cross-ref 추가, 백링크 2개.
+- **갱신 index.md**: source·concept 2개 등록.
+
 ## [2026-06-29] 환원 | 8kw ADC 필터 전환 세션 — 리피터 버스트·EDMA·디버그 GPIO (B–F)
 
 근거: 8kw-ev-wpt-tx ADC 필터 전환 세션 (2026-06-29, branch `feature/adc-repeater-burst`). 모든 SDK/TRM/UG 인용은 서브에이전트 3개로 file:line 교차검증 (헤더 결함·EDMA dma_xbar·GPIO P07 출처 포함).

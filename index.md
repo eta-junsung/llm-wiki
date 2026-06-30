@@ -174,6 +174,7 @@
 - [[devenv_roles]] — **개발환경 역할 분리 (PR #10, 2026-06-26)**: 빌드=gmake 단일(`gmake -C build all`) / 디버그·flash=CCS 2100 / 읽기·편집=VSCode+clangd. 비자명 사실 4개: ①CCS 디버그는 gmake 산출물만으로 성립(실보드 확인) ②ccs-debug MCP는 IDE GUI 필요·headless 불가 ③CCS 2100=Theia(VSCode 기술), 정품 MS VSCode 디버그 어댑터 없음 ④enet/sdl 생성물 12개 안전 삭제
 - [[firmware_layering]] — **펌웨어 4레이어 아키텍처 (BSP/HAL/ALG/App)**: PR #5 전면 재구성(동작 불변, 2026-06-25). src/{bsp,hal,alg,app}/. 의존 방향 불변식(ALG는 HAL·SDK 모름). 네이밍 규칙. ALG 의도적 비어있음(eta_alg_crc16·eta_alg_convert만). gui.py:74 비자명 결합 경고(ETA_BSP_PWM_DEADTIME_NS regex 직접 편집)
 - [[adc_scaling]] — **8kW WPT TX ADC 물리량 변환식 모음**: GUI `PHYSICAL_COEFF` 단일소스·callable 비선형 확장(NTC), **5채널 완료**(Temp×2 NTC Beta·GA_Vin 저항분압·I_COIL_SEN CT버든·GA_Iin_SEN Hall-effect), I_LCC_SEN 미교정. 검증방법(직접전압 주입·LSB 흔들림). (2026-06-24)
+- [[adc_noise_fft_probe]] — **ADC 노이즈 스코프 FFT 진단 + N vs 트리거 위상 결정 (2026-06-30, 측정 전 프로브 계획)**: 백색→N↑ / 스위칭 상관(85kHz 고조파 피크)→트리거 위상. ★근거=ADC 트리거가 EPWM에 위상고정 → 스위칭 상관 노이즈는 coherent → √N 평균 무효(위상이 유일 레버). 프로브=GA_Vin(J3.26)·GA_Iin(J3.29) DC핀이 최적, I_COIL(J3.28)은 85kHz=신호라 부적합. 마커=HS1게이트(J4.39)+디버그GPIO95(J4.31 OSINT 토글). MSOX3104T Hanning/0~500kHz/RMS평균·짧은GND. 버스트 N=16=4.56µs≈주기39% → 위상+저N 상호작용. 회로도 [[board_schematic_v1_0e00]]
 - [[team_briefing_8kw]] — **팀 업무보고 참고 자료(8kw)**: 주차별 보고 스냅샷 이력·작업 호(A0~A4)·ADC 6채널 완료 현재 위치·만난 문제표(트리거 결선·soft 재셔플)·다음(A3 스펙 대기/UART5 복구). 보고 직전 참고
 - [[build_methods]] — **두 가지 빌드 방법 진입 페이지**(2026-06-19): 방법1 개발자 CCS IDE 빌드(`Release/`) vs 방법2 HW 엔지니어 GUI gmake 빌드(`build/`, `gui.bat`→`launch_gui.ps1`→`gui.py`→`gmake -C build all`). 비교표(용도/진입점/빌드명령/산출물/플래시 소스) + 공통스택(CCS21/SDK_06, config.mk 3줄 이식) + syscfg 함정(`generated/` 커밋·gitignore 금지) + 새 .c 파일 양쪽(.cproject·FILES_common) 등록 + 플래시 공통(`run_flash_node_8kw.ps1 -Source release|build`, SW1=`0,0,1,1`)
 - [[jtag_flash_clean_host]] — **운영 함정 2종**: ①AM263P OSPI JTAG 굽기는 CCS IDE 완전 종료 후(IDE 상주 DSLite 경합 → 비일관 실패, 2026-06-05 실측). ②"Run > Flash Project" **금지** — SBL 미포함, 전원사이클 후 standalone 부팅 불가(2026-06-16). 올바른 경로: `tools/ospi_flash/run.bat` (구 `tools/jtag_flash/`, 2026-06-17 rename)
@@ -197,6 +198,7 @@
 
 - [[pwm_leg2_isoform_report]] — PWM 레그2 dead-time 정밀화 + 레그1 동형화 검증 리포트 (branch pwm-deadtime, commit 4014901, 2026-06-11). EPWM0 fan-out + isoform. 4-DT sweep(100/150/250/400 ns) 전 항목 PASS. 원본 데이터 `raw/pwm_leg2_isoform/`
 - [[pwm_deadtime_knob_verify]] — `ETA_DEADTIME_NS` knob flash+boot silicon 검증 리포트 (v1_0e00, 2026-06-12). 100/150/250/400 ns 4점 16/16 PASS(≤2 ns, shoot-through 0). production 150 ns 확정. 원본 데이터 `raw/pwm_deadtime_knob_verify/`
+- [[board_schematic_v1_0e00]] — **8kW WPT TX 보드 회로도 ingest (Ver 1.0E00, 6시트, 2026-06-30)**. 원본 `raw/8kw_inverter_board_260506.pdf`(first-ingest-wins). 풀브리지 SiC 모듈 U6/U7(FF8MR12W1M1H)·게이트드라이버 U8/U9·DC링크 스너버. **ADC 센서 신호체인**: GA_Vin=U16 AMC0311 절연증폭기(DC버스), GA_Iin=U1 TMCS1126 Hall(입력DC전류), I_COIL=T1 PA6322 CT(85kHz 공진전류), Temp×2=모듈 NTC. MCU핀 RC fc≈1.2MHz(85kHz 미감쇠). HW 보호 인터록(TLV3231+SN74HCS21). 접지 도메인(DGND 안전/PRI_GND HV)
 
 ### Weekly Reports
 

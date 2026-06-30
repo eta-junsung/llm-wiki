@@ -1,7 +1,7 @@
 ---
 tags: [entity, adc, 8kw-ev-wpt-tx, pinmap]
-source: 사용자 제공 (2026-06-04) — 회로도 전체 미ingest, 해당 신호 핀만 발췌. 6채널 완성·int_xbar/IRQ 코드 역산 갱신 (2026-06-09, commit c512e3b)
-date: 2026-06-09
+source: 사용자 제공 (2026-06-04) — 해당 신호 핀 발췌. 6채널 완성·int_xbar/IRQ 코드 역산 갱신 (2026-06-09, commit c512e3b). **회로도 전체 ingest 완료 — 센서 신호체인 [[board_schematic_v1_0e00]]** (2026-06-30)
+date: 2026-06-30
 ---
 
 # adc_pinmap — 8kW WPT TX 보드 ADC 핀맵
@@ -10,6 +10,7 @@ date: 2026-06-09
 > 스케일링(변환식, 분압비, 센서 감도)은 [[adc_scaling]] 정본 (A3 완료 — I_LCC_SEN 제외 5채널 교정).
 > 인스턴스 배치 근거·다음 보드 설계 규칙은 [[am263p_adc_instance_allocation]].
 > 논리↔물리 인스턴스 고정(soft 재배치 함정)은 [[am263p_syscfg_soft_vs_hard_assign]].
+> 각 신호의 센서·컨디셔닝 출처(CT·Hall·절연증폭기·NTC)는 회로도 [[board_schematic_v1_0e00]], 노이즈 FFT 프로브는 [[adc_noise_fft_probe]].
 
 ---
 
