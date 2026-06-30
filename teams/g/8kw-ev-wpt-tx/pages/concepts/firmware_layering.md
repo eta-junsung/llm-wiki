@@ -42,11 +42,15 @@ ALG ──→ (없음: 하드웨어 독립)
 
 ## 네이밍
 
+전사 네이밍 표준은 [[firmware_naming_conventions]]로 위임 — 여기엔 **레이어드 한정 규칙**만 둔다.
+
 | 대상 | 패턴 | 예시 |
 |------|------|------|
 | 함수 | `eta_<layer>_<module>_<verb>()` | `eta_hal_adc_read()`, `eta_alg_crc16()` |
 | 파일 | `eta_<layer>_<module>.c/.h` | `eta_bsp_pwm.h`, `eta_hal_uart.c` |
 | 진입점 | `main()` 예외 (C 진입점, prefix 없음) | `src/app/main.c` |
+
+**레이어 토큰 기준(결정2, [[firmware_naming_conventions]] §4)**: 레이어 경계를 넘는 공개·공유 식별자는 모듈만(`eta_adc_ch_t`/`ETA_PKT_*`), 한 레이어 내부 전용만 레이어 토큰 포함(`eta_bsp_adc_inst_t`/`ETA_HAL_GPIO_*`). 근거 = `gpio`가 bsp·hal 양쪽 존재(모호성 해소) + 외부식별자 31자 예산(MISRA 5.1) 보호.
 
 ---
 

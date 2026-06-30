@@ -4,6 +4,20 @@
 
 ---
 
+## [2026-06-30] ingest | 전사 펌웨어 네이밍 컨벤션 표준 수립
+
+근거: 8kw-ev-wpt-tx 펌웨어 de-facto 네이밍 관행을 정본화하는 작업에서 **전사 공통 표준**으로 스코프 확대(추후 Claude skill 승급 전제). g-8kw `src/{bsp,hal,alg,app}/` de-facto를 grep 재확인 + **BARR-C:2018 / MISRA C:2012 / Linux kernel / Zephyr RTOS / SEI CERT DCL37-C를 웹 검증**해 산업 정합성 전면 재감사.
+
+- **신설 [[firmware_naming_conventions]]** (루트 concept, 전사 공통): de-facto 16항목 재감사 — 대부분 BARR-C(MISRA 조화)와 정합 확인. **앵커 결정**: 사용자 ruling — 임박 인증 제품 없음 → **MISRA-필수 하드룰 + 현대 임베디드 하이브리드**(풀-BARR-C 아님, 순수 Linux 미니멀도 아님).
+  - **핵심 교정**: MISRA ≠ BARR-C 헝가리안. 기능안전(IEC 61508·ISO 26262)이 인용하는 건 MISRA고, MISRA는 헝가리안 `g_`/`p_`/`b_`를 의무화 안 함(충돌·UB 방지 규칙뿐). `_t`는 오히려 MISRA가 *지적*(POSIX 예약). ⟹ `p_`/`b_` 미채택·`_t` 유지+편차문서화가 정답.
+  - **하드룰**: 외부 31자 유일(5.1)·예약식별자/선행`_` 금지(21.x·C11 7.1.3)·stdlib/SDK 비충돌(7.1.b).
+  - **편차원장**: D1 `_t`(DCL37-C/POSIX, 벤더생태계·`eta_` 충돌0)·D2 SDK 미개명·D3 루프변수 `i`/`j`(BARR-C 7.1.e 편차).
+  - **결정1** 구조체 필드 snake + SDK 1:1 미러만 camel. **결정2**(§4 레이어 부록) 공개=모듈만/내부=레이어포함(gpio가 bsp·hal 양쪽 → 모호성 해소 + 31자 예산 복무).
+  - **§6 팀수렴**: g de-facto=정본 · c-nRF52 `eta_` 이미 정렬 · c-STM32 PascalCase(Monitor_Loop) grandfather(신규부터 적용) · 전향노트(GA→IEC 61508/VA→ISO 26262, 제품별 qualified 분석기가 규칙셋 확정).
+  - **제품 맥락**: eta WPT TX = GA(off-board 충전기) → IEC 61508 우산 / VA(차량측) → ISO 26262. SAE J2954 3파티션(GA/VA/BMS) 지도 인용.
+- **갱신 [[firmware_layering]] §네이밍**: 전사 표준을 [[firmware_naming_conventions]]로 위임, 레이어드 한정 규칙(결정2)만 잔류.
+- **갱신 index.md**: 루트 공통 Concepts에 등록.
+
 ## [2026-06-30] ingest | 8kw 보드 회로도(Ver 1.0E00) + ADC 노이즈 FFT 프로브 결정
 
 근거: 사용자 질의 — 다음 작업으로 스코프 FFT를 수행해 ADC 평균 N을 튜닝할지 트리거 위상을 조절할지 결정. 회로도가 wiki에 없어 ingest. 원본 `projects/g/8kw-ev-wpt-tx/docs/8kw_inverter_board_260506.pdf`.
