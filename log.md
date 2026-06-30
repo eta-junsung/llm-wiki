@@ -4,6 +4,16 @@
 
 ---
 
+## [2026-06-30] 환원 | 8kw "ADC 필터 전환"(2026-06-29) 핸드오프 — stale 교정 + 신규 커밋 반영
+
+근거: 삭제된 branch `docs/adc-filter-handoff`/handoff.md(2026-06-29 스냅샷) 전문 + 현재 코드(`src/bsp/eta_bsp_adc.{c,h}`, `example.syscfg`) 대조. 핸드오프 발견 ①~⑥(직교성·SAR 합예산 비대칭·N=64≠리피터기각·채널배치·이중경로·어긋남)은 **PR#11 머지 후속 환원(`d41a5ce`)에서 이미 플랫폼 페이지에 반영**됨([[am263p_adc_repeater_burst]]·[[am263p_adc_instance_allocation]]) — 중복 환원 안 함. 이번엔 **stale 교정 + 미반영 신규 커밋**만.
+
+- **stale 교정 (branch→main)**: 8kw 전술 페이지([[status]]·[[adc]] §A5)가 리피터 버스트를 "branch `feature/adc-repeater-burst`/main 미머지/main은 N=64"로 적고 있었음 → 실제는 **PR#11 squash 머지 main `2c4ff85`(CI pass), 현 운영 N=16**(`ETA_ADC_OVERSAMPLE_LOG2=4U`). 코드·플랫폼 페이지와 정합화.
+- **OSINT 레이트 어긋남⑥(a) 해소**: 버스트 전환으로 출력=85 kHz/인스턴스 복귀 → N=64 누적기 수치 "1.33 kHz"(및 코드 주석 "2.66 kHz")는 더 이상 적용 안 됨 명시(라이브 재실측 권장).
+- **신규 커밋 `6993a40` 반영** (핸드오프 이후): EOC ISR이 GPIO95(J4.31, 스코프 CH4) 토글로 샘플링-종료 마커, `ETA_BSP_ADC_DBG_MARK_IDX`로 인스턴스 선택(현재 `0U`=I_COIL_SEN/FOD 1차 관찰, `docs/fod_i_coil_observation.md`). ⚠️ `eta_hal_gpio` DBG_LOOP=GPIO95 잠복 충돌(후속 정리). → [[adc_noise_fft_probe]] §마커에 "구현됨"으로 반영(노이즈측정은 idx `3U`=GA_Vin), [[status]]에 FOD 병행 트랙 추가.
+- **트리거 위상(D) 명문화**: 현 EPWM0_SOCA = `EPWM_SOC_TBCTR_ZERO`(syscfg 확인) → 스위칭 상관 시 위상이 레버. [[adc]] §A5 표 + [[adc_noise_fft_probe]].
+- 갱신: [[status]](다음 시작점·A5 진척·구현현황·date), [[adc]](§A5 표·완료기준·date), [[adc_noise_fft_probe]](마커 구현).
+
 ## [2026-06-30] ingest | 펌웨어 4레이어 아키텍처 전사 표준 승급
 
 근거: 사용자 결정 — g-8kw 4레이어(BSP/HAL/ALG/App)를 전사 아키텍처 표준으로 승급. 네이밍 표준 승급과 동일 패턴([[firmware_git_workflow]] 표준 + walkthrough 실습 선례). 레이어링 ≠ 네이밍(직교: 아키텍처 vs 식별자)이지만 결정2 한 군데서 접점.
