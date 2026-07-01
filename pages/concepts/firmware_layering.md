@@ -1,7 +1,7 @@
 ---
 tags: [concept, architecture, firmware, layering, convention, living-doc]
-source: conversation-2026-06-30 (전사 아키텍처 표준 승격 — g-8kw 4레이어 de-facto 일반화) + g-8kw PR #5 (feature/firmware-layering, 2026-06-25)
-date: 2026-06-30
+source: conversation-2026-06-30 (전사 아키텍처 표준 승격 — g-8kw 4레이어 de-facto 일반화) + g-8kw PR #5 (feature/firmware-layering, 2026-06-25); conversation-2026-07-01 (c팀 oled_tv 02_rx_esb/_shared 리뷰 환원 — 계약 헤더 위생 리트머스)
+date: 2026-07-01
 ---
 
 # 펌웨어 레이어드 아키텍처 표준 (전사 공통)
@@ -61,6 +61,15 @@ ALG ──→ (없음: 하드웨어 독립)
 - **컴파일타임 tuning knob**(deadtime 등 상수): **BSP 헤더 단일 소스**(예 `eta_bsp_pwm.h`).
 - **순수 변환·제어·CRC**: ALG. host에서 도는지가 리트머스 — 안 돌면 잘못 배치된 것.
 - 헷갈리면 "이 코드가 MCU 없이 PC에서 컴파일·실행되나?"로 판정 → 되면 ALG, 안 되면 HAL/BSP.
+
+### 3.1 계약/공유 헤더 위생 (레이어 누출 리트머스, 2026-07-01)
+
+와이어 프로토콜처럼 여러 레이어·여러 노드가 함께 include하는 **계약 헤더**(패킷 구조체·필드·매크로 정의)에도 host 리트머스를 헤더 단위로 좁혀 적용한다: **"이 헤더가 host 빌드에서도 서나?"**
+
+- 계약 헤더는 순수 직렬화만 담고 **`<stdint.h>` 하나로 서야 한다**.
+- `stdio.h`(`printf` 등 표시 로직)가 섞이면 **App** 관심사 누출 — App으로 옮긴다.
+- 보드 핀 번호·레지스터 상수가 섞이면 **BSP** 관심사 누출 — BSP 헤더로 옮긴다.
+- 쓰지 않는 `stdlib.h`/`math.h` 등 include는 그 자체로 경계가 흐려졌다는 신호 — 제거한다.
 
 ---
 

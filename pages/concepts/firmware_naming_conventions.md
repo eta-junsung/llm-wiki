@@ -1,7 +1,7 @@
 ---
 tags: [concept, naming, convention, firmware, misra, living-doc]
-source: conversation-2026-06-30 (전사 펌웨어 네이밍 표준 수립 — g-8kw-ev-wpt-tx de-facto 추출 + BARR-C:2018 / MISRA C:2012 / Linux·Zephyr 대조 검증)
-date: 2026-06-30
+source: conversation-2026-06-30 (전사 펌웨어 네이밍 표준 수립 — g-8kw-ev-wpt-tx de-facto 추출 + BARR-C:2018 / MISRA C:2012 / Linux·Zephyr 대조 검증); conversation-2026-07-01 (c팀 oled_tv 02_rx_esb/_shared 리뷰 환원 — R1 예산 설계원칙·레이어 토큰 리트머스·화이트리스트 확장기준)
+date: 2026-07-01
 ---
 
 # 펌웨어 네이밍 컨벤션 표준 (전사 공통)
@@ -53,7 +53,9 @@ date: 2026-06-30
 
 **동사 어휘 (이 외 신규는 합의 후 추가)**: `init`/`deinit` · `read`/`write` · `get`/`set` · `is`/`has` · `clear` · `request` · `loop` · `isr`
 
-**약어 화이트리스트 (이 외 약어 금지 — 늘리려면 이 목록을 편집)**: `adc` `pwm` `gpio` `uart` `dma` · `ch` `pkt` `idx` `cnt` `len` `req` `en` · `tx`/`rx` · `hwi` `soc` `ppb` `eoc` `osint` · `sen` `vin` `iin` · `comm_st`(communication state — c팀 oled_tv 도메인 표준어, `COMM_ST_*`·`comm_state_monitoring` 참조)
+**약어 화이트리스트 (이 외 약어 금지 — 늘리려면 이 목록을 편집)**: `adc` `pwm` `gpio` `uart` `dma` `spi` · `ch` `pkt` `idx` `cnt` `len` `req` `en` · `tx`/`rx` · `hwi` `soc` `ppb` `eoc` `osint` · `sen` `vin` `iin` · `comm_st`(communication state — c팀 oled_tv 도메인 표준어, `COMM_ST_*`·`comm_state_monitoring` 참조)
+
+**확장 판단 기준 — 화이트리스트 등재 vs 프로젝트 지역어** (2026-07-01): 새 약어가 벤더·MCU 무관 범용 주변장치/개념(`uart`·`gpio`·`dma`·`spi` 동급)이면 이 목록에 등재한다. 반대로 특정 벤더 SDK의 도메인어를 자체 모듈명이 그대로 미러링한 것(예 nRF5 SDK `ESB`(Enhanced ShockBurst) 프로토콜을 미러링하는 `esb`)이면 그 벤더를 쓰는 프로젝트의 지역 관용어로 두고 전사 목록엔 넣지 않는다 — 다른 벤더를 쓰는 프로젝트엔 재사용성이 없기 때문이다. **미결(빈자리)**: `esb`·`xfer`가 c팀 nRF52 코드에서 이미 모듈명으로 쓰이나(`eta_esb`, [[firmware_layering]] §6), 이 기준으로 전사 화이트리스트 등재 여부는 아직 결정하지 않음.
 
 ---
 
@@ -62,6 +64,7 @@ date: 2026-06-30
 기능안전 readiness의 실체. 정적분석으로 기계 검증 가능해야 한다.
 
 - **R1. 외부 식별자 31자 내 유일** — 외부링크(비 static) 식별자는 **앞 31자 안에서 서로 구별**돼야 한다 (MISRA 5.1, C99 유효길이). 긴 `g_eta_<layer>_<module>_*`·`ETA_<LAYER>_<MODULE>_*`가 예산을 잠식 → **§4 결정2(공개=모듈만)가 이 룰에 직접 복무**.
+  - **설계 원칙 — 접두사·완전어화는 R1 예산과 함께 설계한다** (2026-07-01): 조직 접두사를 얹거나(`ETA_PKT_`) 약어를 완전어로 펼 때마다 31자 예산을 갚아든다. 예: `ETA_PKT_TX_STATUS_BIT_VOUT_SETPOINT`=35자 → 초과, 그룹 토큰 축약(`ETA_PKT_TX_ST_BIT_VOUT_SP`)이 동반돼야 함. `comm`→`communication` 완전어화도 `eta_alg_communication_status_update`=35자로 초과 → 이 경우 **약어(`comm`) 유지가 정답**, 완전어화가 항상 우월하지 않다. 이름을 늘리기 전에 항상 앞 31자 유일성부터 확인한다.
 - **R2. 같은 스코프 구별** — 같은 스코프·네임스페이스에서 식별자 재사용 금지 (MISRA 5.2~5.5). 매크로명과 다른 식별자 충돌 금지.
 - **R3. 예약 식별자 금지** — 선행 언더스코어로 시작 금지, 이름 내 `__`(이중 언더스코어) 금지 (C11 §7.1.3, MISRA 21.1/21.2). ⟹ 헤더가드 트레일링 `_H_`는 안전(선행 `_` 아님), `_ADC_H` 같은 선행형은 금지.
 - **R4. 표준·SDK 이름 비충돌** — C 키워드·C 표준 라이브러리·벤더 SDK 공개 식별자와 겹치지 않게 (BARR-C 7.1.b). `eta_` 조직 접두사가 1차 방어.
@@ -92,6 +95,8 @@ date: 2026-06-30
 - **공개·공유 식별자(레이어 경계를 넘음) = 모듈만**: `eta_adc_ch_t`, `eta_adc_sample_t`, `ETA_PKT_*`, `ETA_ADC_CH_*`
 - **한 레이어 내부 전용 = 레이어 토큰 포함**: `eta_bsp_adc_inst_t`, `eta_bsp_adc_eoc_isr()`, `ETA_HAL_GPIO_PIN_*`, 헤더가드 `ETA_BSP_ADC_H_`
 - 함수·파일도 동일: 레이어드면 `eta_<layer>_<module>_<verb>()` / `eta_<layer>_<module>.c`
+
+**리트머스 — 레이어 토큰이 필요한가** (2026-07-01): "같은 모듈 토큰이 두 레이어에 동시에 사나?" → **예**면 레이어 토큰 필수(`gpio`가 `bsp`·`hal` 양쪽에 사는 경우, `clock`도 동일 — `eta_bsp_clock_*` vs `eta_hal_clock_*`). **아니오**면(그 모듈이 한 레이어에만 사는 경우, 예 `esb`/`spi`/`uart`) 모듈 토큰만 유지 — 불필요한 레이어 토큰은 R1 예산을 갚는 낭비.
 
 **근거 둘**: ① 같은 모듈이 여러 레이어에 존재함(`gpio`가 `bsp`·`hal` 양쪽) → 레이어 토큰이 실제로 모호성을 해소. ② 공개명을 짧게 유지해 **R1(31자) 예산 보호**. 비레이어드 프로젝트는 레이어 토큰 없이 `eta_<module>_*`만.
 
