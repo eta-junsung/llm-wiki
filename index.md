@@ -203,6 +203,7 @@
 - [[pwm_deadtime_knob_verify]] — `ETA_DEADTIME_NS` knob flash+boot silicon 검증 리포트 (v1_0e00, 2026-06-12). 100/150/250/400 ns 4점 16/16 PASS(≤2 ns, shoot-through 0). production 150 ns 확정. 원본 데이터 `raw/pwm_deadtime_knob_verify/`
 - [[board_schematic_v1_0e00]] — **8kW WPT TX 보드 회로도 ingest (Ver 1.0E00, 6시트, 2026-06-30)**. 원본 `raw/8kw_inverter_board_260506.pdf`(first-ingest-wins). 풀브리지 SiC 모듈 U6/U7(FF8MR12W1M1H)·게이트드라이버 U8/U9·DC링크 스너버. **ADC 센서 신호체인**: GA_Vin=U16 AMC0311 절연증폭기(DC버스), GA_Iin=U1 TMCS1126 Hall(입력DC전류), I_COIL=T1 PA6322 CT(85kHz 공진전류), Temp×2=모듈 NTC. MCU핀 RC fc≈1.2MHz(85kHz 미감쇠). HW 보호 인터록(TLV3231+SN74HCS21). 접지 도메인(DGND 안전/PRI_GND HV)
 - [[adc_repeater_burst_timing]] — **ADC N=16 리피터 버스트 트리거→버스트끝 타이밍 Saleae 실측 (2026-06-30, 코드 `6993a40`)**. ch0=EPWM2_A·ch1=GPIO95(ADC0 OSINT ISR), 12,260주기. **사실**: 트리거당 OSINT 정확히 1회=85.03 kHz(12,260/12,260)→리피터 버스트 실증, 트리거→버스트끝 3.12 µs(주기 26.5%), ISR 0.304 µs. **추론(상한)**: 실효 cadence ≤195 ns/변환(IRQ 진입지연 포함)<정적 285 ns. 미확정: IRQ 지연 분해·레지스터 readback·ADC1 ISR 횟수. 원본 `raw/adc_repeater_burst_timing/digital.csv`
+- [[io_iir_lpf]] — **Io 2차 IIR 저역통과 필터 스펙 ingest (설계자 전달 3종, 2026-07-01)**. Direct Form I 2차 biquad LP(Butterworth 근사), Io ADC 85kHz 스위칭 노이즈 제거. 차분식 `out0=b0·in0+b1·in1+b2·in2+a1·out1+a2·out2`(⚠️a1/a2 부호 접힘=더함), 85kHz 코드계수 b0=b2=9.75e-6·b1=1.95e-5·a1=1.987473·a2=−0.987512(Excel 40kHz값과 구분). ALG biquad+App `−Vadc/2`, R5F FPU→float, C2000/CLA 포팅. **구현만 먼저·검증은 ADC 안정화 후.** 착수전 확정: Io채널/바이폴라 보정/삽입위치. 원본 `raw/io_iir_lpf/`(spec.html·sim.xlsx·impl_16bit.pdf)
 
 ### Weekly Reports
 

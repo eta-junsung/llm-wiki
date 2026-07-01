@@ -4,6 +4,16 @@
 
 ---
 
+## [2026-07-01] ingest | g팀 8kw Io 2차 IIR 저역통과 필터(io_iir_lpf) 스펙 수령
+
+- 미팅 결과: **Io ADC 스위칭 노이즈 제거용 2차 IIR biquad 저역통과 필터** 구현 결정. 설계자 스펙 3종 수령.
+- **원본 복사**(raw, first-ingest-wins): `raw/io_iir_lpf/io_iir_lpf_spec.html`(계수·차분식·코드매핑) · `io_iir_lpf_sim.xlsx`(Excel 시뮬) · `digital_filter_impl_16bit_micros.pdf`(고정소수점 구현 일반 참고). ⚠️ `digital_filter_chart.png` 미수령(HTML 차트 깨짐).
+- **신설**: [[io_iir_lpf]] (source 페이지 — Direct Form I 2차 biquad LP. 차분식 `out0=b0·in0+b1·in1+b2·in2+a1·out1+a2·out2`, a1/a2 부호 접힘=더함. 85kHz 코드계수 b0=b2=9.75e-6·b1=1.95e-5·a1=1.987473·a2=−0.987512, Excel 40kHz값 구분. 입력 `−Vadc/2` 바이폴라 보정. ALG biquad+App 배치, R5F FPU→float, C2000/CLA 포팅. §6 착수전 확정 4건).
+- **갱신**: [[status]] — deferred→활성 트랙 승격(다음 시작점="io_iir_lpf 구현만 먼저 → ADC 안정화"), 구현 현황표 행 추가. [[index]] — Sources 행 추가.
+- **범위 결정**: 필터는 **구현만 먼저**, 실보드 검증은 ADC 안정화([[fod_i_coil_observation]]·[[adc_noise_fft_probe]]) **이후**. A5(리피터 버스트 N=16)·A6(SW 이동평균)와 직교(재귀형 IIR LPF).
+- **미확정(추론 금지)**: "Io"=어느 채널(I_COIL_SEN 추정)·`−Vadc/2` 바이폴라 보정 적용 여부(단극성 DC 포락선 가능성)·신호체인 삽입 위치·A6 대체/보완 여부.
+- 작업 세션 전달 프롬프트 작성 완료.
+
 ## [2026-07-01] ingest | c팀 oled_tv_software 펌웨어 레이어링 재구성 세션 환원
 
 전사 표준([[firmware_layering]]·[[firmware_naming_conventions]]) 기준으로 02_rx_esb·03_tx_esb·04_tx_control 4레이어 재구성 진행 세션의 지식 환원. 변경 4범주:

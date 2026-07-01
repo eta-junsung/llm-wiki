@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Digital Filter</title>
+<style>
+  body {
+    font-family: 'Malgun Gothic', 'Segoe UI', sans-serif;
+    max-width: 960px;
+    margin: 40px auto;
+    padding: 0 24px;
+    color: #222;
+    background: #fafafa;
+    line-height: 1.7;
+  }
+  h1 {
+    font-size: 1.8em;
+    border-bottom: 3px solid #2563eb;
+    padding-bottom: 10px;
+    color: #1e3a8a;
+  }
+  h2 {
+    font-size: 1.2em;
+    margin-top: 2em;
+    padding: 6px 14px;
+    background: #eff6ff;
+    border-left: 4px solid #2563eb;
+    color: #1e3a8a;
+  }
+  pre {
+    background: #1e293b;
+    color: #e2e8f0;
+    padding: 16px 20px;
+    border-radius: 6px;
+    overflow-x: auto;
+    font-size: 0.88em;
+    font-family: 'Consolas', 'D2Coding', monospace;
+    line-height: 1.6;
+  }
+  code {
+    background: #e8f0fe;
+    color: #1a56db;
+    padding: 1px 5px;
+    border-radius: 3px;
+    font-family: 'Consolas', 'D2Coding', monospace;
+    font-size: 0.9em;
+  }
+  pre code {
+    background: none;
+    color: inherit;
+    padding: 0;
+  }
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    margin: 12px 0;
+    font-size: 0.92em;
+  }
+  th {
+    background: #2563eb;
+    color: #fff;
+    padding: 8px 12px;
+    text-align: left;
+  }
+  td {
+    padding: 7px 12px;
+    border: 1px solid #ddd;
+  }
+  tr:nth-child(even) td {
+    background: #f1f5f9;
+  }
+  blockquote {
+    margin: 10px 0;
+    padding: 8px 16px;
+    background: #fefce8;
+    border-left: 4px solid #eab308;
+    color: #555;
+    font-size: 0.93em;
+  }
+  .chart-section {
+    margin-top: 2.5em;
+    text-align: center;
+  }
+  .chart-section img {
+    max-width: 100%;
+    border: 1px solid #cbd5e1;
+    border-radius: 6px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  }
+  .chart-caption {
+    margin-top: 8px;
+    font-size: 0.88em;
+    color: #64748b;
+  }
+</style>
+</head>
+<body>
+
+<h1>Digital Filter</h1>
+
+<h2>1. 필터 구조 — Direct Form I, 2차 IIR</h2>
+<pre><code>out0 = b0·in0 + b1·in1 + b2·in2 + a1·out1 + a2·out2
+        ←── 피드포워드 (b계수) ───→  ←── 피드백 (a계수) ──→</code></pre>
+<p>차분 방정식 (코드 그대로):</p>
+<pre><code>out0 = b0·in0 + b1·in1 + b2·in2 + a1·out1 + a2·out2</code></pre>
+
+<h2>2. 계수값 비교</h2>
+<table>
+  <tr><th>계수</th><th>코드 값</th><th>Excel 값</th><th>역할</th></tr>
+  <tr><td><strong>b0</strong></td><td>0.0000097500 (9.75E-6)</td><td>1.0E-5</td><td>현재 입력 가중치</td></tr>
+  <tr><td><strong>b1</strong></td><td>0.0000195000 (1.95E-5)</td><td>2.0E-5</td><td>1샘플 전 입력 가중치</td></tr>
+  <tr><td><strong>b2</strong></td><td>0.0000097500 (9.75E-6)</td><td>1.0E-5</td><td>2샘플 전 입력 가중치</td></tr>
+  <tr><td><strong>a1</strong></td><td>1.987473</td><td>1.987473</td><td>1샘플 전 출력 피드백</td></tr>
+  <tr><td><strong>a2</strong></td><td>−0.987512</td><td>−0.987472</td><td>2샘플 전 출력 피드백</td></tr>
+</table>
+<blockquote>Excel은 Ts = 1/40,000 (40kHz 기준 설계), 코드는 CLA 85kHz에서 동작 → a2 소수점 차이 발생</blockquote>
+<p><strong>대칭 특성 (저역통과 증거):</strong></p>
+<ul>
+  <li>b0 = b2 (대칭) → 선형 위상 저역통과 필터</li>
+  <li>b1 = 2 × b0 → Butterworth 2차 LP 특성</li>
+</ul>
+
+<h2>3. Excel 시뮬레이션 구조</h2>
+<p><code>Digital_filter.xlsx</code> sheet1의 시뮬레이션 테이블 열 구성:</p>
+<table>
+  <tr><th>열</th><th>내용</th><th>역할</th></tr>
+  <tr><td>E</td><td>ADC input</td><td>in0 (현재 ADC 입력)</td></tr>
+  <tr><td>F</td><td>ADC input (복사)</td><td>레퍼런스용</td></tr>
+  <tr><td>G</td><td>in1</td><td>1샘플 전 in0</td></tr>
+  <tr><td>H</td><td>in2</td><td>2샘플 전 in0</td></tr>
+  <tr><td>I</td><td>out1</td><td>1샘플 전 필터 출력</td></tr>
+  <tr><td>J</td><td>out2</td><td>2샘플 전 필터 출력</td></tr>
+  <tr><td>K</td><td><strong>DF_result</strong></td><td><strong>현재 필터 출력</strong></td></tr>
+</table>
+<p>계수 입력 셀 (Excel 기준):</p>
+<table>
+  <tr><th>셀</th><th>계수</th><th>코드 적용값</th></tr>
+  <tr><td>C3</td><td>b0</td><td>9.75E-6</td></tr>
+  <tr><td>C4</td><td>b1</td><td>1.95E-5</td></tr>
+  <tr><td>C5</td><td>b2</td><td>9.75E-6</td></tr>
+  <tr><td>C6</td><td>a1</td><td>1.987473</td></tr>
+  <tr><td>C7</td><td>a2</td><td>−0.987512</td></tr>
+</table>
+<p><strong>시뮬레이션 첫 3스텝 (Excel 기본값 기준):</strong></p>
+<table>
+  <tr><th>스텝</th><th>ADC 입력</th><th>필터 출력 (K열)</th></tr>
+  <tr><td>1</td><td>601.9</td><td>0.00602</td></tr>
+  <tr><td>2</td><td>337.4</td><td>0.02737</td></tr>
+  <tr><td>3</td><td>362.6</td><td>0.06486</td></tr>
+</table>
+<blockquote>랜덤 ADC 입력에도 출력이 천천히 상승 = 노이즈 억제 확인됨</blockquote>
+
+<h2>4. 코드 구현 매핑</h2>
+<pre><code>// ① 입력 시프트 (in2 ← in1 ← in0 ← 새 ADC)
+dsp_adc_LPFMON.LPF_Io_in2  = dsp_adc_LPFMON.LPF_Io_in1;
+dsp_adc_LPFMON.LPF_Io_in1  = dsp_adc_LPFMON.LPF_Io_in0;
+dsp_adc_LPFMON.LPF_Io_in0  = ADC_readResult(ADCARESULT_BASE, ADC_SOC_NUMBER1) - Vadc/2;
+//                                                                                 ^^^^^^
+//                           ADC 바이폴라 측정 중점 보정 (전류는 ±방향 모두 측정)
+
+// ② 출력 시프트 (out2 ← out1 ← out0)
+dsp_adc_LPFMON.LPF_Io_out2 = dsp_adc_LPFMON.LPF_Io_out1;
+dsp_adc_LPFMON.LPF_Io_out1 = dsp_adc_LPFMON.LPF_Io_out0;
+
+// ③ 필터 계산 (차분방정식 적용)
+dsp_adc_LPFMON.LPF_Io_out0 =
+    RX_adclpf_b0 * dsp_adc_LPFMON.LPF_Io_in0
+  + RX_adclpf_b1 * dsp_adc_LPFMON.LPF_Io_in1
+  + RX_adclpf_b2 * dsp_adc_LPFMON.LPF_Io_in2
+  + RX_adclpf_a1 * dsp_adc_LPFMON.LPF_Io_out1
+  + RX_adclpf_a2 * dsp_adc_LPFMON.LPF_Io_out2;</code></pre>
+
+<h2>5. 필터 특성 요약</h2>
+<table>
+  <tr><th>항목</th><th>값</th></tr>
+  <tr><td>필터 종류</td><td>2차 IIR 저역통과 (Butterworth 근사)</td></tr>
+  <tr><td>샘플링 주파수</td><td>~85 kHz (CLA, FB 주파수 기준)</td></tr>
+  <tr><td>Excel 설계 기준</td><td>40 kHz</td></tr>
+  <tr><td>차단 주파수 (추정)</td><td>수십~수백 Hz 대역</td></tr>
+  <tr><td>목적</td><td>Io ADC 스위칭 노이즈 제거</td></tr>
+  <tr><td><code>- Vadc/2</code></td><td>ADC 바이폴라 측정 중점 보정</td></tr>
+</table>
+
+<h2>6. 코드와 Excel 계수 차이 원인</h2>
+<pre><code>Excel a2 = −0.987472   (Ts = 1/40,000 = 25μs 기준 설계)
+Code  a2 = −0.987512   (Ts = 1/85,000 ≈ 11.76μs 기준 재설계)</code></pre>
+<ul>
+  <li>b 계수도 Excel은 반올림값 (1E-5), 코드는 정밀값 (9.75E-6) 사용</li>
+  <li>실제 차단 주파수를 85kHz 동작 기준으로 미세 조정한 결과</li>
+</ul>
+
+<h2>7. 차단 주파수 정밀 확인 방법</h2>
+<p><code>Digital_filter.xlsx</code>의 계수 셀(C3~C7)에 코드 정밀값 입력:</p>
+<pre><code>C3 = 0.00000975
+C4 = 0.0000195
+C5 = 0.00000975
+C6 = 1.987473
+C7 = -0.987512</code></pre>
+<p>→ sheet1 차트에서 주파수 응답 확인 가능</p>
+
+<h2>8. Excel 시뮬레이션 차트</h2>
+<div class="chart-section">
+  <img src="digital_filter_chart.png" alt="Digital Filter 시뮬레이션 차트 — ADC input(random) vs Output(DF_result)">
+  <p class="chart-caption">
+    파란색: ADC input (random) — 무작위 노이즈 입력<br>
+    빨간색: Output (DF_result) — LPF 적용 후 출력 (약 ~500으로 수렴)
+  </p>
+</div>
+
+</body>
+</html>
