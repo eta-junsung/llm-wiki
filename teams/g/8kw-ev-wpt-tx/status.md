@@ -314,7 +314,8 @@ P1·P2(150/300ns 단일소스) 위에 **주파수 확정값(85 kHz) 반영 + 튜
   - **범위(엄수)**: **구현만 먼저**. 실보드 파형·노이즈 검증은 **ADC 안정화 이후**.
   - **배치**: ALG(`eta_alg_iir_lpf`/`eta_alg_filter`, 순수 biquad+상태) + App(`−Vadc/2` 보정·ADC 읽기). R5F FPU → float. C2000/CLA 코드 **포팅**(복붙 아님).
   - **성격 구분**: A5 리피터 버스트 블록평균(N=16, HW 평균)·A6 SW 이동평균과 **직교** — 이건 재귀형 IIR LPF. A6 대체/보완 여부 착수 시 결정.
-  - **착수 시 확정(추론 금지)**: ① "Io"=어느 채널(I_COIL_SEN 추정) ② `−Vadc/2` 바이폴라 보정 적용 여부(I_COIL_SEN은 단극성 DC 포락선 가능성, [[fod_i_coil_observation]]) ③ 신호체인 삽입 위치. 상세 [[io_iir_lpf]] §6.
+  - **Io 채널 확정 = I_COIL_SEN** (ADC0 SOC0 AIN1, J3.28, 2026-07-01 확인).
+  - **착수 시 확정(추론 금지)**: ① `−Vadc/2` 바이폴라 보정 적용 여부(I_COIL_SEN은 단극성 DC 포락선 가능성, [[fod_i_coil_observation]]) ② 신호체인 삽입 위치. 상세 [[io_iir_lpf]] §6.
 
 - ~~**toolchain 실보드 부팅 검증**~~ — ✅ **완료(2026-06-19)**: end-to-end PASS(gui.bat → flash → 전원사이클 → deadtime 측정). 정본 [[sdk_ccs_toolchain_migration]]·[[ospi_boot_mode_strap]].
 - ~~**CCS GUI Phase 2 마이그레이션**~~ — ✅ **완료(2026-06-19)**: `.cproject` 신스택 전환, sourceEntries 중복심볼 해소, All Configurations 적용. 정본 [[syscfg_build_model]] §④⑥.

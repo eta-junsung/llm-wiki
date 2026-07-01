@@ -82,7 +82,7 @@ in0 = ADC_readResult(...) - Vadc/2      // 전류는 ±방향 모두 측정 → 
 
 ## 6. 구현 전 확정 필요 (추론으로 채우지 말 것)
 
-1. **"Io" = 어느 ADC 채널?** 후보 I_COIL_SEN(ADC0, J3.28) / I_LCC_SEN / GA_Iin_SEN. 원본 `ADC_SOC_NUMBER1`/Io → I_COIL_SEN 추정, 확정 필요. ([[adc_pinmap]])
+1. ~~"Io" = 어느 ADC 채널?~~ **✅ 확정 = I_COIL_SEN (ADC0 SOC0 AIN1, J3.28, IRQ147)** (2026-07-01 사용자 확인). 디버그 마커 `ETA_BSP_ADC_DBG_MARK_IDX 0U`와도 일치. ([[adc_pinmap]])
 2. **`−Vadc/2` 바이폴라 보정 적용 여부** — §3 참조. 단극성 DC면 재결정.
 3. **신호체인 삽입 위치 + A5/A6와의 관계**: A5(리피터 버스트 블록평균 N=16, [[am263p_adc_repeater_burst]])·A6(SW 이동평균)와 **성격 구분** — 이건 재귀형 IIR LPF. 이 IIR LPF가 A6 이동평균을 **대체**하는지 보완하는지 착수 시 결정.
 4. **검증 순서**: 필터는 **구현만 먼저**, 실보드 파형·노이즈 검증은 **ADC 안정화([[adc_noise_fft_probe]]·[[fod_i_coil_observation]]) 이후**.
