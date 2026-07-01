@@ -4,6 +4,13 @@
 
 ---
 
+## [2026-07-01] 작성 | 8kw-ev-wpt-tx 주간 업무 보고 2026-06-24~30 신설
+
+근거: 저번 업무보고(6/24, 기간 6/17~23) 이후 일주일 작업 정리. status·log·roadmap(adc)·주간보고 커밋 기록 종합.
+
+- **신설 `weekly_report_2026-06-24_30.md`**: ① 6/24 확정 4건 처리(GUI 소수점 3자리·트리거 전환+HW평균 완료, 녹화 보류) + 개발환경 정리 PR #10 ② ADC 트리거 RTI→EPWM0_SOCA + PPB N=64(PR #6) ③ PPB 누적→리피터 버스트 블록평균 N=16 전환(PR #11, 출력 85kHz 복귀) + Saleae 실측(85.03kHz·트리거당 OSINT 1회) + 변환예산 N상한~41 ④ 8kW 회로도 센서 신호체인 분석 + FFT 측정계획 ⑤ FOD 1차 관찰 착수(`6993a40`) ⑥ 전사 표준 승급(4레이어·네이밍).
+- 갱신: index.md 주간보고 엔트리 추가.
+
 ## [2026-06-30] 환원 | 8kw ADC N=16 리피터 버스트 타이밍 — Saleae 실측 인입
 
 근거: Saleae Logic2 디지털 캡처(ch0=EPWM2_A·ch1=GPIO95 OSINT ISR, 12,260주기, ≈144 ms). 코드 트리 `6993a40`에서 file:line 전건 재확인(`eta_bsp_adc.c`:60/156/160/172/196–230, `eta_bsp_adc.h`:31, `ti_drivers_open_close.c`:373/491/494/539/542, `example.syscfg`:202/224–231, `adc/v2/adc.h` sampleWindow≥16→ACQPS=15). 신규 source 페이지 + raw 증거 보관 + 플랫폼 3페이지 환원.
