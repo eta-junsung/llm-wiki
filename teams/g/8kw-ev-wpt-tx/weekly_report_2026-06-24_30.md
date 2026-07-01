@@ -92,8 +92,6 @@ project: 8kw-ev-wpt-tx
 
 무선충전 이물질 감지(Foreign Object Detection) 선행 관찰로, EOC ISR에서 **디버그 GPIO(GPIO95, J4.31)** 를 토글해 I_COIL_SEN 버스트 완료 시각을 스코프로 관측하는 마커를 넣었다. 코일 전류 노이즈/안정성 판별의 첫 단계.
 
-⚠️ `eta_hal_gpio`의 다른 디버그 루프도 GPIO95를 써서 잠복 충돌 — 후속 정리 필요.
-
 ---
 
 ## 잔여 항목
@@ -104,8 +102,6 @@ project: 8kw-ev-wpt-tx
 | ADC 노이즈 FFT (백색 vs 스위칭 상관) | FOD 관찰에 포함 | 최종 N / 트리거 위상 결정 |
 | SW 이동평균 필터 (A6) | 착수 전 | `eta_alg_filter` 신설, ISR write 방식 먼저 |
 | ADC 실보드 교차검증 (A4) | 착수 전 | 멀티미터 기준값으로 6채널 오차 정량화 |
-| PWM P3 보호 (trip-zone) | 착수 전 | trip-zone 입력 핀·보호 신호 스펙 확보 필요 |
-| FOD GPIO95 잠복 충돌 정리 | 잔여 | 디버그 루프와 마커의 핀 중복 해소 |
 
 ---
 
@@ -124,4 +120,3 @@ project: 8kw-ev-wpt-tx
 
 1. **SW 이동평균 필터(A6)** — HW 버스트 평균 위에 SW ring buffer 이동평균을 얹어 스파이크+노이즈 동시 억제.
 2. **ADC A4 실보드 교차검증** — 멀티미터 기준값으로 스케일링 정확도 확인.
-3. (병행) **PWM P3 보호(trip-zone)** 착수 검토.
