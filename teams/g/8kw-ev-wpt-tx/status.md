@@ -304,6 +304,13 @@ P1·P2(150/300ns 단일소스) 위에 **주파수 확정값(85 kHz) 반영 + 튜
    - **변환시간 예산 정밀 산정(2026-06-29)**: 1회 직렬 cadence ≈ 285 ns(tSH 80 ns + tEOC 205 ns, Table 7-123 PRESCALE=6), 11.76 µs 주기당 ~**41 변환** 수용 → 리피터 N 상한 ~41(단일채널)/합≤41(ADC1). 종전 ~37(315 ns 보수치)에서 상향. **저-N(≤~41) 리피터는 A5 후보로 살아있음**. 전부 정적 산정·라이브 실측 미수행. 정본 [[am263p_adc_instance_allocation]] §변환시간 예산 & 리피터 N 상한.
 4. **GUI 화면 녹화 기능 (순위 4, nice-to-have)**: GUI 라이브 화면 녹화. **최저 우선순위 — 있으면 좋고 없으면 말고.** ([[pc_monitor_gui]])
 
+### 후속 작업 (2026-07-01 미팅, 나중에)
+
+- **순간 피크 억제 디지털 필터 도입 (deferred)**: ADC 신호의 **순간 피크(스파이크)를 눌러주는 디지털 필터** 도입. 
+  - **필터 수식은 전달받을 예정** — 아직 미입수(블로커).
+  - **필터 위치**(신호체인 어디에 삽입할지)는 **작업 진입 시 결정** — 지금 정하지 않음.
+  - ADC 필터 트랙(A5 리피터 버스트 블록평균 / A6 SW 이동평균)과 인접하나 **성격 구분**: A5/A6은 노이즈 평균화, 이건 순간 피크 클램프/억제. 작업 진입 시 A6 `eta_alg_filter`(ALG)와의 배치·순서 관계 정리 필요. 로드맵 [[adc]].
+
 - ~~**toolchain 실보드 부팅 검증**~~ — ✅ **완료(2026-06-19)**: end-to-end PASS(gui.bat → flash → 전원사이클 → deadtime 측정). 정본 [[sdk_ccs_toolchain_migration]]·[[ospi_boot_mode_strap]].
 - ~~**CCS GUI Phase 2 마이그레이션**~~ — ✅ **완료(2026-06-19)**: `.cproject` 신스택 전환, sourceEntries 중복심볼 해소, All Configurations 적용. 정본 [[syscfg_build_model]] §④⑥.
 - **.codex/ gitignore 추가 검토**: commit 5a5fa44에서 제외됨. `.gitignore`에 `/.codex/` 추가 여부 결정 필요.
