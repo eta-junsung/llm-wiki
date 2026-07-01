@@ -4,6 +4,13 @@
 
 ---
 
+## [2026-07-01] 환원 | 전사 펌웨어 컨벤션 skill(eta-firmware-conventions) 플러그인 배포 기록
+
+- 정본 [[firmware_naming_conventions]]·[[firmware_layering]]에서 추출한 Claude skill **`eta-firmware-conventions`**를 플러그인으로 배포(`eta/eta-ai-tools/eta-firmware-conventions`: `.claude-plugin/plugin.json` + `skills/eta-firmware-conventions/{SKILL.md, references/naming.md, references/layering.md}`). 네이밍 + BSP/HAL/ALG/App 배치를 작성·리뷰 양방향으로 안내. 범위 제외 = git workflow.
+- **갱신**: [[firmware_naming_conventions]] — 종전 "추후 skill 승급 예정" → **배포 완료**로 정정 + 배포 노트. [[firmware_layering]] — 배포 노트 신설. [[index]] — 두 항목에 skill 배포 clause.
+- **동기화 규약**: 위키 두 페이지가 정본 단일 소스, skill은 추출본(정본→skill 단방향 재동기화).
+- ⚠️ lint: SKILL.md "출처" 경로가 타 머신 기준(`/Users/jun/eta/wiki/...`) — 재동기화 시 실제 경로 확인 필요.
+
 ## [2026-07-01] ingest | g팀 8kw Io 2차 IIR 저역통과 필터(io_iir_lpf) 스펙 수령
 
 - 미팅 결과: **Io ADC 스위칭 노이즈 제거용 2차 IIR biquad 저역통과 필터** 구현 결정. 설계자 스펙 3종 수령.

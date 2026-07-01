@@ -6,11 +6,13 @@ date: 2026-06-30
 
 # 펌웨어 네이밍 컨벤션 표준 (전사 공통)
 
-모든 팀·프로젝트 공통. eta 펌웨어가 앞으로 **모든 저장소**에 적용하는 C 식별자 네이밍 규약. 단일 프로젝트 결정이 아니라 회사 표준이다. (추후 Claude skill로 승급 예정 — 이 페이지가 런타임 단일 소스.)
+모든 팀·프로젝트 공통. eta 펌웨어가 앞으로 **모든 저장소**에 적용하는 C 식별자 네이밍 규약. 단일 프로젝트 결정이 아니라 회사 표준이다.
 
 > **한 줄 정의: MISRA-필수 룰을 하드룰로 깔고, 그 위에 현대 임베디드 합의(snake·모듈접두사·SCREAMING)를 얹되, BARR-C 헝가리안은 의식적으로 빼고 SDK·POSIX 충돌은 문서화된 편차로 다룬다.**
 
 선례·추출원: g-8kw-ev-wpt-tx (`src/{bsp,hal,alg,app}/`, PR #5 레이어링 이후 de-facto). 레이어드 아키텍처 맥락은 [[firmware_layering]].
+
+> **전사 skill 배포 (2026-07-01, 종전 "승급 예정" → 완료)**: 이 페이지 + [[firmware_layering]]에서 추출한 Claude skill **`eta-firmware-conventions`**가 플러그인으로 배포됨 — `eta/eta-ai-tools/eta-firmware-conventions`(`.claude-plugin/plugin.json` + `skills/eta-firmware-conventions/{SKILL.md, references/naming.md, references/layering.md}`). 네이밍 + BSP/HAL/ALG/App 배치를 **작성 가이드·리뷰 점검** 양방향으로 안내. MISRA 하드룰(R1~R4)·편차(D1~D3, 특히 `_t`) 반영. 범위 제외 = git workflow([[firmware_git_workflow]]). **이 위키 두 페이지가 정본 단일 소스** — 표준이 바뀌면 SKILL.md·references를 재동기화한다(정본→skill 단방향). ⚠️ SKILL.md "출처" 경로가 타 머신 기준(`/Users/jun/eta/wiki/...`)이라 재동기화 시 실제 경로(`/home/eta-junsung/eta/wiki/...`) 확인 필요.
 
 ---
 

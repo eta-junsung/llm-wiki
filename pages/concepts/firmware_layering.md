@@ -12,6 +12,8 @@ date: 2026-06-30
 
 선례·추출원: g-8kw-ev-wpt-tx 풀 4레이어 적용([[firmware_layering_8kw]], PR #5). 이 표준은 그 구조를 플랫폼 무관하게 일반화한 것.
 
+> **전사 skill 배포 (2026-07-01)**: 이 페이지 + [[firmware_naming_conventions]]에서 추출한 Claude skill **`eta-firmware-conventions`**가 플러그인으로 배포됨 — `eta/eta-ai-tools/eta-firmware-conventions`(`.claude-plugin/plugin.json` + `skills/eta-firmware-conventions/{SKILL.md, references/layering.md, references/naming.md}`). 펌웨어 C **작성**(레이어 배치→네이밍 순 안내)·**리뷰**(규약 위반 점검)를 양방향으로 수행. 범위 제외 = git workflow([[firmware_git_workflow]]). **이 위키 두 페이지가 정본 단일 소스** — 표준이 바뀌면 SKILL.md·references를 재동기화한다(정본→skill 단방향). ⚠️ SKILL.md "출처" 경로가 타 머신 기준(`/Users/jun/eta/wiki/...`)이라 재동기화 시 실제 경로(`/home/eta-junsung/eta/wiki/...`) 확인 필요.
+
 ---
 
 ## 0. 왜 레이어드인가 (목적)
