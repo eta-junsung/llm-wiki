@@ -1,4 +1,5 @@
-.claude/settings.local.json
+# Claude Code — 로컬 설정·플러그인 활성화 전체 무시 (이 머신에서만 유효)
+.claude/
 
 # Obsidian — 개인 vault 설정 전체 무시
 .obsidian/
