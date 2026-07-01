@@ -4,6 +4,19 @@
 
 ---
 
+## [2026-06-30] 환원 | 8kw ADC N=16 리피터 버스트 타이밍 — Saleae 실측 인입
+
+근거: Saleae Logic2 디지털 캡처(ch0=EPWM2_A·ch1=GPIO95 OSINT ISR, 12,260주기, ≈144 ms). 코드 트리 `6993a40`에서 file:line 전건 재확인(`eta_bsp_adc.c`:60/156/160/172/196–230, `eta_bsp_adc.h`:31, `ti_drivers_open_close.c`:373/491/494/539/542, `example.syscfg`:202/224–231, `adc/v2/adc.h` sampleWindow≥16→ACQPS=15). 신규 source 페이지 + raw 증거 보관 + 플랫폼 3페이지 환원.
+
+- **신규 [[adc_repeater_burst_timing]]** (8kw source) + 원본 CSV `raw/adc_repeater_burst_timing/digital.csv`(764K) 보관. 측정(사실)/역산(추론 상한) 라벨 분리.
+- **사실 (측정)**: 트리거당 OSINT 정확히 1회=85.03 kHz(12,260/12,260, 누락·중복 0)→**리피터 버스트 실증**(분산 누적이면 ≈5.3 kHz여야 함). 트리거(EPWM0 ZERO)→버스트끝(ISR 진입)=3.12 µs(주기 26.5%), ISR 0.304 µs, EPWM2_A 상승→GPIO95 상승≈동시(+5 ns).
+- **추론 (상한)**: 실효 cadence ≤195 ns/변환(IRQ 진입지연 포함 상한)<정적 285 ns. ADC1(32변환) ~53% [추론, 미측정].
+- **★ stale 정정**: [[am263p_adc_instance_allocation]] "현 채택=PPB 누적/8kw N=64(LOG2=6)" → **리피터 버스트 N=16(LOG2=4) 실채택**으로 정정(측정이 실증). 정적 285 ns/N≤41 모델은 보수 상한으로 병기 유지.
+- **빈자리 충족**: [[am263p_adc_ppb_averaging]] §6 "트리거당 N회=OSINT 레이트 동시 확인" 충족(ADC0). [[am263p_adc_instance_allocation]] "라이브 실측 미수행"→1차 인입.
+- **미확정 유지(봉합 안 함)**: IRQ 진입지연 분해·레지스터 필드 readback(NSEL/LIMIT/SHIFT/COUNT)·ADC1 OSINT 횟수·마지막변환 마감공식.
+- **방법론 메모**: 1차 판독 "E2 상승→G95 상승 6.284 µs"는 하강엣지 기준 착오(E2 하강→G95 상승=6.285 µs로 재현). 향후 기준 엣지 확인.
+- 갱신: [[am263p_adc_repeater_burst]] §3·§6, [[am263p_adc_instance_allocation]] 변환예산·빈자리, [[am263p_adc_ppb_averaging]] §6·§5·§7·§8, index.md, 세 페이지 frontmatter date.
+
 ## [2026-06-30] 환원 | 8kw "ADC 필터 전환"(2026-06-29) 핸드오프 — stale 교정 + 신규 커밋 반영
 
 근거: 삭제된 branch `docs/adc-filter-handoff`/handoff.md(2026-06-29 스냅샷) 전문 + 현재 코드(`src/bsp/eta_bsp_adc.{c,h}`, `example.syscfg`) 대조. 핸드오프 발견 ①~⑥(직교성·SAR 합예산 비대칭·N=64≠리피터기각·채널배치·이중경로·어긋남)은 **PR#11 머지 후속 환원(`d41a5ce`)에서 이미 플랫폼 페이지에 반영**됨([[am263p_adc_repeater_burst]]·[[am263p_adc_instance_allocation]]) — 중복 환원 안 함. 이번엔 **stale 교정 + 미반영 신규 커밋**만.
