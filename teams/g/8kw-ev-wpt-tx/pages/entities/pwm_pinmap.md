@@ -78,4 +78,3 @@ date: 2026-06-12
 - ✅ **핀맵·채널 4핀 전부 확정·실측**(레그1 J4.39/40=EPWM2_A/B, 레그2 J6.52=EPWM4_A·J6.51=EPWM7_B). 레그2 두 모듈(EPWM4+EPWM7) SYNC dead-time 구현·검증 완료 — 의도된 현 설계, 향후 단일 모듈 개선 대상(§향후 보드 개선). SysConfig는 핀별 hard `$assign`.
 - ✅ 스위칭 주파수 **85 kHz 고정 확정**(2026-06-10). dead-time 100~400 ns 조정·실험 후 고정.
 - **게이트 드라이버 입력 극성**: **active-high 가정으로 4핀 검증 통과(상보·dead-time·shoot-through 0 정상) → 가정 실보드 실증.** 단 회로도 원본으로 극성 못 박은 상태 — "가정 실증, 회로도 미확인". shutdown 입력은 미확인 ([[am263p_iomux_force_io_enable]]).
-- 보호(trip) 신호 소스 — 과전류/과전압 시 PWM 차단 입력(ADC 비교/외부 trip 핀).

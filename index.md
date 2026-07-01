@@ -168,7 +168,7 @@
 
 - [roadmap.md](teams/g/8kw-ev-wpt-tx/roadmap.md) — 프로젝트 로드맵(목표·작업 호 인덱스·현재 위치)
 - [roadmaps/adc.md](teams/g/8kw-ev-wpt-tx/roadmaps/adc.md) — `adc` 작업 호(A0~A4). eta 보드 J3 6채널 ADC 브링업, 신호별 스케일링 포함. A2 ✓ 6채널 실보드 검증(2026-06-09 c512e3b). 다음 A3 스케일링(스펙 대기)
-- [roadmaps/pwm.md](teams/g/8kw-ev-wpt-tx/roadmaps/pwm.md) — `pwm` 작업 호(P0~P4). EPWM 전력제어. 풀브리지 4채널(레그1=EPWM2, 레그2=EPWM4+7 두 모듈), dead-time 100~400ns build-per-change(실험후 고정), 주파수 85kHz 고정, P4서 ADC 트리거 RTI→PWM 전환. **P1 ✓ 4/4**(HS1/LS1/HS2/LS2 실측·shoot-through 0, `6e6b342`) **+ P2 완전 완료**(단일소스 `8046744`, 85kHz `d01fc0a`, **EPWM0 fan-out + isoform `4014901` — 비대칭 ~22ns→±2ns, 4-DT sweep 100/150/250/400ns 전 항목 PASS**). 다음 P3 보호
+- [roadmaps/pwm.md](teams/g/8kw-ev-wpt-tx/roadmaps/pwm.md) — `pwm` 작업 호(P0~P2·P4). EPWM 전력제어. 풀브리지 4채널(레그1=EPWM2, 레그2=EPWM4+7 두 모듈), dead-time 100~400ns build-per-change(실험후 고정), 주파수 85kHz 고정, P4서 ADC 트리거 RTI→PWM 전환. **P1 ✓ 4/4**(HS1/LS1/HS2/LS2 실측·shoot-through 0, `6e6b342`) **+ P2 완전 완료**(단일소스 `8046744`, 85kHz `d01fc0a`, **EPWM0 fan-out + isoform `4014901` — 비대칭 ~22ns→±2ns, 4-DT sweep 100/150/250/400ns 전 항목 PASS**). 다음 P4 제어루프
 - [status.md](teams/g/8kw-ev-wpt-tx/status.md) — 기능별 구현 현황표·다음 시작점 (파이프라인이 커밋마다 갱신)
 
 ### Concepts

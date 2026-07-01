@@ -12,7 +12,7 @@ date: 2026-06-11
 
 ## 0. 한 줄 요약
 
-LP-AM263P의 **EPWM2·EPWM4·EPWM7**(레그1=EPWM2 / 레그2=EPWM4+EPWM7)로 8kW WPT 송신 **풀브리지 인버터**(4스위치, 2레그)를 상보 PWM + dead-time으로 구동한다. 기본 출력 → dead-time 튜닝 → 보호(trip-zone) → ADC 피드백 제어 순.
+LP-AM263P의 **EPWM2·EPWM4·EPWM7**(레그1=EPWM2 / 레그2=EPWM4+EPWM7)로 8kW WPT 송신 **풀브리지 인버터**(4스위치, 2레그)를 상보 PWM + dead-time으로 구동한다. 기본 출력 → dead-time 튜닝 → ADC 피드백 제어 순.
 
 ---
 
@@ -45,19 +45,18 @@ LP-AM263P의 **EPWM2·EPWM4·EPWM7**(레그1=EPWM2 / 레그2=EPWM4+EPWM7)로 8kW
 
 ---
 
-## 2. 마일스톤 호 (P0~P4)
+## 2. 마일스톤 호 (P0~P2 · P4)
 
 | 단계 | 범위 | 완료 기준 | 상태 |
 |------|------|---------|------|
-| **P0** | PWM 요구사항·핀맵 확정 | 핀맵·토폴로지·채널·dead-time 방식 확정 + EPWM 핀 배정표 | △ (핀맵·토폴로지·dead-time·4핀 채널·**주파수 85kHz 구현·실측 확정**·게이트 극성 active-high 실증 / 보호신호 소스·극성 회로도 확인 미정) |
+| **P0** | PWM 요구사항·핀맵 확정 | 핀맵·토폴로지·채널·dead-time 방식 확정 + EPWM 핀 배정표 | △ (핀맵·토폴로지·dead-time·4핀 채널·**주파수 85kHz 구현·실측 확정**·게이트 극성 active-high 실증 / 극성 회로도 확인 미정) |
 | **P1** | 기본 PWM 출력 | EPWM2/4/7 SysConfig 설정 → 4채널 PWM 실보드 출력, 오실로로 주파수·dead-time(~150ns) 검증 | ✓ **완료 (4/4) — HS1/LS1/HS2/LS2 전부 실보드 검증** (커밋 `6e6b342` branch pwm) |
 | **P2** | dead-time 튜닝·레그 정합 + 주파수 확정 + 동형화 | 레그1(EPWM2 dead-band)·레그2(EPWM4+7 모듈간 동기) dead-time 정합, build-per-change 스윕, **주파수 85 kHz 고정**, 레그1·레그2 동형(4에지 ≤2 ns, shoot-through 0) | ✓ **완료** — 단일소스 통일·150/300ns(`8046744`) + **85 kHz 고정·100/150/400ns 스윕 4ch PASS·config 분리(`d01fc0a`)**. **EPWM0 fan-out + 동형화(`4014901`, branch pwm-deadtime) — 모듈간 스큐 ~22 ns→±2 ns, 100/150/250/400 ns 4점 전 항목 PASS**. dead-time **최종값**은 전력단 브링업 때 확정(인프라는 완료) |
-| **P3** | 보호 (trip-zone) | 과전류/과전압 시 PWM 즉시 차단 — ADC/비교기/외부 trip 입력 연동, 실보드 차단 검증 | ✗ |
 | **P4** | 제어 루프 연동 | ADC 피드백(전류·전압) → duty/위상 갱신. **이때 ADC SOC 트리거를 RTI→EPWM으로 전환** | ✗ |
 
 상태 기호: `✓` 구현+검증 / `△` 구현됨·미검증 / `?` 추가 정보 필요 / `✗` 미구현
 
-> **P0 대부분 해소(2026-06-09~10)**: 핀맵 4핀 확정·실측([[pwm_pinmap]])·풀브리지 3인스턴스(EPWM2/4/7)·dead-time 방식(build-per-change, 100~400ns 조정)·UART5 무충돌·게이트 극성 active-high 실증·**주파수 85kHz 확정**. 잔여 = 보호신호 소스·게이트 극성 회로도 확인. **레그2 두 모듈 SYNC dead-time은 P1에서 해결(shoot-through 0).**
+> **P0 대부분 해소(2026-06-09~10)**: 핀맵 4핀 확정·실측([[pwm_pinmap]])·풀브리지 3인스턴스(EPWM2/4/7)·dead-time 방식(build-per-change, 100~400ns 조정)·UART5 무충돌·게이트 극성 active-high 실증·**주파수 85kHz 확정**. 잔여 = 게이트 극성 회로도 확인. **레그2 두 모듈 SYNC dead-time은 P1에서 해결(shoot-through 0).**
 
 ---
 
@@ -68,7 +67,7 @@ LP-AM263P의 **EPWM2·EPWM4·EPWM7**(레그1=EPWM2 / 레그2=EPWM4+EPWM7)로 8kW
 - ✅ 핀맵·토폴로지·채널(4핀)·dead-time 방식 확정 → [[pwm_pinmap]] 정본. UART5 무충돌 확인.
 - ✅ **게이트 극성 active-high 가정 실보드 실증**(4핀 상보·dead-time·shoot-through 0 정상) — 단 회로도 원본 미확인.
 - ✅ **스위칭 주파수 85 kHz 고정·구현·실측 확정**(`d01fc0a`, 85.032 kHz 측정). dead-time 100~400 ns 조정·실험 후 최종값 고정(현재 150 ns 베이스라인).
-- 잔여: 보호(trip) 신호 소스, 게이트 극성 회로도 확인·shutdown 입력.
+- 잔여: 게이트 극성 회로도 확인·shutdown 입력.
 - 물리 인스턴스/핀은 처음부터 hard `$assign`([[am263p_syscfg_soft_vs_hard_assign]]) — ADC soft 재셔플 함정 회피.
 
 ### P1 — 기본 PWM 출력 (✓ 완료 4/4)
@@ -206,11 +205,6 @@ LP-AM263P의 **EPWM2·EPWM4·EPWM7**(레그1=EPWM2 / 레그2=EPWM4+EPWM7)로 8kW
 - **high-time 완전 일치**: 4채널 median 동일. high = 5880 − DT_ns 공식 정확 추종.
 - **레그1 회귀 없음**: HS1→LS1 / LS1→HS1 모두 명목값 정확 유지.
 
-### P3 — 보호 (trip-zone)
-
-- EPWM trip-zone(TZ)로 과전류/과전압 즉시 차단. ADC 한계비교/내부 비교기/외부 trip 핀 소스 결정(P0 잔여).
-- (개념 참조: oled [[trip_zone]] — BKIN→PWM 차단 패턴, 개념만.)
-
 ### P4 — 제어 루프 연동 + ADC 트리거 전환
 
 - ADC 피드백(I_LCC/I_COIL/GA_Iin/GA_Vin) → duty 또는 위상 갱신.
@@ -229,7 +223,7 @@ LP-AM263P의 **EPWM2·EPWM4·EPWM7**(레그1=EPWM2 / 레그2=EPWM4+EPWM7)로 8kW
 
 ## 4. 현재 위치
 
-→ [[status]] 단일 소스. **P1 완료 4/4**(4핀 실보드 검증) **+ P2 완전 완료** — 단일소스 통일·스윕(`8046744`), 85 kHz 고정·100/150/400ns PASS·config 분리(`d01fc0a`), **EPWM0 fan-out + 레그2 동형화(`4014901`) — 4-DT sweep 전 항목 PASS, 비대칭 ~22 ns→±2 ns, 동형 완전 확인**. 다음 = P3 보호(trip-zone) / dead-time 최종값 고정(전력단 브링업) / 보호신호·게이트 극성 회로도 스펙 확보 / P4 제어루프.
+→ [[status]] 단일 소스. **P1 완료 4/4**(4핀 실보드 검증) **+ P2 완전 완료** — 단일소스 통일·스윕(`8046744`), 85 kHz 고정·100/150/400ns PASS·config 분리(`d01fc0a`), **EPWM0 fan-out + 레그2 동형화(`4014901`) — 4-DT sweep 전 항목 PASS, 비대칭 ~22 ns→±2 ns, 동형 완전 확인**. 다음 = dead-time 최종값 고정(전력단 브링업) / 게이트 극성 회로도 확인 / P4 제어루프.
 
 ---
 
@@ -238,7 +232,6 @@ LP-AM263P의 **EPWM2·EPWM4·EPWM7**(레그1=EPWM2 / 레그2=EPWM4+EPWM7)로 8kW
 - ~~레그2 두 모듈(EPWM4+EPWM7) 동기 dead-time~~ — **해결**(구 토폴로지 EPWM4→EPWM7 SYNC + CMPB, P1). **추가 해결**: EPWM0 fan-out + 동형화(`4014901`) — 비대칭 ~22 ns→±2 ns. **향후 보드 리비전 시 한 모듈로 묶도록 수정 요청 예정**([[pwm_pinmap]] §향후 보드 개선).
 - ~~주파수 확정값 미정~~ — **확정: 85 kHz 고정·구현·실측(`d01fc0a`, 85.032 kHz)**.
 - **dead-time 최종값 미고정** — 인프라(100~400 ns 스윕)·config 분리 완료, 현재 150 ns 베이스라인. 전력단 브링업 때 확정.
-- **보호(trip) 신호 소스 미정** — P3 선결(과전류/과전압 입력).
 - **게이트 극성 회로도 미확인** — active-high는 실보드 실증됨, 회로도 원본 확인은 잔여.
 - ~~핀맵 UG 불일치~~ — **해소**(4핀 UG·실측 확정, [[pwm_pinmap]]).
 - ~~UART5 핀 충돌~~ — **해소**(UART5=EPWM15와 무관).

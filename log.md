@@ -4,6 +4,15 @@
 
 ---
 
+## [2026-07-01] 결정 | 8kw PWM P3 보호(trip-zone) 마일스톤 드롭 (프로젝트 전체)
+
+근거: 사용자 결정 — PWM P3 보호(trip-zone)는 아예 뺄 수 있는 작업. 과전류·과전압 보호는 HW 비교기(TLV3231+SN74HCS21 인터록→GD_EN)가 담당하므로 펌웨어 trip-zone 불요. living-doc 전체에서 제거, 과거 주간보고 2건(스냅샷)은 보존.
+
+- **PWM 로드맵 호 재구성**: `roadmaps/pwm.md` 마일스톤 표에서 P3 행·P3 섹션·"보호(trip) 신호 소스" 블로커 삭제. 호 표기 `P0~P4`→**`P0~P2·P4`**(P4=제어루프 유지, 번호 재배열은 cross-doc 리스크로 미실시 — P3 슬롯만 비움). 기본 출력→dead-time→ADC 제어 순으로 정정.
+- **living-doc 전파 제거**: [[roadmap]](pwm 행·현재위치 2곳)·[[status]](다음작업 제목·활성트랙·구현현황·P0~P4 라벨)·[[team_briefing_8kw]](ASCII 호·보고포인트·현황)·[[firmware_layering_8kw]](eta_alg_control 진입조건 P3→P4)·[[pwm_pinmap]](trip 신호 소스 P0잔여)·index.md(pwm 카탈로그). 모든 "다음=P3 보호" 포인터를 실제 다음(dead-time 최종값/게이트 극성 회로도/P4 제어루프)으로 교체.
+- **보존**: [[board_schematic_v1_0e00]]의 HW 보호신호(비교기→GD_EN 인터록)는 회로도 사실이라 유지. [[status]] §repeater 미채택 근거의 "과전류·과전압 보호=HW 비교기" 서술도 ADC 설계 근거라 유지. 과거 주간보고 2건 불변.
+- **GPIO95 잠복충돌 노트**: 사용자 결정으로 주간보고에서만 제거, living-doc([[status]]·[[fod_i_coil_observation]]·[[adc_noise_fft_probe]])엔 다음 FOD 작업 주의사항으로 유지.
+
 ## [2026-07-01] 결정 | 8kw FOD 실행순서 확정 — 안정화 선행
 
 근거: 사용자 결정 — 다음 작업 순서를 ① I_COIL_SEN 노이즈 측정 → ② N/위상 튜닝 안정화 → ③ 안정화 후 FOD(이물) 변화 관찰로 확정. FOD 문서의 "정상·이물 동시캡처 후 필요시 안정화" 흐름을 σ 선감소로 재배열(Δ/σ 유리 + 튜닝을 이물 변수 없이 수행).
