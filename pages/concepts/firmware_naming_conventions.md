@@ -51,7 +51,7 @@ date: 2026-06-30
 
 **동사 어휘 (이 외 신규는 합의 후 추가)**: `init`/`deinit` · `read`/`write` · `get`/`set` · `is`/`has` · `clear` · `request` · `loop` · `isr`
 
-**약어 화이트리스트 (이 외 약어 금지 — 늘리려면 이 목록을 편집)**: `adc` `pwm` `gpio` `uart` `dma` · `ch` `pkt` `idx` `cnt` `len` `req` `en` · `tx`/`rx` · `hwi` `soc` `ppb` `eoc` `osint` · `sen` `vin` `iin`
+**약어 화이트리스트 (이 외 약어 금지 — 늘리려면 이 목록을 편집)**: `adc` `pwm` `gpio` `uart` `dma` · `ch` `pkt` `idx` `cnt` `len` `req` `en` · `tx`/`rx` · `hwi` `soc` `ppb` `eoc` `osint` · `sen` `vin` `iin` · `comm_st`(communication state — c팀 oled_tv 도메인 표준어, `COMM_ST_*`·`comm_state_monitoring` 참조)
 
 ---
 

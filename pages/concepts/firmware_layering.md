@@ -83,10 +83,12 @@ ALG ──→ (없음: 하드웨어 독립)
 | 프로젝트 | 적용 형태 | 비고 |
 |----------|-----------|------|
 | **g-8kw-ev-wpt-tx** | ✓ 풀 4레이어 (레퍼런스) | `src/{bsp,hal,alg,app}/`. 이 표준의 추출원 → [[firmware_layering_8kw]] |
-| **c-nRF52 (02/03)** | ◐ 2레이어 (App + Driver) | `eta_protocol` → {`eta_esb`,`eta_spi`,`eta_clock`,`eta_gpio`} 단방향 — 불변식 준수, ALG 분리는 미적용. [[nrf52_firmware_conventions]] |
-| **c-STM32 (01)** | ◐ 부분 | `app_protocol` 응용계층 적출·저수준 분리. 4레이어로의 정합은 기회적. [[app_protocol_module]] |
+| **c-02_RX_esb** | ◐→▶ 4레이어 전환 진행중 | `feature/layering-02`, SES 빌드 통과(2026-07-01)·실보드 검증 대기. _shared 우산-shim 분할 후 02+_shared 함께 검증 예정. [[nrf52_firmware_conventions]] |
+| **c-03_TX_esb** | ◐ 2레이어 (App + Driver) | `eta_protocol` → {`eta_esb`,`eta_spi`,`eta_clock`,`eta_gpio`} 단방향 — 불변식 준수. 02 완료 후 미러 예정. |
+| **c-04_TX_control** | ◐ 부분 | 01 골격 복사·단순화(`07fbf1f`). _shared 분할 후 수렴 예정. 실보드 검증 미수행. |
+| **c-01_RX_control** | ◐ 부분 | `app_protocol` 응용계층 적출·저수준 분리. _shared 우산 shim 위 유지(4레이어 정합은 별도 결정). [[app_protocol_module]] |
 
-신규 펌웨어는 4레이어(또는 축소형 §4)를 목표로, 기존은 기회적 수렴. 강제 리팩토링 아님.
+신규 펌웨어는 4레이어(또는 축소형 §4)를 목표로, 기존은 기회적 수렴. c팀은 g-8kw 레퍼런스 형태로 적극 수렴 중(기회적 기본값 아님). 적용 순서: 02→_shared→03→04→01 검토.
 
 ---
 

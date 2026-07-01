@@ -53,6 +53,22 @@ g_esb_tx_full_cnt = 0;
 
 `NRF_LOG_INIT` 호출이 보인다고 해서 로그 출력이 어딘가 나간다는 의미가 아니다. 활성화된 출력 채널은 01 UART5 바이너리([[pc_uart_gui]])와 02 텍스트 모니터([[comm_state_monitoring]] "모니터링 채널 분리") 뿐이다.
 
+## nRF52 BSP / HAL 레이어 경계 원칙
+
+nRF5 SDK 환경에서 BSP와 HAL의 실질적 경계선:
+
+| 레이어 | 포함 | 예시 |
+|--------|------|------|
+| **BSP** | 원시 레지스터 직접 접근, 핀먹스(IOMUX), HW 1회 init | `NRF_CLOCK` 레지스터·`nrf_gpio_cfg_output()` 핀설정·클럭 소스 선택 |
+| **HAL** | SDK 드라이버 래핑 (init 포함), 런타임 read/write | `nrf_drv_spis_init()`, `nrf_esb_init()`, `app_uart_init()`, `app_timer_create()` |
+
+**SDK 드라이버 모듈은 HAL에 통째로 두어야 하는 이유**: SDK 드라이버 핸들(SPIS 인스턴스·ESB 구조체 등)은 `init`과 런타임 ISR이 공유한다. 이 핸들을 BSP와 HAL로 나누면 init 쪽(BSP)과 런타임 쪽(HAL)이 서로 다른 인스턴스를 보는 누수가 생긴다. → SDK 인스턴스 단위로 한 모듈에 묶어야 안전.
+
+실제 적용(c-oled_tv 02/03):
+- `eta_spi`(`nrf_drv_spis` 래핑) — HAL. SPIS 핸들·buffers·ISR 콜백 모두 이 파일 안.
+- `eta_esb`(`nrf_esb` 래핑) — HAL. ESB 설정 구조체·핸들·`esb_event_handler` ISR 이 파일 안.
+- `eta_clock`(`NRF_CLOCK` 레지스터 직접 설정 + `app_timer`) — BSP에 가까운 HAL(경계 흐림 허용).
+
 ## 모듈 의존 방향 — protocol → {esb, spi, clock, gpio} 단방향
 
 응용 계층 `eta_protocol`이 저수준 드라이버를 호출한다. 역방향 호출 금지.

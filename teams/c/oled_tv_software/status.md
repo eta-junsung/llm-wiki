@@ -83,7 +83,7 @@ date: 2026-06-26
 | 02_RX_ble 모듈 분리 리팩토링 | ✓ | `b92835c`(2026-06-11) eta_ 접두사 전환·실보드 검증 완료. 모듈 구조: eta_gpio/clock/uart/spi/esb(저수준) + eta_protocol(응용 계층). 잔여 점검: `ADD_SPI` 전역 전파 확인(빌드·동작 정상이나 TU 전파 범위 미확인). ([[app_protocol_module]], [[ses_build_conventions]], [[nrf52_module_naming]]) |
 | 03_TX_ble 모듈 분리 리팩토링 | ✓ | `1d7f71a`(2026-06-11) `emBuild` 에러 0·경고 0. **실보드 검증 완료 (2026-06-19)**: ESB PTX 동작·P0.17/18 오실로 확인. ([[tx_ble_module]], [[nrf52_module_naming]], [[nrf52_firmware_conventions]]) |
 | 03_TX_ble SPI_Loop SPIS 재작성 | ✓ | `e706b53`(2026-06-11) 기존 SPIM 코드 폐기 → 02 거울 SPIS(`nrf_drv_spis`, MODE_2, PIN_SPI_* 동일) 전면 재작성. `g_last_ack_by_hdr[3]` round-robin MISO 서빙. **실보드 검증 완료 (2026-06-19)**. ([[roadmaps/04-tx-control-dummy]] §4) |
-| 04_tx_control 더미 프로젝트 | △ | `07fbf1f`(2026-06-11) 01_RX_control 복제 → ADC/PWM/CAN/DAC 제거, pkt_print 수신 모니터 추가. SPI2+UART5 잔존. **.ioc 파일명 `RX_control.ioc` 잔류. STM32CubeIDE Ctrl+B 빌드 미수행**. ([[roadmaps/04-tx-control-dummy]]) |
+| 04_tx_control 더미 프로젝트 | △ | `07fbf1f`(2026-06-11) 01_RX_control 복제 → ADC/PWM/CAN/DAC 제거, pkt_print 수신 모니터 추가. SPI2+USART2 잔존(Nucleo RBT6 포팅 `47e46db`). **.ioc `TX_control.ioc`(개명 완료·N1 확인). STM32CubeIDE Ctrl+B 빌드 미수행**. ([[roadmaps/04-tx-control-dummy]]) |
 | 릴레이 양방향 미연결 견고화 | △ | `e72b86e`(TX→RX 03 seed) + `6fc8b92`(RX→TX 02 seed, 2026-06-12) + **미커밋**(TX→RX 02 `esb_pkt` seed, 2026-06-18). 02 `esb_pkt`(ESB수신→SPI forward) seed 누락이 "01+02만 구동 시 SPI DOWN 오판" 버그 원인 — `eta_protocol.c:227-232` seed 추가, DK 보드 검증 통과(01+02 only, SPI UP/ESB DOWN). **커스텀 보드 실보드 미검증**. ([[app_protocol_module]] "02 esb_pkt seed 누락", [[comm_state_monitoring]] "구조적 결합 정밀 메커니즘") |
 | BLE(ESB)_Comm_St presence 판정 | ✓ | `EsbCommSt_Loop()`가 수신 delta(02=`esb_rx_cnt`, 03=`esb_ack_cnt`)로 `ble_comm_st_bit` 판정. `BLE_COMM_ST_WINDOW_MS=200`/`MIN_COUNT=20`(`d2232fe`, 이전 3). 양방향 실보드 검증 (`6cd7e6c`) ([[comm_state_monitoring]]) |
 | BLE_Comm_St bit6 전달·소비 | ✓ | 02가 0x10 bit6(`COMM_ST_BIT_BLE`) 적재(송신 복사본 race-free)→01 `ble_comm` 추출→`esb \| LINK UP/DOWN` edge 콘솔. 03은 자기 LED3 미러만(STM32 전송 없음) |
@@ -98,6 +98,17 @@ date: 2026-06-26
 | ESB ACK 수신 주기 | ✓ | 오실로스코프 측정: 약 940us |
 
 상태 기호: `✓` 구현+검증 / `△` 구현됨·미검증 / `?` 불명 / `✗` 미구현
+
+### 펌웨어 레이어링 재구성 (전사 표준 [[firmware_layering]] 정합)
+
+| 프로젝트 | 상태 | 메모 |
+|----------|------|------|
+| 02_RX_esb 4레이어 재구성 | △ | `feature/layering-02`. SES 빌드 통과(2026-07-01). 미merge·미push. **실보드 검증은 _shared 우산-shim 분할 완료 후 02+_shared 함께** 시행 예정 |
+| _shared 우산-shim 분할 | ✗ | `oled_tv_protocol`을 우산으로 두고 `wire.h` / `protocol_alg.{c,h}` / `monitor.{c,h}` 하위 분할. 01/03/04는 우산 shim include 유지(무편집). 02 레이어링 후 착수 |
+| 03_TX_esb 4레이어 재구성 | ✗ | _shared 분할 후 02 미러 예정. 착수 대기 |
+| 04_tx_control 4레이어 재구성 | ✗ | 03 이후 착수 대기 |
+
+적용 순서: **02(feature/layering-02)** → **_shared 우산-shim** → **03(02 미러)** → **04**. 01은 우산 shim 위 유지(별도 결정 필요).
 
 ## 하드웨어 입수
 

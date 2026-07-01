@@ -68,7 +68,7 @@
 - [[buck_vout_ref_command_path]] — `buck <v>` = RF 링크 건너는 유일한 UART 지령. 01 UART5 → 0x51 DATA[6,7](volts×100) → 03. 검증 `buck 123.34`→`12334`. `35b94d0`: host 확인은 바이너리 0x51 파싱([[pc_uart_gui]]). 새 tx 지령 추가 패턴
 - [[pc_uart_gui]] — **host PC GUI**(`tools/pc_uart_gui/uart_gui.py`, Python+Tkinter+pyserial, `35b94d0` ✓실보드). 단일 UART5, 11B HDR 동기+CRC 재동기, **6패널 2×3**(TX/RX Status·Input·Output), Physical 변환 적용(V·A ×0.01/°C ×0.1), FW 버전 표시, 활성 비트 굵게, `Link: SPI/ESB [UP/DOWN]`, buck 송신. **TX Buck Set E2E 실측 ✓(2026-06-12, COM17, 3보드, `Tx_Buck_Vout_Ref=22222`)**. 스크린샷 [[pc_uart_gui_verification_260612]]
 - [[cubeide_newlib_nano_float]] — CubeIDE newlib-nano float 함정(`nanoprintffloat`/`nanoscanffloat`). scanf float 꺼지면 `buck 15.5` 소수 깨짐. 구성별 독립·Release 재확인
-- [[cubeide_cli_build_trap]] — CubeIDE **CLI 빌드 불가**(`stm32cubeidec.exe` GUI 서브시스템·즉종료) → IDE **Ctrl+B** 직접 빌드. CubeMX 재생성 금지
+- [[cubeide_cli_build_trap]] — CubeIDE **CLI 빌드 불가**(`stm32cubeidec.exe` GUI 서브시스템·즉종료) → IDE **Ctrl+B** 직접 빌드. **CubeMX 재생성 금지** — `.ioc` 메타가 실코드보다 낡을 수 있음(04 사례: `.ioc`에 ADC/CAN 잔재 ↔ `main.c`는 제거 완료). 재생성 시 손수 정리한 코드가 덮어쓰임
 - [[adc_channel_map]] — ADC1 6채널 핀맵(PA0~PA3, PC4/PC5) + TEMP1/TEMP2 라벨 swap 함정 + 평가보드 시험 가이드
 - [[spi_packet_format]] — STM32-nRF 내부 SPI wire 포맷 (11B 고정, HDR 0x10~0x12/0x50~0x52). ESB와 동일 패킷 구조
 - [[spi_pin_mapping]] — STM32↔nRF52 SPI 물리 배선 핀맵 (SCK PB13↔P0.27 / MOSI PB15↔P0.25 / **MISO PB14↔P0.26** / CS PB12↔P0.22). MISO 미연결 시 spi_rx_pkt 전부 0xFF → SpiCommSt DOWN. (DK 실측 2026-06-16)
@@ -81,10 +81,10 @@
 - [[esb_ptx_ack_assembly]] — PTX 모드 ACK payload 재조립: g_last_ack_by_hdr[3] 패턴 + ISR printf 금지
 - [[comm_state_monitoring]] — 0x10 Data[0] bit5/6은 tx_status 아닌 통신 링크 비트. SPI_Comm_St=200ms heartbeat(✓`e5e3efc`), BLE_Comm_St=ESB presence 리셋윈도우(02·03 각자 수신 delta, ✓`6cd7e6c`). `d2232fe`: (T,N) 직접 상수·`spi_status` LINK/CRC 분리. **`35b94d0`(2026-06-10): monitor 텍스트→11B 바이너리 전환, COMM 텍스트 라인 폐기 — 링크 health는 0x10 d0 bit5/6으로 운반(host [[pc_uart_gui]])**. 심볼 컨벤션·라벨 구분·**race-free stamp(상태비트는 송신복사본 spi_tx_pkt에)**
 - [[spi_link_reliability]] — SPI heartbeat 구현(200ms 독립 타이머, P0.17 검증)·오류율 모니터·spi_tx_busy 타임아웃 복구·10ms 폴링 ✓ 검증 완료·9MHz 상향 미달
-- [[app_protocol_module]] — 01_RX_control SPI 프로토콜 계층 적출·핸드오프(`9be1a7a`). 공개 API `protocol_loop()` 하나 + 전역 3개(rx_module/tx_module/rx_cmd), 내부 `exchange_packets`/`print_packets`. 4파일 자립(common.h 역의존 끊음), W1 트랜스포트 직접호출·D1 전역 유지. **`35b94d0`: `print_packets` 11B 바이너리 송출(`uart_send`)·`print_comm_line_on_change` 삭제**. STM32CubeIDE 빌드+실보드 동작확인 ✓. **3펌웨어 표준 패턴 원형**: app_spi/app_esb=저수준·app_protocol=두꺼운 응용 계층·`protocol_loop()` 단일 진입점 — 02_RX_ble 동일 패턴 적용 완료(빌드 ✓, 실보드 △), 03 예정
-- [[nrf52_module_naming]] — **nRF52 로컬 모듈 `eta_` 접두사 규칙**: `app_`은 nRF5 SDK 네임스페이스 → 충돌. `eta_`로 근본 제거(`b92835c`, ✓실보드). 02_RX_ble 적용·03 후보·01 해당 없음
-- [[nrf52_firmware_conventions]] — **nRF52 코딩 관습**(b92835c→e85839c 확정): ISR printf 금지(HardFault 실증)·오류 카운터 패턴(1초 윈도우 append)·init/배너 printf 금지·NRF_LOG 초기화 잔재(호출 0건) 인지
-- [[ses_build_conventions]] — SES `.emProject` 함정: ①파일 목록 하드코딩(와일드카드 없음) ②nRF5 SDK 헤더 충돌(→`eta_` 접두사로 해소·[[nrf52_module_naming]]) ③`ADD_SPI` 전역 전파 주의 ④`<folder>` 는 가상 그룹·빌드 무영향
+- [[app_protocol_module]] — 01_RX_control SPI 프로토콜 계층 적출·핸드오프(`9be1a7a`). 공개 API `protocol_loop()` 하나 + 전역 3개(rx_module/tx_module/rx_cmd), 내부 `exchange_packets`/`print_packets`. 4파일 자립(common.h 역의존 끊음). **`35b94d0`: `print_packets` 11B 바이너리 송출·`print_comm_line_on_change` 삭제**. STM32CubeIDE 빌드+실보드 동작확인 ✓. **4펌웨어 표준 패턴 원형**: 01 원형·02/03 완료·04 01 골격 공유. **App 모듈 역할 네이밍**: 01/04=`protocol`(종단점), 02/03=relay(중계노드) 패턴
+- [[nrf52_module_naming]] — **nRF52 로컬 모듈 `eta_` 접두사 규칙**: `app_`은 nRF5 SDK 네임스페이스 → 충돌. `eta_`로 근본 제거(`b92835c`, ✓실보드). 02/03 전환 완료·01 해당 없음
+- [[nrf52_firmware_conventions]] — **nRF52 코딩 관습**(b92835c→e85839c 확정): ISR printf 금지(HardFault 실증)·오류 카운터 패턴(1초 윈도우 append)·init/배너 printf 금지·NRF_LOG 잔재 인지. **BSP/HAL 레이어 경계**(레지스터 직접접근=BSP vs SDK 드라이버 래핑=HAL, SDK 인스턴스 단위 HAL 묶음 원칙)
+- [[ses_build_conventions]] — SES `.emProject` 함정: ①파일 목록 하드코딩(와일드카드 없음) ②nRF5 SDK 헤더 충돌(→`eta_` 접두사로 해소) ③`ADD_SPI` 전역 전파 주의 ④`<folder>` 가상 그룹 ⑤**`BOARD_CUSTOM`/`custom_board.h` 기계** — UART 핀 간접 공급·LEDS/BUTTONS 0 컴파일아웃(삭제하면 빌드 깨짐). 핀이 `custom_board.h`(UART)+`_shared`(SPI/LED)로 이원화 = BSP 통합 후보
 - [[gpio_verification_pinmap]] — 검증 핀맵: 기능 → 프로브 핀 → 기대값 (SPI CS PB12·PWM PC6~9·ESB P0.17/18·ADC). planner가 검증 경로에 인용. 미확인 핀은 "확인 필요"로 호명
 - [[nfc_pins_gpio]] — nRF52 P0.09(LED1)·P0.10이 NFC 안테나 핀 기본 → `CONFIG_NFCT_PINS_AS_GPIOS`로 GPIO 전용화(UICR.NFCPINS=`0xFFFFFFFE`, 전원사이클 후 적용). LED1 cold-boot 미점등 진단·**active-HIGH 확정**(2026-06-18)
 - [[시립대_전달]] — 시립대 전달 통합 문서: P1 핀맵(SPI/UART) · P2 구동 절차(전원 순서·LED·comm_st 케이스) · P3 GUI 사용법(연결·buck 지령·스크린샷)

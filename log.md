@@ -4,6 +4,28 @@
 
 ---
 
+## [2026-07-01] ingest | c팀 oled_tv_software 펌웨어 레이어링 재구성 세션 환원
+
+전사 표준([[firmware_layering]]·[[firmware_naming_conventions]]) 기준으로 02_rx_esb·03_tx_esb·04_tx_control 4레이어 재구성 진행 세션의 지식 환원. 변경 4범주:
+
+**(A) 드리프트 정정** (코드 기준 사실 반영):
+- `nrf52_module_naming`: 03_TX_ble eta_* 전환 상태 이미 정정됨(2026-06-30 선반영)
+- `status.md`·`roadmaps/04-tx-control-dummy.md`: 04 `.ioc` 파일명 `TX_control.ioc` 개명 완료로 정정(N1 확인)
+- `cubeide_cli_build_trap`: CubeMX 재생성 금지 근거에 04 `.ioc` 내용 불일치 사례 보강
+- `CLAUDE.md`: 04_TX_control 서브프로젝트 추가, 01/02/03→01/02/03/04
+- `app_protocol_module`: `_shared` "세 펌웨어 공유"→"네 펌웨어 공유", `pkt_print_*` 소비처 02/03→02/03/04, 섹션 타이틀 3→4펌웨어
+
+**(B) 표준·개념** (이번 세션 확정 결정·발견):
+- `firmware_naming_conventions` §1: `comm_st` 약어 화이트리스트 등재
+- `app_protocol_module`: App 모듈 역할 네이밍 원칙 신설 — relay(02/03·중계) vs protocol(01/04·종단점)
+- `nrf52_firmware_conventions`: nRF52 BSP/HAL 레이어 경계 원칙 신설 — SDK 드라이버 핸들 단위로 HAL에 묶는 이유
+- `ses_build_conventions` §5: `BOARD_CUSTOM`/`custom_board.h` 기계 신설 — 핀 공급 경로·컴파일아웃 메커니즘·BSP 통합 후보
+- `firmware_layering` §6: c팀 적용 현황표 갱신 — 02 4레이어 전환 진행중(SES 빌드 통과·실보드 검증 대기), 03/04 대기
+
+**(C) `_shared` 분할 특성화**: `spi-esb-refactor` §7 신설 — 5개 책임 분류(wire 계약/ALG/printf/보드핀/정책상수)·누수 2건·우산-shim 계획
+
+**(D) status·roadmap 갱신**: `status.md` 레이어링 재구성 표 신설(02 진행중·_shared/03/04 미착수). `roadmap.md` §5 레이어링 환원 항목 추가.
+
 ## [2026-07-01] 결정 | 8kw ADC A4 실행 순서 확정 — A5·A6 뒤로 배치
 
 근거: 사용자 결정 — A4(실보드 교차검증)를 로드맵 실행 순서상 A5·A6 뒤로 명시. A5(리피터 버스트/필터)가 ADC 출력 특성을 바꾸므로 정확도 교차검증은 안정화 후에 해야 유효(종전 "[추정] 독립·확인 필요" 해소).

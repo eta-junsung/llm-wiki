@@ -34,7 +34,7 @@ date: 2026-06-16
 | 단계 | 내용 | 완료 기준 | 상태 |
 |------|------|-----------|------|
 | **D0** | 03_TX_ble SPI_Loop ~~활성화~~ → **SPIS 전면 재작성** | emBuild 에러 0 | △ `e706b53` — ⚠️ 기존 코드 SPIM이었음(§4 정정 1). 02 거울 SPIS 재작성. 실보드 미검증 |
-| **D1** | 04_tx_control 더미 프로젝트 생성 | CubeIDE Ctrl+B 에러 0 | △ `07fbf1f` — 01 복제·ADC/PWM/CAN/DAC 제거. **.ioc 파일명 `RX_control.ioc` 잔류·CubeIDE 빌드 미수행** |
+| **D1** | 04_tx_control 더미 프로젝트 생성 | CubeIDE Ctrl+B 에러 0 | △ `07fbf1f` — 01 복제·ADC/PWM/CAN/DAC 제거. **.ioc `TX_control.ioc`(N1에서 개명 확인). CubeIDE Ctrl+B 빌드 미수행** |
 | **D2** | 03 ↔ 04 SPI 링크 동작 | CS 10ms Δt 오실로 확인, CRC fail 0 | ✓ `47e46db` 2026-06-17 |
 | **D3** | 01→02→ESB→03→04 End-to-end | `buck 12.00` → 04 모니터 raw 1200 표시 | ✓ `47e46db` 2026-06-17 |
 
@@ -75,7 +75,7 @@ date: 2026-06-16
 - **03 SPI 역할**: SPIS(Slave), SPIS1, NRF_SPIS_MODE_2, 핀 = `PIN_SPI_*` 공유 헤더(02와 동일: P0.22/25/26/27). SPI_Loop = `g_last_ack_by_hdr[3]` round-robin MISO 서빙 + 04 TX 패킷 수신·카운트.
 - **03의 ESB→04 전달**: ESB ACK에서 받은 0x50/0x51/0x52만. 04 TX 수신은 카운트만 — ESB forward 없음. ESB TX는 `inject_tx_dummy_data` 유지.
 - **04 제거된 페리**: ADC/CAN/DAC/PWM 관련 TIM + `app_{adc,can,dac,pwm,tim}` 전부. SPI2+UART5만 잔존.
-- **04 .ioc 파일명**: `RX_control.ioc` → `TX_control.ioc` 개명 미수행. D2 이전 정리 후보.
+- **04 .ioc 파일명**: `TX_control.ioc`(N1 탐색 시 확인됨 — §7 N1 참조). 개명 완료.
 - **브랜치**: `04-tx-control-dummy` (e706b53 03 SPIS 재작성 / 07fbf1f 04 더미). `refactoring-shared`는 `esb`로 FF 머지 후 삭제됨.
 
 ---
@@ -271,4 +271,4 @@ STM32F103RBT6은 **medium-density**라 UART4/UART5가 물리적으로 없다(USA
 - D2 완료 후: `tx_ble_module.md` SPI_Loop 행 △→✓, status.md 갱신
 - D3 완료 후: D3 완료 표시, Vout Ref E2E 검증 사실 status.md 기록
 - 04_tx_control entity 페이지 신규 (`pages/entities/tx_control_dummy.md`)
-- (정리) 04 `.ioc` 파일명 `RX_control.ioc` → `TX_control.ioc` 개명 결정 후 기록
+- ~~(정리) 04 `.ioc` 파일명 `RX_control.ioc` → `TX_control.ioc` 개명~~ **완료(N1 확인, §7)**

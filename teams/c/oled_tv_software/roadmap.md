@@ -85,5 +85,6 @@ OLED TV 무선 전력 전송 시스템의 **3-MCU 제어신호 교환 펌웨어*
 - ~~PC GUI (아이디어·미착수)~~ ✓ **완료**(`35b94d0`, 2026-06-10 실보드 검증): UART 패킷 모니터링 + `buck` 설정 호스트 툴. G0 결정 = UART5 단일 포트 + 01 모니터를 **텍스트→11B 바이너리** 전환. 산출물 [[pc_uart_gui]](`tools/pc_uart_gui/uart_gui.py`). → 작업 로드맵 [[roadmaps/pc-gui|PC GUI]].
 - ~~BLE_Comm_St ESB-health 연결~~ ✓ 완료(`6cd7e6c`, 2026-06-08): presence 리셋 윈도우(`esb_rx_cnt`/`esb_ack_cnt` delta) 판정→0x10 bit6. `ble_link` 심볼은 코드에 없었음(폐기). 상세 [[comm_state_monitoring]]. 후속(`d2232fe`, 2026-06-09): (T,N) 상수 통일(N 3→20)·spi_status LINK/CRC 분리·COMM 라인. 다음 = 02/03 COMM 라인·N=20 실측.
 - `spi_wr_u16`에 음수 ADC 패턴 교정: `03_TX_ble build_tx_pkt case1·2` → `spi_wr_i16` 신설 — 별도 task, 미착수.
+- **펌웨어 레이어링 재구성** — 전사 표준([[firmware_layering]]) 정합. 02 4레이어 재구성(`feature/layering-02`, SES 빌드 통과·실보드 검증 대기) → `_shared` 우산-shim 분할 → 03(02 미러) → 04. [[roadmaps/spi-esb-refactor]] §7 밑그림. [[status]] 레이어링 재구성 항목 진행중.
 - (보류) nRF52832 SPIS 최대 SCK datasheet ingest — M4 재개 시 선결. [[esb_link_layer]] 또는 신규 source 페이지.
 - (보류) M5(PRD 1~2 ms 지연) end-to-end 측정 방법 미정 — 재개 시 [[gpio_verification_pinmap]]에 검증 행 추가.

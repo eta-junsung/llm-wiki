@@ -41,9 +41,28 @@ SES Solution Explorer의 `<folder Name="...">` 는 **표시 전용 가상 그룹
 
 Explorer 트리 정리 = `<folder>` 구조만 바꾸는 순수 표시 변경이다.
 
+## 5. `custom_board.h` / `BOARD_CUSTOM` 기계 — 앱에서 보이지 않는 핀 공급원
+
+nRF5 SDK의 보드 추상화 훅. 회사 커스텀 보드(UTO-NBK-52)에서 동작하는 구조:
+
+1. `.emProject` `c_preprocessor_definitions`에 `BOARD_CUSTOM` 정의
+2. SDK `components/boards/boards.h`가 `BOARD_CUSTOM` 감지 → `custom_board.h`를 `#include`
+3. `custom_board.h`가 UART 핀(`RX_PIN_NUMBER=14`, `TX_PIN_NUMBER=15`) + `LEDS_NUMBER 0`, `BUTTONS_NUMBER 0` 정의
+   - `LEDS_NUMBER 0` → SDK BSP의 LED 초기화/구동 코드가 컴파일아웃됨(앱이 LED를 `nrf_gpio` 직접 제어)
+   - `BUTTONS_NUMBER 0` → 버튼 코드 동일하게 컴파일아웃
+
+**함정**: 앱 코드가 `custom_board.h`를 직접 `#include`하지 않아서 파일이 보이지 않는다. 하지만 삭제하면 빌드 깨짐(`UART_TX_PIN_NUMBER` 미정의·LEDS/BUTTONS 컴파일 에러).
+
+**현재 상태 — 핀 이원화 (BSP 통합 후보)**:
+- UART 핀 → `custom_board.h` (간접 공급)
+- SPI 핀·LED 핀 → `_shared/oled_tv_protocol.h` `PIN_SPI_*`·`PIN_LED*` (직접 정의)
+
+두 소스에 핀이 흩어진 상태 = BSP 레이어 통합 후보. 레이어링 재구성 라운드에서 정리 예정([[status]] 레이어링 재구성 항목).
+
 ## 관련
 
 - [[nrf52_module_naming]] — `eta_` 접두사 규칙 (§2 충돌 해소 결정)
 - [[app_protocol_module]] — 표준 모듈 패턴(01이 원형, 02 적용)
 - [[rx_ble_module]] — 02_RX_ble entity
 - [[cubeide_cli_build_trap]] — STM32CubeIDE CLI 빌드 불가 함정 (01 쪽 유사 패턴)
+- [[nrf52_firmware_conventions]] — BSP/HAL 레이어 경계 원칙
