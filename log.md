@@ -4,6 +4,32 @@
 
 ---
 
+## [2026-07-01] 환원 | g팀 8kw FOD I_COIL_SEN 1차 관찰 — 트랙 A(외부 스코프) 보류·온타깃 raw 캡처 전환
+
+- 출처: 코드 repo `docs/fod_i_coil_observation.md`(branch `feature/adc-noise-fft`, commit `620e62b`까지) — §0 신호체인·§5.1 CSV export 설정·§5.3 트랙 A 보류 결정·§9. 절차 자체는 wiki에 복사하지 않고 도메인 지식만 증류.
+- **핵심 결론**: Keysight MSOX3104T CSV export로 I_COIL_SEN(J3.28) 노이즈를 2회 실측했으나 **두 번 다 진폭이 물리적으로 불가능**(pk-pk 20~36V, J3.28은 0~3.3V 노드)했고 재현됨 → 프로브/V-div/감쇠 설정 오류가 아니라 **하드웨어 측정 한계**로 판단. **원인은 미규명(빈자리)**. 이에 따라 **트랙 A(외부 스코프)는 보류**, **온타깃 raw ADC 캡처(버스트 캡처+1회 UART 덤프)로 1차 관찰 주 트랙 전환** — ⚠️ 이 캡처 경로는 **아직 미구현**.
+- **방법론 증류**: 스코프 CSV export의 "유효 Fs = 저장점수(N) ÷ 타임베이스 창(T)" 규칙(창 1s·2000점=Fs 2kS/s로 85kHz 앨리어싱된 사례) — 이 프로젝트 국한 사실이 아니라 MSOX3104T 재사용 방법론이라 **회사 공통 [[instruments]]로 승격**.
+- **갱신**: [[fod_i_coil_observation]] — §2에 CSV export Profile A/B 설정 신설, §3.5에 트랙 A 보류 결정 신설, §4를 "미뤄둔 것"에서 "다음 트랙(승격·미구현)"으로 재작성, §5 환원 후보 정정. [[instruments]] — MSOX3104T 절에 CSV export Fs 방법론 추가. [[adc_noise_fft_probe]] — 진폭 이상 재현 사실을 주의 항목으로 교차기록(GA_Vin/GA_Iin 검산 권고). [[status]] — 직전 완료 신설, "다음 시작점"을 온타깃 raw 캡처 구현으로 갱신, 미결 사항에 진행 중 항목 추가. [[adc]](roadmaps/adc.md) §A5 남은 절차에 주의 교차링크. index 3건.
+- **빈자리로 명시(추론 채우지 않음)**: (B) J3.28 CSV 진폭 이상의 근본 원인, (D) 온타깃 raw 캡처의 구현 상세(트리거·버퍼·덤프 포맷).
+- 커밋/푸시는 보류 — 편집만 완료, 검토 후 사용자가 확정.
+
+## [2026-07-01] 환원 | g팀 8kw Io 2차 IIR 저역통과 필터(io_iir_lpf) 구현 완료
+
+- 출처: branch `feature/adc-noise-fft` commit `d4542c9` — 구현만(빌드 통과), 실보드 검증은 ADC 안정화 트랙으로 이연.
+- **구현**: 신규 ALG `src/alg/eta_alg_iir_lpf.{c,h}`(float DF-I biquad, reset/step, 계수 헤더 단일 소스) · `eta_adc_sample_t`에 `float filtered` 필드 추가(`src/bsp/eta_bsp_adc.h`) · `src/app/eta_app_adc.c` 배선(미정의 변수로 깨진 인라인 스니펫 회수, **새 샘플당 1회 step**으로 배치 버그 수정, offset `g_i_coil_offset` App 파라미터화·초기값 0). 빌드(gmake) 경고 0.
+- **정정 확인**: 계수 a2 = **−0.987512**(85 kHz 코드값)로 스펙 정본과 일치 — 별도로 돈 "a2=−0.9" 작업지시서 표기는 절단 오기, wiki·구현 모두 영향 없음(wiki 전체 grep으로 재확인).
+- **§6 확정 항목 해소**: ①I_COIL_SEN 채널 확정(기 반영) ②A6(SW 이동평균)은 코드에 없음(grep 0건) → 대체 대상 없이 A5 리피터 버스트(N=16) 위에 신규 적층으로 구조 확정 ③`−Vadc/2` offset은 파라미터화만 완료, 최종 판정·값은 idle DC 베이스라인 실측(검증 세션)으로 이연.
+- **갱신**: [[io_iir_lpf]] — §6 해소 결과 반영 + §7 구현 완료 기록 신설. [[status]] — 직전 완료 신설·구현 현황표 io_iir_lpf ✗→△·다음 시작점을 ADC 안정화 트랙 1단계로 갱신·활성 트랙 절 "완료"로 갱신. [[roadmap]](adc) — io_iir_lpf를 A5/A6과 별개 트랙으로 신설 기록, 현재 위치 갱신, frontmatter date 갱신. [[firmware_layering_8kw]] — ALG 모듈 인벤토리에 `eta_alg_iir_lpf` 추가. index 1건.
+- **검증 세션으로 이연(미실행)**: UART 패킷·GUI에 `filtered` 필드 배선(raw-vs-filtered 관측) / idle DC 베이스라인 실측(offset 확정) / 필터 파형·노이즈 억제 실보드 검증([[fod_i_coil_observation]]·[[adc_noise_fft_probe]]).
+
+## [2026-07-01] 환원 | c팀 oled_tv 02_rx_esb/_shared 규약 리뷰·리팩터 → 전사 컨벤션 정본 환원
+
+- [[firmware_naming_conventions]] §2 R1 — **설계 원칙 신설**: 조직 접두사 부여·약어 완전어화는 R1(31자) 예산과 함께 설계한다. 사례: `ETA_PKT_TX_STATUS_BIT_VOUT_SETPOINT`=35자 초과→그룹 토큰 축약 필요, `comm`→`communication` 확장도 35자 초과→약어 유지가 정답.
+- [[firmware_naming_conventions]] §4 — 레이어 토큰 리트머스 명시화: "같은 모듈 토큰이 두 레이어에 동시에 사나?"(예: `clock` 추가 — `eta_bsp_clock_*` vs `eta_hal_clock_*`). 단일 레이어 모듈(`esb`/`spi`/`uart`)은 모듈 토큰만.
+- [[firmware_naming_conventions]] §1 — 약어 화이트리스트에 `spi` 추가(기존 `uart`/`gpio`/`dma`와 동급인데 빠져 있던 빈자리, [[firmware_layering]] §6 `eta_spi` 사용례와 불일치했음). **확장판단기준** 신설: 범용 주변장치=화이트리스트 등재, 벤더 SDK 도메인어 미러(`esb`=nRF5 Enhanced ShockBurst 등)=그 프로젝트 지역어로 국한. **미결**: `esb`/`xfer` 전사 등재 여부는 결정하지 않음.
+- [[firmware_layering]] §3.1 — 계약/공유 헤더 위생 리트머스 신설: "헤더가 host에서도 서나?"로 계약 헤더의 레이어 누출(App의 `stdio.h`, BSP의 보드 핀, 미사용 include)을 가른다. 계약 헤더는 `<stdint.h>` 하나로 서야 함.
+- 원 세션 컨텍스트(c-02_RX_esb/_shared 코드 리뷰)는 프로젝트 고유 사실이라 예시로만 인용, 위 4건은 일반 규칙으로 환원.
+
 ## [2026-07-01] 환원 | 전사 펌웨어 컨벤션 skill(eta-firmware-conventions) 플러그인 배포 기록
 
 - 정본 [[firmware_naming_conventions]]·[[firmware_layering]]에서 추출한 Claude skill **`eta-firmware-conventions`**를 플러그인으로 배포(`eta/eta-ai-tools/eta-firmware-conventions`: `.claude-plugin/plugin.json` + `skills/eta-firmware-conventions/{SKILL.md, references/naming.md, references/layering.md}`). 네이밍 + BSP/HAL/ALG/App 배치를 작성·리뷰 양방향으로 안내. 범위 제외 = git workflow.

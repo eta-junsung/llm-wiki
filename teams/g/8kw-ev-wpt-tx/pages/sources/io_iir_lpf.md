@@ -6,7 +6,7 @@ date: 2026-07-01
 
 # Io 2차 IIR 저역통과 필터 (io_iir_lpf) — 스펙 ingest
 
-> 설계자가 전달한 **Io ADC 스위칭 노이즈 제거용 2차 IIR biquad 저역통과 필터** 스펙. 구현 예정(구현만 먼저, 검증은 ADC 안정화 후). 로드맵 [[adc]], 현황 [[status]].
+> 설계자가 전달한 **Io ADC 스위칭 노이즈 제거용 2차 IIR biquad 저역통과 필터** 스펙. **구현 완료**(2026-07-01, branch `feature/adc-noise-fft` 커밋 `d4542c9`) — 구현만 먼저, 실보드 검증은 ADC 안정화 후. 로드맵 [[adc]], 현황 [[status]].
 > 원본(immutable): `raw/io_iir_lpf/io_iir_lpf_spec.html`(핵심) · `raw/io_iir_lpf/io_iir_lpf_sim.xlsx` · `raw/io_iir_lpf/digital_filter_impl_16bit_micros.pdf`.
 > ⚠️ HTML이 참조하는 `digital_filter_chart.png`는 미수령 — 차트 이미지 깨짐(스펙 텍스트·계수는 온전).
 
@@ -87,12 +87,31 @@ in0 = ADC_readResult(...) - Vadc/2      // 전류는 ±방향 모두 측정 → 
 
 ---
 
-## 6. 구현 전 확정 필요 (추론으로 채우지 말 것)
+## 6. 구현 전 확정 필요 — 해소 결과 (2026-07-01 구현 완료)
 
 1. ~~"Io" = 어느 ADC 채널?~~ **✅ 확정 = I_COIL_SEN (ADC0 SOC0 AIN1, J3.28, IRQ147)** (2026-07-01 사용자 확인). 디버그 마커 `ETA_BSP_ADC_DBG_MARK_IDX 0U`와도 일치. ([[adc_pinmap]])
-2. **`−Vadc/2` 바이폴라 보정 적용 여부** — §3 참조. 단극성 DC면 재결정.
-3. **신호체인 삽입 위치 + A5/A6와의 관계**: A5(리피터 버스트 블록평균 N=16, [[am263p_adc_repeater_burst]])·A6(SW 이동평균)와 **성격 구분** — 이건 재귀형 IIR LPF. 이 IIR LPF가 A6 이동평균을 **대체**하는지 보완하는지 착수 시 결정.
-4. **검증 순서**: 필터는 **구현만 먼저**, 실보드 파형·노이즈 검증은 **ADC 안정화([[adc_noise_fft_probe]]·[[fod_i_coil_observation]]) 이후**.
+2. **`−Vadc/2` 바이폴라 보정 적용 여부** — §3 권고대로 **App측 파라미터로 구현**(`g_i_coil_offset`, 초기값 0, `src/app/eta_app_adc.c`). ⚠️ **최종 판정(적용 여부·값)은 여전히 미확정** — §3의 두 판단 기준(회로도 프론트엔드 / idle DC 베이스라인 실측) 중 실측 쪽이 검증 세션([[fod_i_coil_observation]]·[[adc_noise_fft_probe]] step1)에서 나올 예정. 그때까지 offset=0으로 무보정 상태로 동작.
+3. **신호체인 삽입 위치 + A5/A6와의 관계** — **해소**: **A6(SW 이동평균)는 현재 코드에 존재하지 않음(grep 0건)** → 이 IIR LPF가 대체할 A6 인스턴스 자체가 없다. 삽입 위치는 **A5 리피터 버스트 오버샘플(N=16, [[am263p_adc_repeater_burst]]) 뒤에 새로 얹는 구조** — "대체"가 아니라 A5 위에 놓이는 신규 SW 재귀 LPF.
+4. **검증 순서**: 필터는 **구현 완료**(빌드 경고 0), 실보드 파형·노이즈 검증은 **ADC 안정화([[adc_noise_fft_probe]]·[[fod_i_coil_observation]]) 이후 예정 — 아직 미실행**.
+
+---
+
+## 7. 구현 완료 기록 (2026-07-01)
+
+브랜치 `feature/adc-noise-fft`, 커밋 `d4542c9`.
+
+| 항목 | 내용 |
+|------|------|
+| 신규 ALG 모듈 | `src/alg/eta_alg_iir_lpf.{c,h}` — float Direct Form I biquad, reset/step 함수, 계수 헤더 단일 소스 |
+| BSP 자료구조 | `eta_adc_sample_t`(`src/bsp/eta_bsp_adc.h`)에 `float filtered` 필드 추가 — raw·mV 보존, 필터 전/후 비교용 |
+| App 배선 | `src/app/eta_app_adc.c` — 미정의 변수로 깨져 있던 인라인 스니펫을 ALG 호출로 회수. I_COIL_SEN 채널 분기에서 **새 샘플당 1회 step**(종전 인스턴스당 step되던 배치 버그 수정). offset은 `g_i_coil_offset`(App측, 초기값 0)로 파라미터화 |
+| 계수 | a2 = **−0.987512**(85 kHz 코드값, §2와 동일) 그대로 사용 — 이 값이 정본. 별도로 떠돈 "a2=−0.9" 작업지시서 표기는 −0.987512의 절단 오기이며 채택하지 않음 |
+| 빌드 | gmake 경고 0 통과 |
+
+**검증 세션으로 미룬 것 (아직 미실행)**:
+- 프로토콜(UART 패킷)·GUI에 `filtered` 필드 배선 → raw-vs-filtered 실관측/플롯
+- 실보드 idle DC 베이스라인 실측 → `−Vadc/2` 적용 여부·offset 값 확정
+- 필터 파형·노이즈 억제 실보드 검증 ([[fod_i_coil_observation]]·[[adc_noise_fft_probe]] 트랙)
 
 ---
 
