@@ -4,6 +4,16 @@
 
 ---
 
+## [2026-07-01] 환원 | 8kw-ev-wpt-tx FOD I_COIL_SEN 1차 관찰 절차 (다음 작업)
+
+근거: 코드 repo `docs/fod_i_coil_observation.md`(branch `feature/adc-noise-fft`) 환원 — 다음 이어서 할 작업. 회로도 [[board_schematic_v1_0e00]] line 43 신호체인과 대조.
+
+- **신설 [[fod_i_coil_observation]]** (8kw concept): FOD 1차 관찰 절차·결정 로직. ① 신호체인 — I_COIL_SEN(J3.28)=CT(T1 7mV/A)→CR3~6 쇼트키 정류→R30~32+C55 2.2µF RC평활된 **DC 포락선**(이물→코일전류 변화→DC 레벨 시프트=FOD 신호) ② 2트랙 셋업(스코프 DC/AC/FFT/시간축 + GUI 10Hz ch4 CSV) ③ 절차·검출성 `Δ(이물)/σ(정상노이즈)` ④ 센싱 안정화(백색→N↑ / 상관→위상, [[adc_noise_fft_probe]] 공유) ⑤ 풀레이트 디지털(온타깃 버스트 캡처+UART 덤프)은 미룸.
+- **★ stale 정정 [[adc_noise_fft_probe]] §2**: I_COIL_SEN(J3.28) "85 kHz 신호 자체라 FFT 부적합" → **정류·평활 DC 포락선**으로 정정. CT 1차측이 85 kHz일 뿐 ADC 핀은 DC. 순수 노이즈 플로어엔 GA_Vin/GA_Iin이 더 깨끗(정류 리플 상재)하나 **FOD 프로브로는 J3.28이 정본**. 마커 노트에 브랜치·[[fod_i_coil_observation]] cross-ref 추가.
+- **갱신 [[status]]**: 다음 시작점을 FOD 1차 관찰(branch `feature/adc-noise-fft`)로 교체 — 2트랙 캡처·Δ/σ·신호체인 정정·OC 제약. FOD 병행 트랙 노트를 마커 잠복충돌 노트로 슬림화. date 2026-07-01.
+- **갱신 [[weekly_report_2026-06-24_30]]**: 다음 작업 §를 FOD 1차 관찰 중심으로 재구성.
+- 갱신 index.md(FOD 엔트리 + adc_noise_fft_probe I_COIL 서술 정정).
+
 ## [2026-07-01] 작성 | 8kw-ev-wpt-tx 주간 업무 보고 2026-06-24~30 신설
 
 근거: 저번 업무보고(6/24, 기간 6/17~23) 이후 일주일 작업 정리. status·log·roadmap(adc)·주간보고 커밋 기록 종합.
