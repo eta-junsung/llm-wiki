@@ -4,6 +4,15 @@
 
 ---
 
+## [2026-07-01] 갱신 | g팀 8kw FOD I_COIL_SEN 관찰 — main 병합 반영 + 후속 raw 캡처 스펙 ingest
+
+- 출처: 코드 repo main `953d4f3`(PR #12, `docs/fod_i_coil_observation.md`) + branch `feature/adc-raw-capture`(`docs/adc_raw_capture.md`, 구현 전 스펙). 절차 자체는 복사하지 않고 도메인 지식만 증류.
+- **병합 반영**: io_iir_lpf 구현 + FOD 1차 관찰(트랙 A 보류) 두 건이 PR #12로 main에 squash 병합됨. wiki 전역에서 죽은 브랜치 `feature/adc-noise-fft` 참조를 main 커밋(`953d4f3`)·PR #12 기준으로 정정 — [[io_iir_lpf]], [[fod_i_coil_observation]], [[status]], [[adc]](roadmaps/adc.md), index 2건. (log.md 과거 엔트리는 당시 시점 기록이라 그대로 둠.)
+- **후속 스펙 ingest**: `feature/adc-raw-capture`에 온타깃 raw ADC 캡처 설계가 문서화됨 — 리피터 해제(N=1)·링버퍼+1회 UART 덤프·GA_Vin/GA_Iin 확장 권고. **구현은 아직 착수 전.** [[fod_i_coil_observation]] §4에 "설계 초안(미구현)"으로 반영, 버퍼 크기(2048~4096 샘플)는 확정 아닌 후보로 명시. [[status]] "다음 시작점"을 이 브랜치·스펙으로 갱신.
+- **부수 정정**: GPIO95 디버그 마커와 `eta_hal_gpio` DBG_LOOP의 잠복 충돌이 이미 `dda086f`(PR #12에 포함)로 해소됨을 확인 — [[fod_i_coil_observation]]·[[adc_noise_fft_probe]]·[[status]]의 "잠복 충돌·후속 정리 필요" 표기를 "해소됨(단 DBG_LOOP는 보드 mux 미라우팅으로 실질 무출력)"으로 정정.
+- **빈자리로 유지(추론 채우지 않음)**: 진폭 이상의 근본 원인(여전히 미규명), raw 캡처의 버퍼 크기·덤프 프로토콜·트리거 세부(설계 초안 단계).
+- 커밋/푸시는 wiki 규약대로 진행 — 편집 후 사용자 확정.
+
 ## [2026-07-01] 환원 | g팀 8kw FOD I_COIL_SEN 1차 관찰 — 트랙 A(외부 스코프) 보류·온타깃 raw 캡처 전환
 
 - 출처: 코드 repo `docs/fod_i_coil_observation.md`(branch `feature/adc-noise-fft`, commit `620e62b`까지) — §0 신호체인·§5.1 CSV export 설정·§5.3 트랙 A 보류 결정·§9. 절차 자체는 wiki에 복사하지 않고 도메인 지식만 증류.

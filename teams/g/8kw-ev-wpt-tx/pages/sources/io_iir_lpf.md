@@ -6,7 +6,7 @@ date: 2026-07-01
 
 # Io 2차 IIR 저역통과 필터 (io_iir_lpf) — 스펙 ingest
 
-> 설계자가 전달한 **Io ADC 스위칭 노이즈 제거용 2차 IIR biquad 저역통과 필터** 스펙. **구현 완료**(2026-07-01, branch `feature/adc-noise-fft` 커밋 `d4542c9`) — 구현만 먼저, 실보드 검증은 ADC 안정화 후. 로드맵 [[adc]], 현황 [[status]].
+> 설계자가 전달한 **Io ADC 스위칭 노이즈 제거용 2차 IIR biquad 저역통과 필터** 스펙. **구현 완료**(2026-07-01, 커밋 `d4542c9`) — **main 병합됨**(PR #12, `953d4f3`, 원 작업 브랜치 `feature/adc-noise-fft`는 병합 후 삭제) — 구현만 먼저, 실보드 검증은 ADC 안정화 후. 로드맵 [[adc]], 현황 [[status]].
 > 원본(immutable): `raw/io_iir_lpf/io_iir_lpf_spec.html`(핵심) · `raw/io_iir_lpf/io_iir_lpf_sim.xlsx` · `raw/io_iir_lpf/digital_filter_impl_16bit_micros.pdf`.
 > ⚠️ HTML이 참조하는 `digital_filter_chart.png`는 미수령 — 차트 이미지 깨짐(스펙 텍스트·계수는 온전).
 
@@ -98,7 +98,7 @@ in0 = ADC_readResult(...) - Vadc/2      // 전류는 ±방향 모두 측정 → 
 
 ## 7. 구현 완료 기록 (2026-07-01)
 
-브랜치 `feature/adc-noise-fft`, 커밋 `d4542c9`.
+커밋 `d4542c9`(원 작업 브랜치 `feature/adc-noise-fft`, PR #12로 main `953d4f3`에 병합·브랜치 삭제됨).
 
 | 항목 | 내용 |
 |------|------|

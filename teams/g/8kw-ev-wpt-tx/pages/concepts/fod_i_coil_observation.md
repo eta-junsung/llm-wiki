@@ -1,14 +1,14 @@
 ---
 tags: [concept, fod, adc, 8kw-ev-wpt-tx, verification, noise]
-source: 코드 repo `docs/fod_i_coil_observation.md` (branch feature/adc-noise-fft, commit `620e62b`까지) 환원 + 회로도 [[board_schematic_v1_0e00]] 신호체인. **외부 스코프(트랙 A) 실측 2회 시도 — 결과는 이상치로 판정, 보류.** 온타깃 raw 캡처(§4)는 아직 미구현.
+source: 코드 repo `docs/fod_i_coil_observation.md` (main 병합 `953d4f3`, PR #12, commit `620e62b` 원본) 환원 + 회로도 [[board_schematic_v1_0e00]] 신호체인 + 후속 스펙 `docs/adc_raw_capture.md`(branch `feature/adc-raw-capture`, 구현 전). **외부 스코프(트랙 A) 실측 2회 시도 — 결과는 이상치로 판정, 보류.** 온타깃 raw 캡처(§4)는 스펙만 있고 아직 미구현.
 date: 2026-07-01
 ---
 
 # fod_i_coil_observation — FOD I_COIL_SEN 1차 관찰
 
 > **목적**: FOD(Foreign Object Detection — 송/수신 코일 사이 이물 감지) 구현의 **1차 단계**. **I_COIL_SEN** 값이 *정상* vs *이물 존재*에서 어떻게 변하는지 관찰하고, 그 값을 **저노이즈로 안정적으로** 잡을 수 있는지 판별한다.
-> 브랜치 **`feature/adc-noise-fft`**. 노이즈 판별 로직(백색 vs 스위칭)은 [[adc_noise_fft_probe]]와 공유, 신호체인 출처 [[board_schematic_v1_0e00]], 핀맵 [[adc_pinmap]], 장비 [[instruments]](MSOX3104T), 디버그 GPIO [[am263p_lp_debug_gpio]]. 로드맵 [[adc]] §A5.
-> **2026-07-01 갱신**: 외부 스코프(트랙 A) CSV 실측 2회 모두 물리적으로 불가능한 진폭이 재현되어 **보류**, **온타깃 raw ADC 캡처로 주 트랙 전환**(§3.5·§4, 아직 미구현). 현황 [[status]].
+> 관찰 자체는 **main에 병합됨**(PR #12, `953d4f3` — 원 작업 브랜치 `feature/adc-noise-fft`는 병합 후 삭제). 노이즈 판별 로직(백색 vs 스위칭)은 [[adc_noise_fft_probe]]와 공유, 신호체인 출처 [[board_schematic_v1_0e00]], 핀맵 [[adc_pinmap]], 장비 [[instruments]](MSOX3104T), 디버그 GPIO [[am263p_lp_debug_gpio]]. 로드맵 [[adc]] §A5.
+> **2026-07-01 갱신**: 외부 스코프(트랙 A) CSV 실측 2회 모두 물리적으로 불가능한 진폭이 재현되어 **보류**, **온타깃 raw ADC 캡처로 주 트랙 전환**(§3.5·§4). 후속 스펙이 branch **`feature/adc-raw-capture`**(`docs/adc_raw_capture.md`)에 작성됐으나 **구현은 아직 착수 전**. 현황 [[status]].
 
 ---
 
@@ -52,7 +52,7 @@ TX 코일전류 → CT(T1 PA6322, 7 mV/A) → CR3~6(CUS10S30) 쇼트키 정류·
 | CH3 | EPWM2_A (HS1) | J4.39 | 스코프 트리거(rising) + 스위칭 기준 시각 |
 | CH4 | GPIO95 | J4.31 | ADC0 버스트-끝 마커 (주기당 펄스 1개, 상승엣지=샘플링 끝) |
 
-- **디버그 마커**: `src/bsp/eta_bsp_adc.c`의 `#define ETA_BSP_ADC_DBG_MARK_IDX 0U` → EOC ISR이 **ADC0(I_COIL_SEN)** 버스트 완료 시 GPIO95 토글(진입 HIGH/종료 LOW). 다른 채널은 값만 바꿔 재빌드(`3U`=GA_Vin, `1U`=GA_Iin). **측정용 디버그 스캐폴딩**(측정 후 제거 대상). ⚠️ `eta_hal_gpio` DBG_LOOP도 GPIO95 사용 → 잠복 충돌, 후속 정리.
+- **디버그 마커**: `src/bsp/eta_bsp_adc.c`의 `#define ETA_BSP_ADC_DBG_MARK_IDX 0U` → EOC ISR이 **ADC0(I_COIL_SEN)** 버스트 완료 시 GPIO95 토글(진입 HIGH/종료 LOW). 다른 채널은 값만 바꿔 재빌드(`3U`=GA_Vin, `1U`=GA_Iin). **측정용 디버그 스캐폴딩**(측정 후 제거 대상). ✅ `eta_hal_gpio` DBG_LOOP와의 GPIO95 잠복 충돌은 **해소됨**(`dda086f`, main 병합) — DBG_LOOP를 GPIO94(J4.32)로 이설. 단 보드 1:2 mux가 J4.32를 BP 헤더로 안 뽑아 DBG_LOOP는 실질 무출력(휴면 정의).
 
 ### 트랙 A — 스코프 (풀레이트 아날로그, J3.28의 풀밴드 진실)
 
@@ -118,12 +118,16 @@ Keysight CSV export로 **2회 실측**(`dc.csv`/`ac.csv`, §2 Profile A/B 절차
 
 ---
 
-## 4. 다음 트랙 — 온타깃 raw ADC 캡처 (2026-07-01 승격, ⚠️ 미구현)
+## 4. 다음 트랙 — 온타깃 raw ADC 캡처 (2026-07-01 승격, 스펙만 작성·⚠️ 구현 착수 전)
 
-ADC는 이미 ~85k samples/s를 만들지만 텔레메트리는 10 Hz만 떠간다. 원래는 "스코프(아날로그 풀레이트) + 10 Hz(정상상태 레벨)로 충분하다"고 보고 이 항목을 다음 작업으로 미뤘으나, §3.5에서 외부 스코프 진폭이 물리적으로 불가능한 값으로 재현되어(원인 미규명, 측정 한계로 판단) **트랙 A를 보류** — 이 항목이 **1차 관찰의 주 트랙으로 승격**됐다.
+ADC는 이미 ~85k samples/s를 만들지만 텔레메트리는 10 Hz만 떠간다. 원래는 "스코프(아날로그 풀레이트) + 10 Hz(정상상태 레벨)로 충분하다"고 보고 이 항목을 다음 작업으로 미뤘으나, §3.5에서 외부 스코프 진폭이 물리적으로 불가능한 값으로 재현되어(원인 미규명, 측정 한계로 판단) **트랙 A를 보류** — 이 항목이 **1차 관찰의 주 트랙으로 승격**됐다. 또 다른 이유: 현재 ADC는 HW 리피터 버스트(N=16)로 **이미 블록평균된 값만** 내보내므로, HW 블록평균이냐 SW 이동평균이냐를 정하려 해도 평균 이전의 진짜 노이즈 모양을 아직 본 적이 없다.
 
-- **필요한 것**: 온타깃 버스트 캡처(예: 연속 2048 샘플 링버퍼) + **1회 UART 일괄 덤프**(연속 UART 스트리밍은 대역폭상 불가). MCU 내부에서 직접 raw ADC 값을 뽑아 절대 레벨·노이즈 σ를 확보.
-- **⚠️ 빈자리 — 아직 미구현**: 캡처 트리거 방식·버퍼 크기·덤프 프로토콜(패킷 포맷)·PC측 수신·FFT 파이프라인 전부 미정. 다음 세션 착수 대상.
+브랜치 **`feature/adc-raw-capture`**(`docs/adc_raw_capture.md`)에 아래 설계가 스펙으로 작성됐다 — **아직 구현 착수 전**:
+
+- **리피터 해제**: `ETA_ADC_OVERSAMPLE_LOG2=0`(N=1, 블록평균 없음, 트리거당 raw 1개) — 기존 매크로 재사용, 전용 하드코딩 분기 없이.
+- **온보드 캡처 + 1회 덤프**: 트리거(EPWM0_SOCA, 85 kHz)마다 나오는 raw를 링버퍼에 연속 저장 후 **버퍼가 차면 1회 UART 일괄 덤프**(연속 스트리밍은 대역폭상 불가).
+- **채널 확장 권고**: I_COIL_SEN 우선, 여유 시 GA_Vin(J3.26)·GA_Iin(J3.29)도 같은 경로로 — 외부 스코프 진폭 이상(§3.5)이 I_COIL_SEN 국한 문제인지 전반적 현상인지 가르는 데 쓰인다.
+- **⚠️ 설계 초안일 뿐 확정 아님 — 빈자리로 남는 것**: 버퍼 크기(스펙 초안엔 2048~4096 샘플 = 85 kHz 기준 24~48 ms 구간이 후보로만 적혀 있음, 확정 아님) · 덤프 프로토콜(기존 18B 텔레메트리 패킷을 확장할지 신규 패킷을 만들지) · PC측 수신 경로(GUI 통합 vs 별도 스크립트) · 캡처 트리거 조건. 전부 다음 세션이 구현하며 정할 사안.
 - 런타임 FOD 로직을 타깃에서 최종 구동하면 칩 내부에서 풀레이트를 공짜로 쓰므로, 이 PC 풀레이트 캡처는 **개발·검증용**일 뿐 — 최종 FOD 판정 경로가 아님.
 
 ---
