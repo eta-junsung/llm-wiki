@@ -4,6 +4,12 @@
 
 ---
 
+## [2026-07-01] 환원 | 8kw FOD — I_COIL_SEN 단독 백색/상관 판별 타당성 근거
+
+근거: 사용자 질의 — 정상 상황에서 I_COIL_SEN에만 프로브를 두고 백색 vs 스위칭 상관을 판별해도 되는 이유. [[fod_i_coil_observation]] §1에 근거 4항 환원.
+
+- **[[fod_i_coil_observation]] §1 "왜 I_COIL_SEN 단독 판별이 타당한가" 신설**: ① 이기려는 σ가 곧 I_COIL_SEN 노이즈(직접성) ② 정상상태 공칭 DC → FFT 대역 AC=노이즈(GA_Vin과 동일 성질) ③ 백색/상관 이분법이 노드 무관하게 치료법 직결 ④ **정류 리플 단서가 결정을 못 뒤집음** — 리플·결합노이즈 둘 다 coherent+위상고정 → 같은 레버(위상) 요구 → 결정 트리 강건. 경계: "GA_Vin 더 깨끗"은 절대 플로어 정밀측정 얘기일 뿐. 실무: 마커 GPIO95가 이미 I_COIL_SEN에 걸려 coherent 관측.
+
 ## [2026-07-01] 환원 | 8kw-ev-wpt-tx FOD I_COIL_SEN 1차 관찰 절차 (다음 작업)
 
 근거: 코드 repo `docs/fod_i_coil_observation.md`(branch `feature/adc-noise-fft`) 환원 — 다음 이어서 할 작업. 회로도 [[board_schematic_v1_0e00]] line 43 신호체인과 대조.
