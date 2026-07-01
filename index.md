@@ -207,4 +207,4 @@
 
 - [weekly_report_2026-06-09_16.md](teams/g/8kw-ev-wpt-tx/weekly_report_2026-06-09_16.md) — 주간 업무 보고 2026-06-09~16: PWM 전력제어 브링업(85kHz·dead-time 150ns 확정·EPWM0 fan-out·4-DT sweep PASS) + PC↔MCU UART 통신·GPIO 양방향 제어 완료
 - [weekly_report_2026-06-17_23.md](teams/g/8kw-ev-wpt-tx/weekly_report_2026-06-17_23.md) — 주간 업무 보고 2026-06-17~23: 툴체인 신스택 전환 완전 완료(CCS21/SDK_06, end-to-end PASS) + 새 테스트 머신 fresh-clone 검증 완료 + ADC A3 물리량 변환 착수(I_COIL_SEN·GA_Iin_SEN·GA_Vin 3채널)
-- [weekly_report_2026-06-24_30.md](teams/g/8kw-ev-wpt-tx/weekly_report_2026-06-24_30.md) — 주간 업무 보고 2026-06-24~30: ADC 트리거 RTI→EPWM0 전환+PPB HW 평균 N=64(PR #6) → 리피터 버스트 블록평균 N=16 전환(PR #11, Saleae 85.03kHz 실증) + 8kW 회로도 분석·노이즈 FFT 측정계획 + FOD 1차 관찰 착수 + 개발환경 크로스플랫폼 정리(PR #10)
+- [weekly_report_2026-06-24_30.md](teams/g/8kw-ev-wpt-tx/weekly_report_2026-06-24_30.md) — 주간 업무 보고 2026-06-24~30: ADC 트리거 RTI→EPWM0 전환+PPB HW 평균 N=64(PR #6) → 리피터 버스트 블록평균 N=16 전환(PR #11, Saleae 85.03kHz 실증) + 8kW 회로도 분석·노이즈 FFT 측정계획 + FOD 1차 관찰 착수
