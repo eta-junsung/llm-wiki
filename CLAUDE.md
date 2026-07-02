@@ -115,19 +115,29 @@ wiki/
 
 ## 파이프라인 — status 갱신 절차
 
+> **동기화는 앵커+델타 방식** — wiki가 프로젝트 repo를 직접 읽어 대조한다(복붙 아님). 전체 규약·근거는 [[wiki_sync_protocol]] / [[0001-repo-wiki-operating-model]]. 아래는 요약 절차.
+
 코드 repo 작업을 마친 파이프라인 Claude가 "프로젝트 status 갱신" 요청을 받으면:
 
 1. 현재 작업 중인 프로젝트를 확인한다 (코드 repo 디렉토리·커밋 컨텍스트 기준).
-2. 오늘 커밋을 분석한다 — 기능별로 **구현됨/미검증/미구현** 여부를 판단한다. "커밋됨 ≠ 실보드 검증됨"에 주의.
+2. `status.md`의 **동기화 앵커**를 읽고 델타만 분석한다 — `git log <앵커>..HEAD` + `git diff <앵커>..HEAD -- docs/`. 기능별로 **구현됨/미검증/미구현** 판단("커밋됨 ≠ 실보드 검증됨" 주의). 앵커가 없으면 최초 1회 현 상태를 읽어 앵커를 신설한다.
 3. `teams/<팀>/<프로젝트>/status.md`를 읽는다.
 4. 아래 규칙으로 갱신 후 덮어쓴다:
+   - **동기화 앵커**: 흡수한 tip으로 전진(브랜치 병합 시 main 앵커 전진·진행-브랜치 리셋). 대조 결과 드리프트 있으면 명기.
    - `다음 시작점`: 다음 작업 세션의 첫 번째 행동 한 줄. 구체적으로 (파일명·함수명·측정 방법 포함).
    - `구현 현황` 표: 상태 기호 `✓` 구현+검증 / `△` 구현됨·미검증 / `?` 불명 / `✗` 미구현.
    - `미결 사항`: 새로 생긴 미결 항목 추가. 해소된 항목 제거.
    - frontmatter `date`를 오늘 날짜로 갱신.
-5. 커밋한다 (`wiki: <프로젝트> status 갱신 YYYY-MM-DD`).
+5. `docs/log.md`·`docs/<topic>.md` 델타에서 지식(결정·함정·측정)을 흡수해 concept/entity/decisions로 환원한다(있으면; 없으면 건너뜀 — [[wiki_sync_protocol]]).
+6. 커밋한다 (`wiki: <프로젝트> status 갱신 YYYY-MM-DD`).
 
-status.md 위치: `teams/c/oled_tv_software/status.md`, `teams/g/lp-am263p/status.md`
+status.md 위치: `teams/c/oled_tv_software/status.md`, `teams/g/lp-am263p/status.md`, `teams/g/8kw-ev-wpt-tx/status.md`
+
+---
+
+## 결정 기록 (decisions / ADR)
+
+중요한 결정은 `decisions/NNNN-제목.md`(ADR)로 남긴다 — 프로젝트 결정 = `teams/<팀>/<프로젝트>/decisions/`, 크로스-커팅·전사 = 루트 `pages/decisions/`. 형식·규율(immutable·supersede)·bottom-up/top-down 흐름은 [[wiki_sync_protocol]] "결정 흐름". 빈 `decisions/`는 미리 만들지 않는다(실제 결정 생길 때 생성). 선례: [[0001-repo-wiki-operating-model]].
 
 ---
 

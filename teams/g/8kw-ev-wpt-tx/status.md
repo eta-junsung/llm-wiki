@@ -1,10 +1,17 @@
 ---
-date: 2026-07-01
+date: 2026-07-02
 ---
 
 
 
 # 8kw-ev-wpt-tx — 구현 현황
+
+> **🔗 동기화 앵커** — wiki가 흡수 완료한 프로젝트 git 커밋 경계. 다음 동기화 때 **이 지점 이후만** 읽는다(델타). 흡수 후 전진시킨다. 상세 규약 → [[wiki_sync_protocol]].
+> - `main`: **`953d4f3`** (PR #12 — io_iir_lpf 구현 + FOD I_COIL_SEN 1차 관찰) · 2026-07-02 흡수
+> - 진행 브랜치 `feature/adc-raw-capture`: **`b58b776`** (raw 캡처 **스펙 docs만**, 구현 미착수) · 2026-07-02 흡수
+> - 델타 확인: `git log 953d4f3..main --oneline` · `git log b58b776..feature/adc-raw-capture --oneline` · `git log <앵커>..HEAD -- docs/`
+> - 브랜치가 main에 squash 병합되면 `main` 앵커를 새 tip으로 전진, 진행-브랜치 앵커는 리셋.
+> - **2026-07-02 대조 결과: 드리프트 0** (양쪽 델타 공집합 — wiki가 코드와 정확히 일치).
 
 > 전략 spine은 [[roadmap]], 작업 단위 호는 [[adc]]·[[pwm]].
 > ⚠️ ADC 상태는 **branch `adc`의 커밋된 상태에서 코드로 역산**한 것 (commit c512e3b, origin/adc). **A3.5 트리거 EPWM0_SOCA 전환 + PPB HW 평균은 main에 PR #6 `d673e74`로 머지**(feature/adc-trigger-epwm0의 3e5f117·4cffbe1·532e0eb), HW 검증으로 **N=64 확정**. PWM 상태는 **branch `pwm`**(최신 = commit **d01fc0a** — 85 kHz 고정 + dead-time config 분리). UART5 PC 텔레메트리는 **branch `uart5`**(commit **ba241fa**·**979699d**, 실보드 검증 2026-06-11). 프로젝트 트리에 status.md는 없음 — status는 wiki 측에만 존재한다.

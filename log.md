@@ -4,6 +4,16 @@
 
 ---
 
+## [2026-07-02] 운영 | wiki↔repo 동기화 프로토콜 정립 (드리프트 해소) + 첫 ADR
+
+- **배경**: wiki 정보와 실제 프로젝트 상태가 자주 어긋나는 문제(다음 작업이라 한 게 이미 구현돼 있는 등) 논의. 원인 = wiki 갱신이 "환원 프롬프트 복붙" 서술로만 이뤄져 lossy·누락·시차에 노출. 실측으로 **wiki 세션이 프로젝트 repo git을 직접 읽을 수 있음** 확인(같은 FS).
+- **결정(ADR-0001)**: 코드 진실=git / 의도·지식 진실=wiki, 의존 한 방향(repo⟸wiki, 코드 세션은 wiki 모름). 앵커+델타로 대조. 지식 채널=repo `docs/log.md`+토픽노트(lazy-create). 결정=wiki `decisions/`(ADR). 기각 대안: git submodule·프로젝트 중첩·프로젝트별 CLAUDE.md 로그규칙·코드 세션 wiki-aware.
+- **신설**: [[wiki_sync_protocol]](how, concept) · [[0001-repo-wiki-operating-model]](why, 첫 ADR — dogfood). 루트 `pages/decisions/` 디렉토리 신설.
+- **8kw 선행 적용**: [[status]] 상단에 **동기화 앵커 블록** 신설(`main`=`953d4f3` / 진행 브랜치 `feature/adc-raw-capture`=`b58b776`, 2026-07-02 흡수). 현재 HEAD 기준 실측 대조 → **드리프트 0**(wiki가 코드와 정확히 일치, "다음 시작점=raw 캡처 구현"이 실제 미착수 = 정확).
+- **규약 반영**: 루트 [[CLAUDE.md]] status 갱신 절차를 앵커+델타 방식으로 개정 + "결정 기록(ADR)" 섹션 신설 (상세는 두 페이지로 위임, 본문 최소 증가). index 2건 등록.
+- **미실행(코드측, 사용자가 하네스 설계 시 반영)**: `eta-harness` coder/verifier 에이전트에 "docs/log.md 로깅 + lazy-create" 지침 추가 — wiki-blind 유지. 이 항목은 wiki 몫 아님.
+- 커밋은 wiki 규약대로 — 편집 후 사용자 확정.
+
 ## [2026-07-01] 갱신 | g팀 8kw FOD I_COIL_SEN 관찰 — main 병합 반영 + 후속 raw 캡처 스펙 ingest
 
 - 출처: 코드 repo main `953d4f3`(PR #12, `docs/fod_i_coil_observation.md`) + branch `feature/adc-raw-capture`(`docs/adc_raw_capture.md`, 구현 전 스펙). 절차 자체는 복사하지 않고 도메인 지식만 증류.

@@ -12,6 +12,7 @@
 
 ### Concepts
 
+- [[wiki_sync_protocol]] — **wiki↔repo 동기화 프로토콜(운영 규약)**: 코드 진실=git / 의도·지식 진실=wiki, 의존 한 방향(repo⟸wiki, 코드 세션은 wiki 모름). **앵커**(status.md의 흡수 커밋 마커)+델타(`git log <앵커>..HEAD`)로 복붙 없이 대조 — 토큰 비용이 파일 크기 무관. 지식 채널=repo `docs/log.md`+토픽노트(lazy-create, 하네스 coder/verifier가 씀). 결정 흐름(bottom-up 승격/top-down 작성)→`decisions/`. 왜는 [[0001-repo-wiki-operating-model]]
 - [[linux_migration]] — **Windows 11 → Ubuntu 24.04 LTS 개발환경 전환 결정·근거**(전사 공통): 배포판 선택(CCS 공식지원 24.04)·듀얼부팅+회수 전략(**ESP 삭제 금지**·WSL2 배제)·동기 3종(거부감/장기 Linux 스킬/Edge AI 장기동인)·툴체인 4종 portability 평가표(전부 네이티브 Linux)·런처 포팅 대상(`.ps1`/`.bat`→`.sh`). 단계는 [roadmaps/linux_migration.md](roadmaps/linux_migration.md) 위임
 - [[schematic_ingest_strategy]] — 회로도를 비전 처리 없이 텍스트로 ingest하는 Tier별 전략 (EDA export → CSV/netlist)
 - [[firmware_git_workflow]] — **펌웨어 Git 워크플로 표준(전사 공통)**: 트렁크 기반(`main` 단일)+annotated 릴리스 태그(SemVer `v0.x.y`). 핵심=**태그는 소스만 고정, 동일 바이너리는 고정 툴체인+의존성과 함께일 때만**(cf. [[sdk_ccs_toolchain_migration]]). **Tier 계층**: 지금 active=Tier 1(**PR 필수**·**Conventional Commits**·annotated 태그+git hash 임베드·**최소 CI 빌드 게이트**·repo `CONTRIBUTING.md`) / Tier 2(2번째 사람·v1.0.0→리뷰 require·코드서명) / Tier 3(다중 버전→`release/x.y`·Docker 툴체인 핀·west). CI 전제=헤드리스 빌드(TI gmake ✓·STM32CubeIDE 막힘 [[cubeide_cli_build_trap]], [[linux_migration]]와 정렬). 핫픽스 forward-only. **§3.1 머지 방식(squash 기본/rebase 예외/merge commit 금지)·§5 pre-1.0=테스트 grade·§8.4 CI informational→required 승격·§9 보드 구우면 무조건 태그**는 [[firmware_git_workflow_walkthrough]] 실습서 확정·보강
@@ -31,6 +32,10 @@
 
 - [[instruments]] — 회사 공통 계측 장비 + 프로그래밍/디버그 프로브 인벤토리 (Keysight MSOX3104T·Saleae Logic Pro 16 / ST-Link V2·**J-Link V9.3 Plus SN69730359**(nRF 정본)·SAM-ICE SN24012600). **2026-06-15 §정정: J-Link OB SN1050329071 현존 미확인·프로브 식별은 ShowEmuList 실측 규율**. **2026-07-01: MSOX3104T CSV export Fs=N/T(타임베이스가 Fs 결정) 방법론 추가**. planner가 검증 경로에 인용
 - [[contributing_template]] — **CONTRIBUTING.md 단일 템플릿(회사 공통)**: [[firmware_git_workflow]] 표준의 repo-side 산출물. 본문 100% 공통 + 상단 `프로젝트별` 블록(프로젝트명·MCU·툴체인·빌드 명령·CI 여부)만 수정해 어느 repo에도 복사. 정본=wiki(org `.github`/`firmware-ci` 마련 시 승격)
+
+### Decisions (ADR)
+
+- [[0001-repo-wiki-operating-model]] — **ADR-0001 repo↔wiki 운영 모델**(accepted, 2026-07-02): git=코드 진실 / wiki=의도 진실, 한 방향 의존. 기각 대안 기록 — git submodule(핀이 뒤처져 드리프트 고착)·프로젝트 중첩(wiki 비대)·프로젝트별 CLAUDE.md에 로그규칙(복붙)·코드 세션 wiki-aware(의존 역류). how는 [[wiki_sync_protocol]]
 
 ---
 
