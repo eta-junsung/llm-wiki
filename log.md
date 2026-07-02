@@ -11,7 +11,7 @@
 - **신설**: [[wiki_sync_protocol]](how, concept) · [[0001-repo-wiki-operating-model]](why, 첫 ADR — dogfood). 루트 `pages/decisions/` 디렉토리 신설.
 - **8kw 선행 적용**: [[status]] 상단에 **동기화 앵커 블록** 신설(`main`=`953d4f3` / 진행 브랜치 `feature/adc-raw-capture`=`b58b776`, 2026-07-02 흡수). 현재 HEAD 기준 실측 대조 → **드리프트 0**(wiki가 코드와 정확히 일치, "다음 시작점=raw 캡처 구현"이 실제 미착수 = 정확).
 - **규약 반영**: 루트 [[CLAUDE.md]] status 갱신 절차를 앵커+델타 방식으로 개정 + "결정 기록(ADR)" 섹션 신설 (상세는 두 페이지로 위임, 본문 최소 증가). index 2건 등록.
-- **미실행(코드측, 사용자가 하네스 설계 시 반영)**: `eta-harness` coder/verifier 에이전트에 "docs/log.md 로깅 + lazy-create" 지침 추가 — wiki-blind 유지. 이 항목은 wiki 몫 아님.
+- **미실행(코드측 소관, wiki 범위 밖)**: "docs/log.md 로깅 + lazy-create" 지침을 코드측에 심는 일 — 수단·위치(하네스/에이전트/CLAUDE.md 등)는 사용자가 코드측 설계 시 결정. wiki는 채널(`docs/log.md`)만 알고 writer 정체는 모른다.
 - 커밋은 wiki 규약대로 — 편집 후 사용자 확정.
 
 ## [2026-07-01] 갱신 | g팀 8kw FOD I_COIL_SEN 관찰 — main 병합 반영 + 후속 raw 캡처 스펙 ingest
